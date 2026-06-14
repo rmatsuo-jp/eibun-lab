@@ -1,0 +1,56 @@
+<div class="page">
+  <h1 class="page-title">英作文添削</h1>
+
+  <div class="input-section">
+    <label class="label">今日の英作文</label>
+    <textarea
+      class="textarea"
+      [(ngModel)]="userText"
+      [ngModelOptions]="{standalone: true}"
+      placeholder="今日の英作文をここに入力してください..."
+      rows="8"
+    ></textarea>
+  </div>
+
+  @if (error()) {
+    <div class="error-box">{{ error() }}</div>
+  }
+
+  <div class="actions">
+    <button class="btn-secondary" (click)="clear()" [disabled]="loading()">クリア</button>
+    <button class="btn-primary" (click)="submit()" [disabled]="loading() || !userText().trim()">
+      @if (loading()) {
+        <span class="spinner"></span> 添削中...
+      } @else {
+        添削する
+      }
+    </button>
+  </div>
+
+  @if (result()) {
+    <div class="result-section">
+      <h2 class="section-title">添削結果</h2>
+      <div class="result-box markdown-body" [innerHTML]="toHtml(result()!.corrected)"></div>
+
+      @if (result()!.mistakes.length > 0) {
+        <h2 class="section-title">ミスリスト</h2>
+        <div class="mistakes-list">
+          @for (m of result()!.mistakes; track m.original) {
+            <div class="mistake-card">
+              <span class="category-badge">{{ m.category }}</span>
+              <div class="mistake-row">
+                <span class="mistake-label">誤</span>
+                <span class="mistake-original">{{ m.original }}</span>
+              </div>
+              <div class="mistake-row">
+                <span class="mistake-label correct">正</span>
+                <span class="mistake-corrected">{{ m.corrected }}</span>
+              </div>
+              <p class="mistake-explanation">{{ m.explanation }}</p>
+            </div>
+          }
+        </div>
+      }
+    </div>
+  }
+</div>

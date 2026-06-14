@@ -1,0 +1,52 @@
+<div class="page">
+  <h1 class="page-title">履歴</h1>
+
+  @if (sessions().length === 0) {
+    <div class="empty">
+      <p>まだ添削履歴がありません。</p>
+      <p>添削ページで英作文を送信すると、ここに記録されます。</p>
+    </div>
+  }
+
+  <div class="sessions-list">
+    @for (session of sessions(); track session.id) {
+      <div class="session-card" (click)="toggle(session.id)">
+        <div class="session-header">
+          <div class="session-meta">
+            <span class="session-date">{{ formatDate(session.date) }}</span>
+            @if (session.mistakes.length > 0) {
+              <span class="mistake-count">ミス {{ session.mistakes.length }}件</span>
+            }
+          </div>
+          <div class="session-actions">
+            <button class="delete-btn" (click)="delete(session.id, $event)" aria-label="削除">✕</button>
+            <span class="chevron" [class.open]="expandedId() === session.id">›</span>
+          </div>
+        </div>
+        <p class="session-preview">{{ session.original }}</p>
+
+        @if (expandedId() === session.id) {
+          <div class="session-detail">
+            <h3 class="detail-title">元の英作文</h3>
+            <pre class="detail-text original">{{ session.original }}</pre>
+
+            <h3 class="detail-title">添削結果</h3>
+            <div class="detail-text markdown-body" [innerHTML]="toHtml(session.corrected)"></div>
+
+            @if (session.mistakes.length > 0) {
+              <h3 class="detail-title">ミスリスト</h3>
+              @for (m of session.mistakes; track m.original) {
+                <div class="mini-mistake">
+                  <span class="category-badge">{{ m.category }}</span>
+                  <span class="mistake-original">{{ m.original }}</span>
+                  <span class="arrow">→</span>
+                  <span class="mistake-corrected">{{ m.corrected }}</span>
+                </div>
+              }
+            }
+          </div>
+        }
+      </div>
+    }
+  </div>
+</div>

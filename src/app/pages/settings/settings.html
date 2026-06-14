@@ -1,0 +1,49 @@
+<div class="page">
+  <h1 class="page-title">設定</h1>
+
+  <div class="form-group">
+    <label class="label">Gemini API キー</label>
+    <p class="hint">
+      <a href="https://aistudio.google.com/app/apikey" target="_blank" rel="noopener">Google AI Studio</a>
+      で無料取得できます。
+    </p>
+    <div class="key-input-wrap">
+      <input
+        class="input"
+        [type]="showKey() ? 'text' : 'password'"
+        [value]="settings().apiKey"
+        (input)="update('apiKey', $any($event.target).value)"
+        placeholder="AIza..."
+      />
+      <button class="toggle-key" (click)="showKey.set(!showKey())" type="button">
+        {{ showKey() ? '隠す' : '表示' }}
+      </button>
+    </div>
+  </div>
+
+  <div class="form-group">
+    <label class="label">モデル</label>
+    <select class="select" [value]="settings().model" (change)="update('model', $any($event.target).value)">
+      @for (m of models; track m.value) {
+        <option [value]="m.value">{{ m.label }}</option>
+      }
+    </select>
+  </div>
+
+  <div class="form-group">
+    <label class="label">添削プロンプト</label>
+    <p class="hint"><code>&#123;USER_TEXT&#125;</code> の位置に英作文が挿入されます。</p>
+    <textarea
+      class="textarea"
+      [value]="settings().prompt"
+      (input)="update('prompt', $any($event.target).value)"
+      rows="12"
+    ></textarea>
+  </div>
+
+  <div class="actions">
+    <button class="btn-primary" (click)="save()">
+      @if (saved()) { ✓ 保存しました } @else { 保存する }
+    </button>
+  </div>
+</div>
