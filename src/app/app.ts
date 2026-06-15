@@ -1,5 +1,6 @@
 import { Component } from '@angular/core';
 import { RouterOutlet, RouterLink, RouterLinkActive } from '@angular/router';
+import { StorageService } from './services/storage.service';
 
 @Component({
   selector: 'app-root',
@@ -7,4 +8,9 @@ import { RouterOutlet, RouterLink, RouterLinkActive } from '@angular/router';
   templateUrl: './app.html',
   styleUrl: './app.scss',
 })
-export class App {}
+export class App {
+  constructor(storage: StorageService) {
+    const settings = storage.getSettings();
+    document.documentElement.dataset['theme'] = settings.theme;
+  }
+}

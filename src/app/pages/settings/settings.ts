@@ -10,7 +10,7 @@ import { CorrectionSession } from '../../models/session.model';
   styleUrl: './settings.scss',
 })
 export class Settings {
-  settings = signal<AppSettings>({ apiKey: '', model: 'gemini-3.5-flash', includeNaturalExpressions: true, includeGrammarTendency: true, includeCefrEvaluation: true, includeLevelUpSuggestion: true });
+  settings = signal<AppSettings>({ apiKey: '', model: 'gemini-3.5-flash', includeNaturalExpressions: true, includeGrammarTendency: true, includeCefrEvaluation: true, includeLevelUpSuggestion: true, theme: 'dark' });
   promptPreview = signal('');
   saved = signal(false);
   showKey = signal(false);
@@ -38,6 +38,9 @@ export class Settings {
     const updated = { ...this.settings(), [field]: value };
     this.settings.set(updated);
     this.promptPreview.set(buildPrompt(updated));
+    if (field === 'theme') {
+      document.documentElement.dataset['theme'] = value as string;
+    }
   }
 
   save() {

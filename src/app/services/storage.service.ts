@@ -11,6 +11,7 @@ export interface AppSettings {
   includeGrammarTendency: boolean;
   includeCefrEvaluation: boolean;
   includeLevelUpSuggestion: boolean;
+  theme: 'light' | 'dark';
 }
 
 const DEFAULT_SETTINGS: AppSettings = {
@@ -20,6 +21,7 @@ const DEFAULT_SETTINGS: AppSettings = {
   includeGrammarTendency: true,
   includeCefrEvaluation: true,
   includeLevelUpSuggestion: true,
+  theme: 'dark',
 };
 
 export function buildPrompt(settings: AppSettings): string {

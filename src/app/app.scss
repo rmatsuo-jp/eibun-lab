@@ -8,14 +8,19 @@
 .app-content {
   flex: 1;
   overflow-y: auto;
-  padding-bottom: 1rem;
+  padding-bottom: calc(4rem + env(safe-area-inset-bottom));
 }
 
 .bottom-nav {
+  position: fixed;
+  bottom: 0;
+  left: 0;
+  right: 0;
   display: flex;
   border-top: 1px solid var(--color-border);
   background: var(--color-surface);
   padding-bottom: env(safe-area-inset-bottom);
+  z-index: 100;
 }
 
 .nav-item {

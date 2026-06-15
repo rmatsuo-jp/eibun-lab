@@ -221,6 +221,35 @@
   color: var(--color-text-muted);
 }
 
+.theme-toggle {
+  display: flex;
+  gap: 0.5rem;
+}
+
+.theme-btn {
+  flex: 1;
+  padding: 0.625rem 1rem;
+  border: 2px solid var(--color-border);
+  border-radius: 0.75rem;
+  background: var(--color-surface);
+  color: var(--color-text-muted);
+  font-size: 0.9375rem;
+  font-weight: 600;
+  cursor: pointer;
+  transition: border-color 0.2s, color 0.2s, background 0.2s;
+
+  &:hover {
+    border-color: var(--color-primary);
+    color: var(--color-text);
+  }
+
+  &.active {
+    border-color: var(--color-primary);
+    background: var(--color-primary-light);
+    color: var(--color-primary);
+  }
+}
+
 .btn-primary {
   background: var(--color-primary);
   color: #fff;
