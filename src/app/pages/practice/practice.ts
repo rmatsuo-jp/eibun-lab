@@ -1,7 +1,7 @@
 /**
  * @file 英作文入力・添削結果表示ページ。
  * ユーザーが入力した英文を GeminiService に送信し、添削結果（Markdown）とミスリストを表示する。
- * 添削成功時は StorageService にセッションを保存する。
+ * 日付選択（デフォルト: 今日）が可能。添削成功時は StorageService にセッションを保存する。
  */
 import { Component, signal } from '@angular/core';
 import { FormsModule } from '@angular/forms';
@@ -20,6 +20,7 @@ import { CorrectionSession, Mistake } from '../../models/session.model';
 export class Practice {
   // ── 状態管理（signal） ────────────────────────────────────────────
   userText = signal('');
+  selectedDate = signal(new Date().toISOString().slice(0, 10));
   loading = signal(false);
   error = signal('');
   result = signal<{ corrected: string; mistakes: Mistake[] } | null>(null);
@@ -65,9 +66,10 @@ export class Practice {
       }
       this.result.set(res);
 
+      const sessionDate = new Date(this.selectedDate());
       const session: CorrectionSession = {
-        id: Date.now().toString(),
-        date: new Date().toISOString(),
+        id: sessionDate.getTime().toString(),
+        date: sessionDate.toISOString(),
         original: text,
         corrected: res.corrected,
         mistakes: res.mistakes,

@@ -1,4 +1,4 @@
-<!-- @file Settings ページテンプレート。テーマ・API キー・モデル・添削オプション・プロンプトプレビュー・JSON 変換ツールを含む。 -->
+<!-- @file Settings ページテンプレート。テーマ・API キー・モデル・添削オプション・プロンプトプレビューを含む。 -->
 <div class="page">
   <h1 class="page-title">設定</h1>
 
@@ -96,45 +96,4 @@
     </button>
   </div>
 
-  <hr class="section-divider">
-
-  <h2 class="section-title">過去の英作文をJSON形式に変換</h2>
-  <p class="hint">過去の英作文テキストを入力すると、履歴画面で取り込めるJSON形式に変換します。</p>
-
-  <div class="form-group">
-    <label class="label">日付</label>
-    <input class="input" type="date" [value]="convertDate()"
-      (input)="convertDate.set($any($event.target).value)" />
-  </div>
-
-  <div class="form-group">
-    <label class="label">英作文（1件ずつ入力）</label>
-    @for (text of convertTexts(); track $index) {
-      <div class="entry-row">
-        <textarea class="textarea" rows="4" [value]="text"
-          (input)="updateEntry($index, $any($event.target).value)"
-          placeholder="過去の英作文を入力..."></textarea>
-        @if (convertTexts().length > 1) {
-          <button class="remove-btn" type="button" (click)="removeEntry($index)">✕</button>
-        }
-      </div>
-    }
-    <button class="add-btn" type="button" (click)="addEntry()">＋ 追加</button>
-  </div>
-
-  <div class="actions">
-    <button class="btn-primary" (click)="generateJson()">JSONを生成</button>
-  </div>
-
-  @if (convertResult()) {
-    <div class="form-group" style="margin-top: 1rem">
-      <label class="label">生成されたJSON（履歴画面でインポートできます）</label>
-      <textarea class="textarea" rows="10" readonly [value]="convertResult()"></textarea>
-      <div class="actions" style="margin-top: 0.5rem">
-        <button class="btn-primary" (click)="copyResult()">
-          @if (copiedConvert()) { ✓ コピーしました } @else { クリップボードにコピー }
-        </button>
-      </div>
-    </div>
-  }
 </div>

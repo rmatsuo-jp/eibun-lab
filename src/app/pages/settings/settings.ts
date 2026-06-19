@@ -1,11 +1,10 @@
 /**
  * @file 設定ページ。API キー・モデル選択・機能トグル・テーマ切り替えを管理する。
- * プロンプトのリアルタイムプレビューと、過去英作文の JSON 変換ツールも提供する。
+ * プロンプトのリアルタイムプレビューを提供する。
  */
 import { Component, signal } from '@angular/core';
 import { FormsModule } from '@angular/forms';
 import { StorageService, AppSettings, buildPrompt } from '../../services/storage.service';
-import { CorrectionSession } from '../../models/session.model';
 
 @Component({
   selector: 'app-settings',
@@ -24,11 +23,6 @@ export class Settings {
     { value: 'gemini-3.5-flash', label: 'Gemini 3.5 Flash' },
     { value: 'gemini-2.5-flash', label: 'Gemini 2.5 Flash' },
   ];
-
-  convertDate = signal(new Date().toISOString().slice(0, 10));
-  convertTexts = signal<string[]>(['']);
-  convertResult = signal('');
-  copiedConvert = signal(false);
 
   constructor(private storage: StorageService) {
     const saved = this.storage.getSettings();
@@ -55,40 +49,4 @@ export class Settings {
     setTimeout(() => this.saved.set(false), 2000);
   }
 
-  // ── テキスト→JSON 変換ツール ──────────────────────────────────────
-  addEntry() {
-    this.convertTexts.set([...this.convertTexts(), '']);
-  }
-
-  removeEntry(i: number) {
-    const arr = [...this.convertTexts()];
-    arr.splice(i, 1);
-    this.convertTexts.set(arr.length ? arr : ['']);
-  }
-
-  updateEntry(i: number, value: string) {
-    const arr = [...this.convertTexts()];
-    arr[i] = value;
-    this.convertTexts.set(arr);
-  }
-
-  generateJson() {
-    const baseTime = new Date(this.convertDate()).getTime();
-    const sessions: CorrectionSession[] = this.convertTexts()
-      .filter(t => t.trim())
-      .map((t, i) => ({
-        id: `${baseTime + i}`,
-        date: new Date(this.convertDate()).toISOString(),
-        original: t.trim(),
-        corrected: '',
-        mistakes: [],
-      }));
-    this.convertResult.set(JSON.stringify(sessions, null, 2));
-  }
-
-  copyResult() {
-    navigator.clipboard.writeText(this.convertResult());
-    this.copiedConvert.set(true);
-    setTimeout(() => this.copiedConvert.set(false), 2000);
-  }
 }

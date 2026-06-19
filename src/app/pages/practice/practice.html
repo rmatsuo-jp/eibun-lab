@@ -1,9 +1,16 @@
-<!-- @file Practice ページテンプレート。入力エリア・エラー表示・送信ボタン・添削結果（Markdown + ミスリスト）を含む。 -->
+<!-- @file Practice ページテンプレート。日付選択・入力エリア・エラー表示・送信ボタン・添削結果（Markdown + ミスリスト）を含む。 -->
 <div class="page">
   <h1 class="page-title">英作文添削</h1>
 
+  <div class="date-row">
+    <label class="label">日付</label>
+    <input class="input date-input" type="date"
+      [value]="selectedDate()"
+      (input)="selectedDate.set($any($event.target).value)" />
+  </div>
+
   <div class="input-section">
-    <label class="label">今日の英作文</label>
+    <label class="label">英作文</label>
     <textarea
       class="textarea"
       [(ngModel)]="userText"
