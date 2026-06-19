@@ -139,3 +139,20 @@
   color: var(--color-text-muted);
   line-height: 1.5;
 }
+
+// ── PC レイアウト（768px 以上）────────────────────────────────────
+@media (min-width: 768px) {
+  .page {
+    max-width: 960px;
+    padding: 2rem;
+  }
+
+  .chart-row {
+    grid-template-columns: 8rem 1fr 2.5rem;
+  }
+
+  .frequent-list {
+    display: grid;
+    grid-template-columns: repeat(2, 1fr);
+  }
+}

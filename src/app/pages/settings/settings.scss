@@ -266,3 +266,16 @@
     opacity: 0.9;
   }
 }
+
+// ── PC レイアウト（768px 以上）────────────────────────────────────
+@media (min-width: 768px) {
+  .page {
+    max-width: 960px;
+    padding: 2rem;
+  }
+
+  .option-list {
+    display: grid;
+    grid-template-columns: repeat(2, 1fr);
+  }
+}

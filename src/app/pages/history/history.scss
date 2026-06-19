@@ -237,3 +237,22 @@
   color: #16a34a;
   font-weight: 600;
 }
+
+// ── PC レイアウト（768px 以上）────────────────────────────────────
+@media (min-width: 768px) {
+  .page {
+    max-width: 960px;
+    padding: 2rem;
+  }
+
+  .sessions-list {
+    display: flex;
+    flex-direction: column;
+  }
+
+  .session-preview {
+    white-space: normal;
+    overflow: visible;
+    text-overflow: unset;
+  }
+}
