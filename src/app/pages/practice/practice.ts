@@ -3,12 +3,13 @@
  * ユーザーが入力した英文を GeminiService に送信し、添削結果（Markdown）とミスリストを表示する。
  * 日付選択（デフォルト: 今日）が可能。添削成功時は StorageService にセッションを保存する。
  */
-import { Component, signal } from '@angular/core';
+import { Component, inject, signal } from '@angular/core';
 import { FormsModule } from '@angular/forms';
 import { DomSanitizer, SafeHtml } from '@angular/platform-browser';
 import { marked } from 'marked';
 import { GeminiService } from '../../services/gemini.service';
-import { StorageService, buildPrompt } from '../../services/storage.service';
+import { StorageService } from '../../services/storage.service';
+import { buildPrompt } from '../../utils/prompt.util';
 import { CorrectionSession, Mistake } from '../../models/session.model';
 
 @Component({
@@ -18,6 +19,10 @@ import { CorrectionSession, Mistake } from '../../models/session.model';
   styleUrl: './practice.scss',
 })
 export class Practice {
+  private gemini = inject(GeminiService);
+  private storage = inject(StorageService);
+  private sanitizer = inject(DomSanitizer);
+
   // ── 状態管理（signal） ────────────────────────────────────────────
   userText = signal('');
   selectedDate = signal(new Date().toISOString().slice(0, 10));
@@ -25,18 +30,12 @@ export class Practice {
   error = signal('');
   result = signal<{ corrected: string; mistakes: Mistake[] } | null>(null);
 
-  constructor(
-    private gemini: GeminiService,
-    private storage: StorageService,
-    private sanitizer: DomSanitizer,
-  ) {}
-
   toHtml(markdown: string): SafeHtml {
     const html = marked.parse(markdown) as string;
     return this.sanitizer.bypassSecurityTrustHtml(html);
   }
 
-  // ── 添削実行: Gemini API 呼び出し → 結果表示 → セッション保存（gemini-3.5-flash エラー時は gemini-2.5-flash にフォールバック） ───
+  // ── 添削実行: Gemini API 呼び出し → 結果表示 → セッション保存 ───
   async submit() {
     const text = this.userText().trim();
     if (!text) return;
@@ -52,18 +51,7 @@ export class Practice {
     this.result.set(null);
 
     try {
-      let res;
-      const prompt = buildPrompt(settings);
-      try {
-        res = await this.gemini.correct(settings.apiKey, settings.model, prompt, text);
-      } catch (firstError) {
-        // gemini-3.5-flash でエラーが発生した場合、gemini-2.5-flash にフォールバック
-        if (settings.model === 'gemini-3.5-flash') {
-          res = await this.gemini.correct(settings.apiKey, 'gemini-2.5-flash', prompt, text);
-        } else {
-          throw firstError;
-        }
-      }
+      const res = await this.gemini.correct(settings.apiKey, settings.model, buildPrompt(settings), text);
       this.result.set(res);
 
       const sessionDate = new Date(this.selectedDate());

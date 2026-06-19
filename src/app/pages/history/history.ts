@@ -1,8 +1,9 @@
 /**
  * @file 過去の添削セッション一覧ページ。
  * セッションの表示・複数選択削除・展開、日付ソート、JSON インポート/エクスポートを提供する。
+ * StorageService の sessions signal を直接参照し、データ変更を自動反映する。
  */
-import { Component, ElementRef, ViewChild, computed, signal } from '@angular/core';
+import { Component, ElementRef, ViewChild, computed, inject, signal } from '@angular/core';
 import { DomSanitizer, SafeHtml } from '@angular/platform-browser';
 import { marked } from 'marked';
 import { StorageService } from '../../services/storage.service';
@@ -14,11 +15,16 @@ import { CorrectionSession } from '../../models/session.model';
   styleUrl: './history.scss',
 })
 export class History {
+  private storage = inject(StorageService);
+  private sanitizer = inject(DomSanitizer);
+
+  @ViewChild('fileInput') fileInput!: ElementRef<HTMLInputElement>;
+
   // ── 状態管理（signal） ────────────────────────────────────────────
-  sessions = signal<CorrectionSession[]>([]);
+  readonly sessions = this.storage.sessions;
   expandedId = signal<string | null>(null);
   selectionMode = signal(false);
-  selectedIds = signal<Set<string>>(new Set());
+  selectedIds = signal<string[]>([]);
   sortOrder = signal<'asc' | 'desc'>('desc');
 
   sortedSessions = computed(() =>
@@ -27,15 +33,6 @@ export class History {
       return this.sortOrder() === 'asc' ? diff : -diff;
     })
   );
-
-  @ViewChild('fileInput') fileInput!: ElementRef<HTMLInputElement>;
-
-  constructor(
-    private storage: StorageService,
-    private sanitizer: DomSanitizer,
-  ) {
-    this.sessions.set(this.storage.getSessions());
-  }
 
   toHtml(markdown: string): SafeHtml {
     const html = marked.parse(markdown) as string;
@@ -54,31 +51,28 @@ export class History {
   toggleSelectionMode() {
     const next = !this.selectionMode();
     this.selectionMode.set(next);
-    if (!next) this.selectedIds.set(new Set());
+    if (!next) this.selectedIds.set([]);
   }
 
+  // ── 複数選択（Set ではなく配列で Signal の変化検知を保証） ─────
   toggleSelect(id: string, event: Event) {
     event.stopPropagation();
-    const ids = new Set(this.selectedIds());
-    if (ids.has(id)) {
-      ids.delete(id);
-    } else {
-      ids.add(id);
-    }
-    this.selectedIds.set(ids);
+    const ids = this.selectedIds();
+    this.selectedIds.set(
+      ids.includes(id) ? ids.filter(x => x !== id) : [...ids, id]
+    );
   }
 
   isSelected(id: string): boolean {
-    return this.selectedIds().has(id);
+    return this.selectedIds().includes(id);
   }
 
   deleteSelected() {
     const ids = this.selectedIds();
-    if (ids.size === 0) return;
-    if (!confirm(`${ids.size}件の履歴を削除しますか？この操作は元に戻せません。`)) return;
+    if (ids.length === 0) return;
+    if (!confirm(`${ids.length}件の履歴を削除しますか？この操作は元に戻せません。`)) return;
     ids.forEach(id => this.storage.deleteSession(id));
-    this.sessions.set(this.storage.getSessions());
-    this.selectedIds.set(new Set());
+    this.selectedIds.set([]);
     this.selectionMode.set(false);
   }
 
@@ -114,7 +108,7 @@ export class History {
               session['corrected'] !== undefined && Array.isArray(session['mistakes']);
           }
         );
-        this.sessions.set(this.storage.importSessions(valid as CorrectionSession[]));
+        this.storage.importSessions(valid as CorrectionSession[]);
       } catch {
         alert('JSONの形式が正しくありません');
       }

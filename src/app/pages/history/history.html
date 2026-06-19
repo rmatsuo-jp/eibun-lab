@@ -13,9 +13,9 @@
     } @else {
       <button class="toolbar-btn" (click)="toggleSelectionMode()">キャンセル</button>
       <button class="toolbar-btn delete-selected-btn"
-              [disabled]="selectedIds().size === 0"
+              [disabled]="selectedIds().length === 0"
               (click)="deleteSelected()">
-        削除{{ selectedIds().size > 0 ? '（' + selectedIds().size + '件）' : '' }}
+        削除{{ selectedIds().length > 0 ? '（' + selectedIds().length + '件）' : '' }}
       </button>
     }
   </div>
