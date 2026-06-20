@@ -56,11 +56,13 @@ export class Practice {
 
       const sessionDate = new Date(this.selectedDate());
       const session: CorrectionSession = {
-        id: sessionDate.getTime().toString(),
+        // 日付に依存しない一意 ID（同日に複数回添削しても衝突しない）
+        id: `${Date.now()}-${Math.random().toString(36).slice(2)}`,
         date: sessionDate.toISOString(),
         original: text,
         corrected: res.corrected,
         mistakes: res.mistakes,
+        cefr: res.cefr,
       };
       this.storage.saveSession(session);
     } catch (e) {

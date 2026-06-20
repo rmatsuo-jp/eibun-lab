@@ -1,0 +1,65 @@
+<!-- @file Drill ページテンプレート。頻出ミスを出題し、回答→正解表示→次へ→結果サマリーの流れを提供する。 -->
+<div class="page">
+  <h1 class="page-title">弱点克服ドリル</h1>
+
+  @if (questions().length === 0) {
+    <!-- ── 出題データなし ── -->
+    <div class="empty">
+      <p>まだ出題できるミスがありません。</p>
+      <p>添削ページで英作文を送信し、ミスを蓄積するとドリルに出題されます。</p>
+    </div>
+  } @else if (!started()) {
+    <!-- ── スタート画面 ── -->
+    <div class="intro">
+      <p>あなたが過去によく間違えた表現を出題します。</p>
+      <p>正しい表現を入力して、弱点を克服しましょう。</p>
+      <p class="intro-count">出題数: {{ questions().length }}問</p>
+      <button class="btn-primary" (click)="start()">ドリルを始める</button>
+    </div>
+  } @else if (finished()) {
+    <!-- ── 結果サマリー ── -->
+    <div class="result-summary">
+      <p class="result-score">{{ score() }} / {{ total() }} 正解</p>
+      <p class="result-message">お疲れさまでした！繰り返し挑戦して定着させましょう。</p>
+      <button class="btn-primary" (click)="restart()">もう一度</button>
+    </div>
+  } @else {
+    <!-- ── 出題中 ── -->
+    <div class="progress">{{ index() + 1 }} / {{ total() }}</div>
+
+    @if (current(); as q) {
+      <div class="quiz-card">
+        <span class="category-badge">{{ q.category }}</span>
+        <p class="quiz-prompt">次の表現を正しく直してください。</p>
+        <p class="quiz-original">{{ q.original }}</p>
+        <p class="quiz-hint">ヒント: {{ q.explanation }}</p>
+
+        <input class="answer-input" type="text"
+               placeholder="正しい表現を入力..."
+               [(ngModel)]="userAnswer"
+               [disabled]="revealed()"
+               (keyup.enter)="check()">
+
+        @if (!revealed()) {
+          <button class="btn-primary" (click)="check()" [disabled]="!userAnswer().trim()">答え合わせ</button>
+        } @else {
+          <div class="answer-result" [class.correct]="currentCorrect()" [class.wrong]="!currentCorrect()">
+            {{ currentCorrect() ? '⭕ 正解！' : '❌ 不正解' }}
+          </div>
+          <div class="correct-answer">
+            <span class="correct-label">正解</span>
+            <span class="correct-text">{{ q.corrected }}</span>
+          </div>
+          <div class="post-actions">
+            @if (!currentCorrect()) {
+              <button class="btn-secondary" (click)="markCorrect()">正解にする</button>
+            }
+            <button class="btn-primary" (click)="next()">
+              {{ index() + 1 >= total() ? '結果を見る' : '次へ' }}
+            </button>
+          </div>
+        }
+      </div>
+    }
+  }
+</div>

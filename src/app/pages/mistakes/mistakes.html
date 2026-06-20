@@ -1,13 +1,75 @@
-<!-- @file Mistakes ページテンプレート。カテゴリ別ミス頻度バーと頻出ミスリストを表示する。 -->
+<!-- @file Mistakes ページテンプレート。学習統計ダッシュボード・カテゴリ別ミス頻度バー・頻出ミスリストを表示する。 -->
 <div class="page">
   <h1 class="page-title">ミス傾向</h1>
 
-  @if (stats().length === 0) {
+  @if (studyStats().totalSessions === 0) {
     <div class="empty">
       <p>まだデータがありません。</p>
       <p>添削を重ねるとミスのパターンが分析されます。</p>
     </div>
   } @else {
+    <!-- ── 学習統計ダッシュボード ── -->
+    <section class="section">
+      <div class="stat-grid">
+        <div class="stat-card streak">
+          <span class="stat-value">🔥 {{ studyStats().currentStreak }}</span>
+          <span class="stat-label">連続学習日数</span>
+        </div>
+        <div class="stat-card">
+          <span class="stat-value">{{ studyStats().totalSessions }}</span>
+          <span class="stat-label">総添削数</span>
+        </div>
+        <div class="stat-card">
+          <span class="stat-value">{{ studyStats().totalMistakes }}</span>
+          <span class="stat-label">総ミス数</span>
+        </div>
+        <div class="stat-card">
+          <span class="stat-value">{{ studyStats().avgMistakes }}</span>
+          <span class="stat-label">平均ミス/回</span>
+        </div>
+        <div class="stat-card">
+          <span class="stat-value">{{ studyStats().last7DaysCount }}</span>
+          <span class="stat-label">直近7日</span>
+        </div>
+      </div>
+    </section>
+
+    <!-- ── CEFR レベル推移 ── -->
+    @if (cefrHistory().length > 0) {
+    <section class="section">
+      <h2 class="section-title">CEFRレベル推移</h2>
+      @if (cefrChart().length > 0) {
+        <div class="cefr-chart">
+          <svg [attr.viewBox]="'0 0 ' + chartBox.w + ' ' + chartBox.h" preserveAspectRatio="xMidYMid meet">
+            <!-- y軸グリッド -->
+            @for (g of cefrLevels; track g.label) {
+              <line class="grid-line" [attr.x1]="chartBox.padL" [attr.x2]="chartBox.w - chartBox.padR"
+                    [attr.y1]="g.y" [attr.y2]="g.y" />
+              <text class="grid-label" [attr.x]="2" [attr.y]="g.y + 3">{{ g.label }}</text>
+            }
+            <!-- 系列 -->
+            @for (s of cefrChart(); track s.name) {
+              <polyline [attr.points]="s.line" fill="none" [attr.stroke]="s.color" stroke-width="2" />
+              @for (d of s.dots; track $index) {
+                <circle [attr.cx]="d.x" [attr.cy]="d.y" r="2.5" [attr.fill]="s.color" />
+              }
+            }
+          </svg>
+          <div class="cefr-legend">
+            @for (s of cefrChart(); track s.name) {
+              <span class="legend-item">
+                <span class="legend-dot" [style.background]="s.color"></span>{{ s.name }}
+              </span>
+            }
+          </div>
+        </div>
+      } @else {
+        <p class="chart-note">推移を表示するには、CEFR評価付きの添削が2回以上必要です。</p>
+      }
+    </section>
+    }
+
+    @if (stats().length > 0) {
     <section class="section">
       <h2 class="section-title">カテゴリ別ミス件数</h2>
       <div class="chart">
@@ -44,5 +106,6 @@
         }
       </div>
     </section>
+    }
   }
 </div>

@@ -1,9 +1,10 @@
 /**
  * @file 過去の添削セッション一覧ページ。
- * セッションの表示・複数選択削除・展開、日付ソート、JSON インポート/エクスポートを提供する。
+ * セッションの表示・複数選択削除・展開、日付ソート、キーワード検索、JSON インポート/エクスポートを提供する。
  * StorageService の sessions signal を直接参照し、データ変更を自動反映する。
  */
 import { Component, ElementRef, ViewChild, computed, inject, signal } from '@angular/core';
+import { FormsModule } from '@angular/forms';
 import { DomSanitizer, SafeHtml } from '@angular/platform-browser';
 import { marked } from 'marked';
 import { StorageService } from '../../services/storage.service';
@@ -11,6 +12,7 @@ import { CorrectionSession } from '../../models/session.model';
 
 @Component({
   selector: 'app-history',
+  imports: [FormsModule],
   templateUrl: './history.html',
   styleUrl: './history.scss',
 })
@@ -26,13 +28,26 @@ export class History {
   selectionMode = signal(false);
   selectedIds = signal<string[]>([]);
   sortOrder = signal<'asc' | 'desc'>('desc');
+  searchQuery = signal('');
 
-  sortedSessions = computed(() =>
-    [...this.sessions()].sort((a, b) => {
+  // ── 検索フィルタ → 日付ソートの順で派生（元文・添削文・ミス表現を横断検索） ─
+  filteredSessions = computed(() => {
+    const q = this.searchQuery().trim().toLowerCase();
+    const filtered = q
+      ? this.sessions().filter(s =>
+          s.original.toLowerCase().includes(q) ||
+          s.corrected.toLowerCase().includes(q) ||
+          s.mistakes.some(m =>
+            m.original.toLowerCase().includes(q) ||
+            m.corrected.toLowerCase().includes(q)
+          )
+        )
+      : this.sessions();
+    return [...filtered].sort((a, b) => {
       const diff = a.date.localeCompare(b.date);
       return this.sortOrder() === 'asc' ? diff : -diff;
-    })
-  );
+    });
+  });
 
   toHtml(markdown: string): SafeHtml {
     const html = marked.parse(markdown) as string;

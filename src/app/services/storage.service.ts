@@ -1,14 +1,30 @@
 /**
  * @file LocalStorage への永続化を担うサービス。
- * セッション管理（CRUD）・設定管理・ミス統計集計を一元管理する。
+ * セッション管理（CRUD）・設定管理・ミス統計集計・学習統計（streak等）を一元管理する。
  * sessions signal でリアクティブなキャッシュを提供する。
  * コンポーネントから直接 localStorage を操作せず、必ずこのサービスを経由すること。
  */
 import { Injectable, signal } from '@angular/core';
-import { CorrectionSession, Mistake } from '../models/session.model';
+import { CefrEvaluation, CorrectionSession, Mistake } from '../models/session.model';
+
+// CEFR レベルを数値化（グラフ描画用）。未知の値は 0 として扱う。
+export const CEFR_ORDER = ['A1', 'A2', 'B1', 'B2', 'C1', 'C2'] as const;
+export function cefrToNumber(level: string): number {
+  const idx = CEFR_ORDER.indexOf(level.toUpperCase().trim() as (typeof CEFR_ORDER)[number]);
+  return idx === -1 ? 0 : idx + 1;
+}
 
 const SESSIONS_KEY = 'correction_sessions';
 const SETTINGS_KEY = 'app_settings';
+
+// ── 学習統計型（ダッシュボード表示用） ──────────────────────────────
+export interface StudyStats {
+  totalSessions: number;     // 総添削数
+  totalMistakes: number;     // 総ミス数
+  avgMistakes: number;       // 1回あたり平均ミス数（小数1桁）
+  currentStreak: number;     // 連続学習日数
+  last7DaysCount: number;    // 直近7日のセッション数
+}
 
 // ── 設定型・デフォルト値 ──────────────────────────────────────────
 export interface AppSettings {
@@ -100,6 +116,65 @@ export class StorageService {
     return Object.entries(counts)
       .map(([category, count]) => ({ category, count }))
       .sort((a, b) => b.count - a.count);
+  }
+
+  // ── 学習統計（streak は日付単位で連続日数を算出） ───────────────────
+  getStudyStats(): StudyStats {
+    const sessions = this._sessions();
+    const totalSessions = sessions.length;
+    const totalMistakes = sessions.reduce((sum, s) => sum + s.mistakes.length, 0);
+    const avgMistakes = totalSessions === 0
+      ? 0
+      : Math.round((totalMistakes / totalSessions) * 10) / 10;
+
+    // セッションが存在する日付（ローカル時刻 YYYY-MM-DD）の集合
+    const dayKeys = new Set(sessions.map(s => this.toDayKey(s.date)));
+
+    // 連続学習日数: 今日 or 昨日を起点に、連続して遡れる日数を数える
+    let currentStreak = 0;
+    const cursor = new Date();
+    if (!dayKeys.has(this.toDayKey(cursor.toISOString()))) {
+      // 今日まだ未学習なら昨日を起点にする（昨日があれば streak 継続中とみなす）
+      cursor.setDate(cursor.getDate() - 1);
+    }
+    while (dayKeys.has(this.toDayKey(cursor.toISOString()))) {
+      currentStreak++;
+      cursor.setDate(cursor.getDate() - 1);
+    }
+
+    // 直近7日のセッション数
+    const sevenDaysAgo = new Date();
+    sevenDaysAgo.setDate(sevenDaysAgo.getDate() - 6);
+    sevenDaysAgo.setHours(0, 0, 0, 0);
+    const last7DaysCount = sessions.filter(
+      s => new Date(s.date).getTime() >= sevenDaysAgo.getTime()
+    ).length;
+
+    return { totalSessions, totalMistakes, avgMistakes, currentStreak, last7DaysCount };
+  }
+
+  // ── CEFR 推移: cefr を持つセッションを日付昇順で返す（同一日付は最新を採用） ─
+  getCefrHistory(): { date: string; cefr: CefrEvaluation }[] {
+    const byDay = new Map<string, { date: string; cefr: CefrEvaluation }>();
+    for (const s of this._sessions()) {
+      if (!s.cefr) continue;
+      const key = this.toDayKey(s.date);
+      const existing = byDay.get(key);
+      // 同一日付は date（ISO）が新しい方を採用
+      if (!existing || s.date > existing.date) {
+        byDay.set(key, { date: s.date, cefr: s.cefr });
+      }
+    }
+    return [...byDay.values()].sort((a, b) => a.date.localeCompare(b.date));
+  }
+
+  // ── 日付をローカル時刻の YYYY-MM-DD キーに正規化 ──────────────────
+  private toDayKey(iso: string): string {
+    const d = new Date(iso);
+    const y = d.getFullYear();
+    const m = String(d.getMonth() + 1).padStart(2, '0');
+    const day = String(d.getDate()).padStart(2, '0');
+    return `${y}-${m}-${day}`;
   }
 
   getFrequentMistakes(): (Mistake & { count: number })[] {

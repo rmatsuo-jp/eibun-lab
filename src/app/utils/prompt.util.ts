@@ -35,7 +35,11 @@ export function buildPrompt(settings: AppSettings): string {
 今回の文章をCEFR（ヨーロッパ言語共通参照枠）の観点から、以下の3つの側面で客観的に評価してください（例：A2、B1など）。
 ・文法面：
 ・語彙面：
-・内容面：`);
+・内容面：
+さらに、上記のCEFR評価を機械可読にするため、レスポンスの末尾（mistakesタグの後）に以下のJSON形式のタグも必ず出力してください。値は A1/A2/B1/B2/C1/C2 のいずれかのみとします：
+<cefr>
+{"grammar":"B1","vocabulary":"A2","content":"B1"}
+</cefr>`);
   }
 
   if (settings.includeLevelUpSuggestion) {

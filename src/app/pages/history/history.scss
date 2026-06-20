@@ -40,6 +40,40 @@
   }
 }
 
+// ── キーワード検索ボックス ────────────────────────────────────────
+.search-box {
+  position: relative;
+  margin-bottom: 1.25rem;
+}
+
+.search-input {
+  width: 100%;
+  box-sizing: border-box;
+  background: var(--color-surface);
+  border: 1px solid var(--color-border);
+  color: var(--color-text);
+  font-size: 0.9375rem;
+  padding: 0.55rem 2.25rem 0.55rem 0.875rem;
+  border-radius: 0.5rem;
+
+  &:focus { outline: none; border-color: var(--color-primary); }
+  &::placeholder { color: var(--color-text-muted); }
+}
+
+.search-clear {
+  position: absolute;
+  right: 0.5rem;
+  top: 50%;
+  transform: translateY(-50%);
+  background: none;
+  border: none;
+  color: var(--color-text-muted);
+  font-size: 1.25rem;
+  line-height: 1;
+  cursor: pointer;
+  padding: 0.25rem;
+}
+
 .sessions-list {
   display: flex;
   flex-direction: column;

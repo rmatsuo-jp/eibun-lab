@@ -1,4 +1,4 @@
-<!-- @file History ページテンプレート。セッション一覧・展開表示・複数選択削除、JSON インポート/エクスポートボタンを含む。 -->
+<!-- @file History ページテンプレート。セッション一覧・展開表示・複数選択削除・キーワード検索、JSON インポート/エクスポートボタンを含む。 -->
 <div class="page">
   <h1 class="page-title">履歴</h1>
 
@@ -21,15 +21,31 @@
   </div>
   <input #fileInput type="file" accept=".json" style="display:none" (change)="onFileSelected($event)">
 
+  @if (sessions().length > 0) {
+    <!-- ── キーワード検索（元文・添削文・ミス表現を横断） ── -->
+    <div class="search-box">
+      <input type="text" class="search-input"
+             placeholder="キーワードで検索（英文・添削・ミス表現）"
+             [(ngModel)]="searchQuery">
+      @if (searchQuery()) {
+        <button class="search-clear" (click)="searchQuery.set('')" aria-label="検索をクリア">×</button>
+      }
+    </div>
+  }
+
   @if (sessions().length === 0) {
     <div class="empty">
       <p>まだ添削履歴がありません。</p>
       <p>添削ページで英作文を送信すると、ここに記録されます。</p>
     </div>
+  } @else if (filteredSessions().length === 0) {
+    <div class="empty">
+      <p>「{{ searchQuery() }}」に該当する履歴がありません。</p>
+    </div>
   }
 
   <div class="sessions-list">
-    @for (session of sortedSessions(); track session.id) {
+    @for (session of filteredSessions(); track session.id) {
       <div class="session-card"
            [class.selected]="isSelected(session.id)"
            (click)="selectionMode() ? toggleSelect(session.id, $event) : toggle(session.id)">
