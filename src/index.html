@@ -1,4 +1,4 @@
-<!-- @file PWA のルート HTML。lang="ja"、data-theme="dark" をデフォルト設定。manifest と favicon を参照する。 -->
+<!-- @file PWA のルート HTML。lang="ja"、data-theme="dark" をデフォルト設定。SVG/ICO ファビコン・apple-touch-icon・manifest を参照する。 -->
 <!doctype html>
 <html lang="ja" data-theme="dark">
   <head>
@@ -7,6 +7,8 @@
     <base href="/" />
     <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover" />
     <link rel="icon" type="image/svg+xml" href="favicon.svg" />
+    <link rel="icon" href="favicon.ico" sizes="any" />
+    <link rel="apple-touch-icon" href="icons/icon-192x192.png" />
     <link rel="manifest" href="manifest.webmanifest" />
   </head>
   <body>
