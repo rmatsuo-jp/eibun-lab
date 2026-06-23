@@ -12,6 +12,20 @@ import { StorageService } from '../../services/storage.service';
 import { buildPrompt } from '../../utils/prompt.util';
 import { CorrectionSession, Mistake } from '../../models/session.model';
 
+// ── 日付ユーティリティ ───────────────────────────────────────────
+/**
+ * ローカルタイムゾーンの「今日」を YYYY-MM-DD 形式で返す純粋関数。
+ * toISOString() は UTC 変換のため JST 早朝に前日へずれる。それを避けるため
+ * getFullYear/getMonth/getDate（いずれもローカル時刻基準）から組み立てる。
+ */
+function todayLocal(): string {
+  const d = new Date();
+  const y = d.getFullYear();
+  const m = String(d.getMonth() + 1).padStart(2, '0');
+  const day = String(d.getDate()).padStart(2, '0');
+  return `${y}-${m}-${day}`;
+}
+
 @Component({
   selector: 'app-practice',
   imports: [FormsModule],
@@ -25,7 +39,7 @@ export class Practice {
 
   // ── 状態管理（signal） ────────────────────────────────────────────
   userText = signal('');
-  selectedDate = signal(new Date().toISOString().slice(0, 10));
+  selectedDate = signal(todayLocal());
   loading = signal(false);
   error = signal('');
   result = signal<{ corrected: string; mistakes: Mistake[] } | null>(null);
@@ -54,7 +68,10 @@ export class Practice {
       const res = await this.gemini.correct(settings.apiKey, settings.model, buildPrompt(settings), text);
       this.result.set(res);
 
-      const sessionDate = new Date(this.selectedDate());
+      // 'YYYY-MM-DD' を new Date() に渡すと UTC 0時扱いになりずれるため、
+      // ローカル正午で生成して選択日付を確実に保持する。
+      const [y, m, day] = this.selectedDate().split('-').map(Number);
+      const sessionDate = new Date(y, m - 1, day, 12);
       const session: CorrectionSession = {
         // 日付に依存しない一意 ID（同日に複数回添削しても衝突しない）
         id: `${Date.now()}-${Math.random().toString(36).slice(2)}`,
