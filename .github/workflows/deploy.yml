@@ -27,6 +27,9 @@ jobs:
       - name: Build
         run: npm run build -- --base-href=/study-english/
 
+      - name: SPA fallback (404.html)
+        run: cp dist/study-english/browser/index.html dist/study-english/browser/404.html
+
       - name: Deploy
         uses: peaceiris/actions-gh-pages@v4
         with:
