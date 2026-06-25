@@ -3,12 +3,12 @@
  * セッション管理（CRUD）・設定管理・ミス統計集計・学習統計（streak等）を一元管理する。
  * sessions signal でリアクティブなキャッシュを提供する。
  * ログイン中（AuthService）は Firestore とも双方向同期し、複数端末でセッションを共有する。
+ * 削除は物理削除せず deleted フラグ（tombstone）で表現し、削除も多端末へ伝播させる。
  * コンポーネントから直接 localStorage を操作せず、必ずこのサービスを経由すること。
  */
-import { effect, Injectable, inject, signal } from '@angular/core';
+import { computed, effect, Injectable, inject, signal } from '@angular/core';
 import {
   collection,
-  deleteDoc,
   doc,
   getDocs,
   setDoc,
@@ -59,9 +59,12 @@ const DEFAULT_SETTINGS: AppSettings = {
 
 @Injectable({ providedIn: 'root' })
 export class StorageService {
-  // ── Signal キャッシュ（読み取り専用で公開） ──────────────────────
+  // ── Signal キャッシュ ─────────────────────────────────────────────
+  // _sessions は tombstone（deleted=true）も含む全件の源泉。localStorage / Firestore と一致する。
   private _sessions = signal<CorrectionSession[]>(this.loadFromStorage());
-  readonly sessions = this._sessions.asReadonly();
+  // 公開ビューは削除済みを除外。表示・集計はすべてこちらを基準にする。
+  private activeSessions = computed(() => this._sessions().filter(s => !s.deleted));
+  readonly sessions = this.activeSessions;
 
   private auth = inject(AuthService);
 
@@ -105,13 +108,21 @@ export class StorageService {
     }
   }
 
+  // 物理削除せず deleted フラグを立てる（tombstone）。これによりクラウド側へ削除を伝播でき、
+  // 他端末の syncFromCloud で「削除済み」として反映され、再 push による復活を防ぐ。
   deleteSession(id: string): void {
-    this.persist(this._sessions().filter(s => s.id !== id));
+    const updated = this._sessions().map(s =>
+      s.id === id ? { ...s, deleted: true } : s
+    );
+    this.persist(updated);
     const uid = this.auth.user()?.uid;
     if (uid) {
-      deleteDoc(this.sessionDoc(uid, id)).catch(err =>
-        console.error('[StorageService] セッション削除の同期に失敗:', err)
-      );
+      const target = updated.find(s => s.id === id);
+      if (target) {
+        setDoc(this.sessionDoc(uid, id), this.toDocData(target)).catch(err =>
+          console.error('[StorageService] セッション削除の同期に失敗:', err)
+        );
+      }
     }
   }
 
@@ -136,25 +147,34 @@ export class StorageService {
     return session;
   }
 
-  // ログイン直後に呼ぶ双方向同期:
-  //   1. クラウドのセッションを取得しローカルへマージ（ID重複は既存を優先）
-  //   2. ローカルにしか無いセッションをクラウドへ push
+  // ログイン直後に呼ぶ双方向同期（tombstone 対応）:
+  //   1. ローカルとクラウドを id で突き合わせ、同一 id は deleted の OR を採用（片方でも削除なら削除）。
+  //   2. クラウドと状態が食い違うローカル分（未登録 or deleted 状態の差）をクラウドへ push。
+  // これにより、削除した端末の tombstone が他端末へ伝播し、未削除端末からの再 push による復活を防ぐ。
   async syncFromCloud(uid: string): Promise<void> {
     const snap = await getDocs(this.sessionsCol(uid));
     const cloud = snap.docs.map(d => d.data() as CorrectionSession);
 
     const local = this._sessions();
-    const localIds = new Set(local.map(s => s.id));
-    const cloudIds = new Set(cloud.map(s => s.id));
+    const localById = new Map(local.map(s => [s.id, s]));
+    const cloudById = new Map(cloud.map(s => [s.id, s]));
 
-    // 1. クラウド→ローカル: ローカルに無い分を追加し、日付降順で整列
-    const merged = [...local, ...cloud.filter(s => !localIds.has(s.id))].sort(
-      (a, b) => new Date(b.date).getTime() - new Date(a.date).getTime()
-    );
+    // 1. union を取り、同一 id は deleted を OR してマージ
+    const allIds = new Set([...localById.keys(), ...cloudById.keys()]);
+    const merged: CorrectionSession[] = [...allIds].map(id => {
+      const l = localById.get(id);
+      const c = cloudById.get(id);
+      const base = l ?? c!;
+      const deleted = Boolean(l?.deleted) || Boolean(c?.deleted);
+      return deleted ? { ...base, deleted: true } : { ...base };
+    }).sort((a, b) => new Date(b.date).getTime() - new Date(a.date).getTime());
     this.persist(merged);
 
-    // 2. ローカル→クラウド: クラウドに無い分を push
-    const toPush = local.filter(s => !cloudIds.has(s.id));
+    // 2. クラウドと食い違うローカル分（未登録、または deleted 状態が異なる）を push
+    const toPush = merged.filter(s => {
+      const c = cloudById.get(s.id);
+      return !c || Boolean(c.deleted) !== Boolean(s.deleted);
+    });
     await Promise.all(
       toPush.map(s => setDoc(this.sessionDoc(uid, s.id), this.toDocData(s)))
     );
@@ -193,13 +213,13 @@ export class StorageService {
   }
 
   exportSessions(): string {
-    return JSON.stringify(this._sessions(), null, 2);
+    return JSON.stringify(this.activeSessions(), null, 2);
   }
 
   // ── ミス統計集計（sessions signal を読むため computed() 内で依存追跡される） ─
   getMistakeStats(): { category: string; count: number }[] {
     const counts: Record<string, number> = {};
-    for (const session of this._sessions()) {
+    for (const session of this.activeSessions()) {
       for (const m of session.mistakes) {
         counts[m.category] = (counts[m.category] ?? 0) + 1;
       }
@@ -211,7 +231,7 @@ export class StorageService {
 
   // ── 学習統計（streak は日付単位で連続日数を算出） ───────────────────
   getStudyStats(): StudyStats {
-    const sessions = this._sessions();
+    const sessions = this.activeSessions();
     const totalSessions = sessions.length;
     const totalMistakes = sessions.reduce((sum, s) => sum + s.mistakes.length, 0);
     const avgMistakes = totalSessions === 0
@@ -247,7 +267,7 @@ export class StorageService {
   // ── CEFR 推移: cefr を持つセッションを日付昇順で返す（同一日付は最新を採用） ─
   getCefrHistory(): { date: string; cefr: CefrEvaluation }[] {
     const byDay = new Map<string, { date: string; cefr: CefrEvaluation }>();
-    for (const s of this._sessions()) {
+    for (const s of this.activeSessions()) {
       if (!s.cefr) continue;
       const key = this.toDayKey(s.date);
       const existing = byDay.get(key);
@@ -269,7 +289,7 @@ export class StorageService {
   }
 
   getFrequentMistakes(): (Mistake & { count: number })[] {
-    const all = this._sessions().flatMap(s => s.mistakes);
+    const all = this.activeSessions().flatMap(s => s.mistakes);
     const seen = new Map<string, Mistake & { count: number }>();
     for (const m of all) {
       const key = m.original.toLowerCase().trim();

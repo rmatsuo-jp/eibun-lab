@@ -26,4 +26,5 @@ export interface CorrectionSession {
   corrected: string;
   mistakes: Mistake[];
   cefr?: CefrEvaluation;   // 任意。CEFR評価が有効なセッションのみ持つ（後方互換）
+  deleted?: boolean;       // 論理削除フラグ。true は表示・集計から除外し、クラウドにも tombstone として残す（削除の多端末同期用）
 }
