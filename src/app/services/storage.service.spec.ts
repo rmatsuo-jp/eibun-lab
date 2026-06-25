@@ -1,4 +1,7 @@
+import { signal } from '@angular/core';
+import { TestBed } from '@angular/core/testing';
 import { StorageService, cefrToNumber } from './storage.service';
+import { AuthService } from './auth.service';
 import { CorrectionSession } from '../models/session.model';
 
 // テスト用セッション生成ヘルパ
@@ -38,7 +41,16 @@ describe('StorageService', () => {
 
   beforeEach(() => {
     localStorage.clear();
-    service = new StorageService();
+    // StorageService は inject(AuthService) と effect() を使うため、
+    // TestBed でインジェクションコンテキストを用意する。
+    // AuthService は「未ログイン固定」のスタブに差し替え、実 Firebase へ接続させない。
+    TestBed.configureTestingModule({
+      providers: [
+        StorageService,
+        { provide: AuthService, useValue: { user: signal(null) } },
+      ],
+    });
+    service = TestBed.inject(StorageService);
   });
 
   describe('getStudyStats', () => {

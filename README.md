@@ -62,6 +62,23 @@ ng build
 ng test
 ```
 
+## セキュリティ
+
+このリポジトリは public 公開されています。運用上の注意点：
+
+- **Firebase の構成値（`apiKey` 等）は秘密情報ではなく**、クライアントに必ず露出するプロジェクト識別子です。コードに含めて公開して問題ありません。実際のアクセス保護は **Firestore セキュリティルール**（`firestore.rules`）で行います。
+- **Firestore ルールは本人 UID 限定**（`apps/study_english/users/{uid}/sessions`）です。これが無いと全ユーザーのデータが誰でも読み書き可能になります。ルール変更時は必ず反映してください：
+
+  ```bash
+  firebase deploy --only firestore:rules
+  ```
+
+- **Firebase apiキーには制限をかける**ことを推奨します（公開済みのため悪用防止）：
+  - Google Cloud Console → 認証情報 → 該当キーに **HTTP リファラ制限**（本番ドメインのみ）を設定。
+  - Firebase Console → Authentication → Settings → **承認済みドメイン** を本番ドメインに限定。
+- **Gemini API キーはユーザー自身が設定画面で入力**し、本人ブラウザの LocalStorage にのみ保存されます。サーバーには送信されず、リポジトリにも含まれません。
+- AI の応答（Markdown）は表示前に **DOMPurify でサニタイズ**され、スクリプト注入を防いでいます（`utils/markdown.util.ts`）。
+
 ## プロジェクト構成
 
 ```

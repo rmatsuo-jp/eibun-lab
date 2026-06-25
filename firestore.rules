@@ -1,0 +1,15 @@
+rules_version = '2';
+
+// Firestore セキュリティルール。
+// 本人 UID のサブツリーのみ読み書きを許可し、それ以外（未マッチパス）はすべて拒否する。
+// クラウド同期するのは study-english のセッションのみ。
+// 反映方法: firebase deploy --only firestore:rules
+service cloud.firestore {
+  match /databases/{database}/documents {
+    // apps/study_english/users/{uid}/sessions/{sessionId}
+    // ログイン済みかつ本人の UID のドキュメントだけを許可。
+    match /apps/study_english/users/{uid}/sessions/{sessionId} {
+      allow read, write: if request.auth != null && request.auth.uid == uid;
+    }
+  }
+}

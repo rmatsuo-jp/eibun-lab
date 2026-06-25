@@ -6,7 +6,7 @@
 import { Component, ElementRef, ViewChild, computed, inject, signal } from '@angular/core';
 import { FormsModule } from '@angular/forms';
 import { DomSanitizer, SafeHtml } from '@angular/platform-browser';
-import { marked } from 'marked';
+import { renderSafeMarkdown } from '../../utils/markdown.util';
 import { StorageService } from '../../services/storage.service';
 import { CorrectionSession } from '../../models/session.model';
 
@@ -50,8 +50,8 @@ export class History {
   });
 
   toHtml(markdown: string): SafeHtml {
-    const html = marked.parse(markdown) as string;
-    return this.sanitizer.bypassSecurityTrustHtml(html);
+    // marked → DOMPurify でサニタイズした HTML のみ信頼済みとして渡す。
+    return this.sanitizer.bypassSecurityTrustHtml(renderSafeMarkdown(markdown));
   }
 
   toggle(id: string) {
