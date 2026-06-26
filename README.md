@@ -94,3 +94,14 @@ src/app/
     ├── mistakes/             # ミス一覧ページ
     └── settings/             # 設定ページ
 ```
+
+## ライセンス・免責
+
+本アプリは **MIT License** のもとで無償提供されます。利用にあたっては、以下の規約類をご確認ください。
+
+- [免責事項（DISCLAIMER）](docs/DISCLAIMER.md)
+- [利用規約（TERMS）](docs/TERMS.md)
+- [プライバシーポリシー（PRIVACY）](docs/PRIVACY.md)
+- [ライセンス（LICENSE）](docs/LICENSE.md)
+
+本アプリは現状有姿で提供され、利用に起因する損害について、法令上許容される範囲で開発者は責任を負いません。ログイン時は添削セッションが Firebase（Google）に同期される点を含め、詳細は[プライバシーポリシー](docs/PRIVACY.md)をご確認ください。
