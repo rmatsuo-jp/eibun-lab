@@ -7,6 +7,7 @@ import { FormsModule } from '@angular/forms';
 import { StorageService, AppSettings } from '../../services/storage.service';
 import { AuthService } from '../../services/auth.service';
 import { buildPrompt } from '../../utils/prompt.util';
+import { APP_VERSION, RELEASE_DATE } from '../../../version';
 
 @Component({
   selector: 'app-settings',
@@ -41,6 +42,10 @@ export class Settings {
       this.authBusy.set(false);
     }
   }
+
+  // ── バージョン情報（version.ts はビルド時に自動生成） ──
+  readonly version = APP_VERSION;
+  readonly releaseDate = RELEASE_DATE;
 
   readonly models = [
     { value: 'gemini-3.5-flash', label: 'Gemini 3.5 Flash' },

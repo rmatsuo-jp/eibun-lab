@@ -1,13 +1,17 @@
 {
   "name": "study-english",
-  "version": "0.0.0",
+  "version": "1.0.0",
   "license": "MIT",
   "scripts": {
     "ng": "ng",
+    "gen:version": "node scripts/generate-version.mjs",
+    "prestart": "node scripts/generate-version.mjs",
     "start": "ng serve",
+    "prebuild": "node scripts/generate-version.mjs",
     "build": "ng build",
     "watch": "ng build --watch --configuration development",
     "test": "ng test",
+    "predeploy": "node scripts/generate-version.mjs",
     "deploy": "ng build && node -e \"require('fs').copyFileSync('dist/study-english/browser/index.html','dist/study-english/browser/404.html')\" && npx angular-cli-ghpages --dir=dist/study-english/browser"
   },
   "private": true,
