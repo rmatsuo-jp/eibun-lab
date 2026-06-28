@@ -10,7 +10,7 @@ import { renderSafeMarkdown } from '../../utils/markdown.util';
 import { GeminiService } from '../../services/gemini.service';
 import { StorageService } from '../../services/storage.service';
 import { buildPrompt } from '../../utils/prompt.util';
-import { CorrectionSession, Mistake } from '../../models/session.model';
+import { CorrectionSession, Mistake, ReviewItem } from '../../models/session.model';
 
 // ── 日付ユーティリティ ───────────────────────────────────────────
 /**
@@ -42,7 +42,7 @@ export class Practice {
   selectedDate = signal(todayLocal());
   loading = signal(false);
   error = signal('');
-  result = signal<{ corrected: string; mistakes: Mistake[] } | null>(null);
+  result = signal<{ corrected: string; mistakes: Mistake[]; reviewItems?: ReviewItem[] } | null>(null);
 
   toHtml(markdown: string): SafeHtml {
     // marked → DOMPurify でサニタイズした HTML のみ信頼済みとして渡す。
@@ -80,6 +80,7 @@ export class Practice {
         corrected: res.corrected,
         mistakes: res.mistakes,
         cefr: res.cefr,
+        reviewItems: res.reviewItems,
       };
       this.storage.saveSession(session);
     } catch (e) {

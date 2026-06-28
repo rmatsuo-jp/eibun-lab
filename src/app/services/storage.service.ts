@@ -13,7 +13,7 @@ import {
   getDocs,
   setDoc,
 } from 'firebase/firestore';
-import { CefrEvaluation, CorrectionSession, Mistake } from '../models/session.model';
+import { CefrEvaluation, CorrectionSession, Mistake, ReviewItem } from '../models/session.model';
 import { AuthService } from './auth.service';
 import { firestore } from './firebase.init';
 
@@ -44,6 +44,7 @@ export interface AppSettings {
   includeGrammarTendency: boolean;
   includeCefrEvaluation: boolean;
   includeLevelUpSuggestion: boolean;
+  includeClozeReview: boolean;
   theme: 'light' | 'dark';
 }
 
@@ -54,6 +55,7 @@ const DEFAULT_SETTINGS: AppSettings = {
   includeGrammarTendency: true,
   includeCefrEvaluation: true,
   includeLevelUpSuggestion: true,
+  includeClozeReview: true,
   theme: 'dark',
 };
 
@@ -138,13 +140,15 @@ export class StorageService {
     return collection(firestore, 'apps', 'study_english', 'users', uid, 'sessions');
   }
 
-  // Firestore は undefined を受け付けないため、cefr が無い場合はフィールドごと除外する
-  private toDocData(session: CorrectionSession): CorrectionSession | Omit<CorrectionSession, 'cefr'> {
-    if (session.cefr === undefined) {
-      const { cefr, ...rest } = session;
-      return rest;
+  // Firestore は undefined を受け付けないため、値が undefined の任意フィールド（cefr / reviewItems）を
+  // フィールドごと除外する。任意フィールドが増えても OPTIONAL_FIELDS に足すだけで対応できる。
+  private toDocData(session: CorrectionSession): Record<string, unknown> {
+    const OPTIONAL_FIELDS: (keyof CorrectionSession)[] = ['cefr', 'reviewItems'];
+    const data: Record<string, unknown> = { ...session };
+    for (const field of OPTIONAL_FIELDS) {
+      if (data[field] === undefined) delete data[field];
     }
-    return session;
+    return data;
   }
 
   // ログイン直後に呼ぶ双方向同期（tombstone 対応）:
@@ -303,5 +307,10 @@ export class StorageService {
     return [...seen.values()]
       .sort((a, b) => b.count - a.count)
       .slice(0, 20);
+  }
+
+  // ── 復習カード集計: 全セッションの reviewItems を平坦化して返す（Drill の穴埋め復習で出題） ─
+  getReviewItems(): ReviewItem[] {
+    return this.activeSessions().flatMap(s => s.reviewItems ?? []);
   }
 }

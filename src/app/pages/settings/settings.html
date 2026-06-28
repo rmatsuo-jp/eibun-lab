@@ -105,6 +105,15 @@
           <span class="option-desc">CEFR評価より一段階上のレベルのサンプル英文と解説</span>
         </span>
       </label>
+      <label class="option-item">
+        <input type="checkbox"
+          [checked]="settings().includeClozeReview"
+          (change)="update('includeClozeReview', $any($event.target).checked)" />
+        <span>
+          <strong>復習カードの自動生成</strong>
+          <span class="option-desc">添削から穴埋め（クローズ）＋4択の復習カードを生成し、ドリルで出題</span>
+        </span>
+      </label>
     </div>
   </div>
 

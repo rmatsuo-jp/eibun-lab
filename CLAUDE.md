@@ -101,7 +101,9 @@ interface CorrectionSession {
 }
 ```
 
-`AppSettings`（storage.service.ts）: `apiKey`, `model`, `includeNaturalExpressions`, `includeGrammarTendency`, `includeCefrEvaluation`, `includeLevelUpSuggestion`, `theme`
+`AppSettings`（storage.service.ts）: `apiKey`, `model`, `includeNaturalExpressions`, `includeGrammarTendency`, `includeCefrEvaluation`, `includeLevelUpSuggestion`, `includeClozeReview`, `theme`
+
+プロンプトは `utils/prompt.util.ts` の宣言的 `SECTIONS` 配列で管理（項目追加 = 配列にオブジェクト1つ）。`includeClozeReview` 有効時は `<review>` タグで穴埋め復習カード（`ReviewItem[]`）を出力させ、Drill ページの「穴埋め復習」モードで出題する。
 
 ---
 
