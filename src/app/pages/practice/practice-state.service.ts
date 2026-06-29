@@ -3,6 +3,8 @@
  * 状態を signal で持ち providedIn:'root' で生存させることで、タブ遷移（コンポーネント破棄）後も
  * 入力テキスト・添削結果・ローディング状態が消えない。API 送信もこのサービス内で完結するため、
  * 送信中に別タブへ移動しても中断されない。
+ * notice signal は「処理中／完了／エラー」をルートコンポーネントのグローバルバナーへ伝え、
+ * どのタブにいても添削の状況が分かるようにする。
  */
 import { Injectable, inject, signal } from '@angular/core';
 import { GeminiService } from '../../services/gemini.service';
@@ -34,7 +36,15 @@ export class PracticeState {
   selectedDate = signal(todayLocal());
   loading = signal(false);
   error = signal('');
-  result = signal<{ corrected: string; mistakes: Mistake[]; reviewItems?: ReviewItem[] } | null>(null);
+  result = signal<{ original: string; corrected: string; mistakes: Mistake[]; reviewItems?: ReviewItem[] } | null>(null);
+
+  // ── グローバル通知（ルートのバナーが購読） ────────────────────────
+  // null = 非表示。完了/エラーはユーザーが閉じるか添削タブ遷移で消す。
+  notice = signal<{ status: 'loading' | 'success' | 'error'; message: string } | null>(null);
+
+  dismissNotice() {
+    this.notice.set(null);
+  }
 
   // ── 添削実行: Gemini API 呼び出し → 結果表示 → セッション保存 ───
   // 前回結果は受信時まで保持し、成功して初めて入力欄をクリアする。
@@ -46,16 +56,19 @@ export class PracticeState {
     const settings = this.storage.getSettings();
     if (!settings.apiKey) {
       this.error.set('設定ページで Gemini API キーを入力してください。');
+      this.notice.set({ status: 'error', message: this.error() });
       return;
     }
 
     this.loading.set(true);
     this.error.set('');
+    this.notice.set({ status: 'loading', message: '添削中…' });
     // 注: ここで result はクリアしない（新しい結果を受信して初めて置き換える）。
 
     try {
       const res = await this.gemini.correct(settings.apiKey, settings.model, buildPrompt(settings), text);
-      this.result.set(res);
+      this.result.set({ original: text, ...res });
+      this.notice.set({ status: 'success', message: '添削が完了しました' });
 
       // 'YYYY-MM-DD' を new Date() に渡すと UTC 0時扱いになりずれるため、
       // ローカル正午で生成して選択日付を確実に保持する。
@@ -76,6 +89,7 @@ export class PracticeState {
       this.userText.set('');
     } catch (e) {
       this.error.set('エラーが発生しました: ' + (e instanceof Error ? e.message : String(e)));
+      this.notice.set({ status: 'error', message: this.error() });
     } finally {
       this.loading.set(false);
     }

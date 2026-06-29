@@ -23,6 +23,67 @@
   z-index: 100;
 }
 
+// ── グローバル添削通知バナー ──────────────────────────────────────
+.global-notice {
+  position: fixed;
+  left: 0;
+  right: 0;
+  bottom: calc(4rem + env(safe-area-inset-bottom));
+  z-index: 101; // bottom-nav(100) より前面
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  margin: 0 0.75rem;
+  padding: 0.75rem 1rem;
+  border-radius: 0.5rem;
+  font-size: 0.875rem;
+  font-weight: 600;
+  color: #fff;
+  cursor: pointer;
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.2);
+
+  .msg {
+    flex: 1;
+  }
+
+  .close {
+    flex-shrink: 0;
+    background: none;
+    border: none;
+    color: inherit;
+    font-size: 1.25rem;
+    line-height: 1;
+    cursor: pointer;
+    padding: 0 0.25rem;
+  }
+
+  &.is-loading {
+    background: var(--color-primary);
+  }
+
+  &.is-success {
+    background: #16a34a;
+  }
+
+  &.is-error {
+    background: #dc2626;
+  }
+
+  .spinner {
+    flex-shrink: 0;
+    width: 1rem;
+    height: 1rem;
+    border: 2px solid rgba(255, 255, 255, 0.4);
+    border-top-color: #fff;
+    border-radius: 50%;
+    animation: notice-spin 0.7s linear infinite;
+  }
+}
+
+@keyframes notice-spin {
+  to { transform: rotate(360deg); }
+}
+
 .nav-item {
   flex: 1;
   display: flex;
@@ -80,5 +141,11 @@
     padding-bottom: 1rem;
     margin-left: 220px;
     width: calc(100% - 220px);
+  }
+
+  .global-notice {
+    left: 220px;
+    bottom: 1rem;
+    margin: 0 1.5rem;
   }
 }

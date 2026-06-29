@@ -20,6 +20,13 @@ export class Practice {
   state = inject(PracticeState);
   private sanitizer = inject(DomSanitizer);
 
+  constructor() {
+    // 添削タブを開いた時点で完了通知は役目を終えるので消す（ページ内に結果が見えるため）。
+    if (this.state.notice()?.status === 'success') {
+      this.state.dismissNotice();
+    }
+  }
+
   toHtml(markdown: string): SafeHtml {
     // marked → DOMPurify でサニタイズした HTML のみ信頼済みとして渡す。
     return this.sanitizer.bypassSecurityTrustHtml(renderSafeMarkdown(markdown));

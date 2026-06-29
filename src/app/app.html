@@ -1,8 +1,21 @@
-<!-- @file アプリシェル。router-outlet（メインコンテンツ）とボトムナビゲーション（4タブ）を配置する。 -->
+<!-- @file アプリシェル。router-outlet（メインコンテンツ）・グローバル添削通知バナー・ボトムナビ（5タブ）を配置する。 -->
 <div class="app-shell">
   <main class="app-content">
     <router-outlet />
   </main>
+
+  <!-- ── グローバル添削通知（どのタブでも処理中/完了/エラーが分かる。タップで添削タブへ） ── -->
+  @if (practiceState.notice(); as n) {
+    <div class="global-notice" [class]="'is-' + n.status" (click)="openResult()">
+      @if (n.status === 'loading') {
+        <span class="spinner"></span>
+      }
+      <span class="msg">{{ n.message }}</span>
+      @if (n.status !== 'loading') {
+        <button class="close" type="button" (click)="$event.stopPropagation(); practiceState.dismissNotice()">×</button>
+      }
+    </div>
+  }
 
   <nav class="bottom-nav">
     <a routerLink="/practice" routerLinkActive="active" class="nav-item">
