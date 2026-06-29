@@ -5,29 +5,29 @@
   <div class="date-row">
     <label class="label">日付</label>
     <input class="input date-input" type="date"
-      [value]="selectedDate()"
-      (input)="selectedDate.set($any($event.target).value)" />
+      [value]="state.selectedDate()"
+      (input)="state.selectedDate.set($any($event.target).value)" />
   </div>
 
   <div class="input-section">
     <label class="label">英作文</label>
     <textarea
       class="textarea"
-      [(ngModel)]="userText"
+      [(ngModel)]="state.userText"
       [ngModelOptions]="{standalone: true}"
       placeholder="今日の英作文をここに入力してください..."
       rows="8"
     ></textarea>
   </div>
 
-  @if (error()) {
-    <div class="error-box">{{ error() }}</div>
+  @if (state.error()) {
+    <div class="error-box">{{ state.error() }}</div>
   }
 
   <div class="actions">
-    <button class="btn-secondary" (click)="clear()" [disabled]="loading()">クリア</button>
-    <button class="btn-primary" (click)="submit()" [disabled]="loading() || !userText().trim()">
-      @if (loading()) {
+    <button class="btn-secondary" (click)="state.clear()" [disabled]="state.loading()">クリア</button>
+    <button class="btn-primary" (click)="state.submit()" [disabled]="state.loading() || !state.userText().trim()">
+      @if (state.loading()) {
         <span class="spinner"></span> 添削中...
       } @else {
         添削する
@@ -35,15 +35,15 @@
     </button>
   </div>
 
-  @if (result()) {
+  @if (state.result()) {
     <div class="result-section">
       <h2 class="section-title">添削結果</h2>
-      <div class="result-box markdown-body" [innerHTML]="toHtml(result()!.corrected)"></div>
+      <div class="result-box markdown-body" [innerHTML]="toHtml(state.result()!.corrected)"></div>
 
-      @if (result()!.mistakes.length > 0) {
+      @if (state.result()!.mistakes.length > 0) {
         <h2 class="section-title">ミスリスト</h2>
         <div class="mistakes-list">
-          @for (m of result()!.mistakes; track m.original) {
+          @for (m of state.result()!.mistakes; track m.original) {
             <div class="mistake-card">
               <span class="category-badge">{{ m.category }}</span>
               <div class="mistake-row">

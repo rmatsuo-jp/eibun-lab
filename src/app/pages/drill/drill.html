@@ -1,27 +1,41 @@
-<!-- @file Drill ページテンプレート。頻出ミスを出題し、回答→正解表示→次へ→結果サマリーの流れを提供する。 -->
+<!-- @file Drill ページテンプレート。モード選択（頻出ミス／穴埋め復習）→出題→答え合わせ→次へ→結果サマリーの流れ。
+     穴埋め復習は既定で入力、「ヒント（4択）」ボタンで選択式に切り替えられる。 -->
 <div class="page">
   <h1 class="page-title">弱点克服ドリル</h1>
 
-  @if (questions().length === 0) {
-    <!-- ── 出題データなし ── -->
-    <div class="empty">
-      <p>まだ出題できるミスがありません。</p>
-      <p>添削ページで英作文を送信し、ミスを蓄積するとドリルに出題されます。</p>
-    </div>
-  } @else if (!started()) {
-    <!-- ── スタート画面 ── -->
+  @if (!started()) {
+    <!-- ── モード選択（スタート画面） ── -->
     <div class="intro">
-      <p>あなたが過去によく間違えた表現を出題します。</p>
-      <p>正しい表現を入力して、弱点を克服しましょう。</p>
-      <p class="intro-count">出題数: {{ questions().length }}問</p>
-      <button class="btn-primary" (click)="start()">ドリルを始める</button>
+      <p>復習モードを選んで弱点を克服しましょう。</p>
+
+      <div class="mode-card">
+        <strong>頻出ミス</strong>
+        <p>あなたが過去によく間違えた表現を、正しい形に直します。</p>
+        <p class="intro-count">出題数: {{ mistakeCount() }}問</p>
+        @if (mistakeCount() === 0) {
+          <p class="empty-note">添削ページでミスを蓄積すると出題されます。</p>
+        } @else {
+          <button class="btn-primary" (click)="start('mistakes')">このモードで始める</button>
+        }
+      </div>
+
+      <div class="mode-card">
+        <strong>穴埋め復習</strong>
+        <p>添削から作った穴埋めカード。難しければヒントで4択に切り替えられます。</p>
+        <p class="intro-count">出題数: {{ clozeCount() }}問</p>
+        @if (clozeCount() === 0) {
+          <p class="empty-note">「復習カードの自動生成」を有効にして添削すると出題されます。</p>
+        } @else {
+          <button class="btn-primary" (click)="start('cloze')">このモードで始める</button>
+        }
+      </div>
     </div>
   } @else if (finished()) {
     <!-- ── 結果サマリー ── -->
     <div class="result-summary">
       <p class="result-score">{{ score() }} / {{ total() }} 正解</p>
       <p class="result-message">お疲れさまでした！繰り返し挑戦して定着させましょう。</p>
-      <button class="btn-primary" (click)="restart()">もう一度</button>
+      <button class="btn-primary" (click)="restart()">モード選択に戻る</button>
     </div>
   } @else {
     <!-- ── 出題中 ── -->
@@ -29,27 +43,52 @@
 
     @if (current(); as q) {
       <div class="quiz-card">
-        <span class="category-badge">{{ q.category }}</span>
-        <p class="quiz-prompt">次の表現を正しく直してください。</p>
-        <p class="quiz-original">{{ q.original }}</p>
-        <p class="quiz-hint">ヒント: {{ q.explanation }}</p>
+        <span class="category-badge">{{ q.badge }}</span>
+        <p class="quiz-prompt">
+          {{ mode() === 'cloze' ? '空所に入る語を答えてください。' : '次の表現を正しく直してください。' }}
+        </p>
+        <p class="quiz-original">{{ q.prompt }}</p>
+        @if (q.translation) {
+          <p class="quiz-translation">{{ q.translation }}</p>
+        }
 
-        <input class="answer-input" type="text"
-               placeholder="正しい表現を入力..."
-               [(ngModel)]="userAnswer"
-               [disabled]="revealed()"
-               (keyup.enter)="check()">
+        @if (!choiceMode()) {
+          <!-- 入力モード -->
+          <input class="answer-input" type="text"
+                 placeholder="正しい表現を入力..."
+                 [(ngModel)]="userAnswer"
+                 [disabled]="revealed()"
+                 (keyup.enter)="check()">
 
-        @if (!revealed()) {
-          <button class="btn-primary" (click)="check()" [disabled]="!userAnswer().trim()">答え合わせ</button>
+          @if (!revealed()) {
+            <div class="quiz-actions">
+              <button class="btn-primary" (click)="check()" [disabled]="!userAnswer().trim()">答え合わせ</button>
+              @if (mode() === 'cloze' && q.choices) {
+                <button class="btn-secondary" (click)="switchToChoices()">ヒント（4択に切替）</button>
+              }
+            </div>
+          }
         } @else {
+          <!-- 4択モード（クローズのみ） -->
+          <p class="quiz-hint">ヒント: {{ q.hint }}</p>
+          <div class="choice-list">
+            @for (c of q.choices; track c) {
+              <button class="choice-btn" [disabled]="revealed()" (click)="choose(c)">{{ c }}</button>
+            }
+          </div>
+        }
+
+        @if (revealed()) {
           <div class="answer-result" [class.correct]="currentCorrect()" [class.wrong]="!currentCorrect()">
             {{ currentCorrect() ? '⭕ 正解！' : '❌ 不正解' }}
           </div>
           <div class="correct-answer">
             <span class="correct-label">正解</span>
-            <span class="correct-text">{{ q.corrected }}</span>
+            <span class="correct-text">{{ q.answer }}</span>
           </div>
+          @if (!choiceMode()) {
+            <p class="quiz-hint">ヒント: {{ q.hint }}</p>
+          }
           <div class="post-actions">
             @if (!currentCorrect()) {
               <button class="btn-secondary" (click)="markCorrect()">正解にする</button>
