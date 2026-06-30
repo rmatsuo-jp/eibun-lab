@@ -40,22 +40,12 @@ export interface StudyStats {
 export interface AppSettings {
   apiKey: string;
   model: string;
-  includeNaturalExpressions: boolean;
-  includeGrammarTendency: boolean;
-  includeCefrEvaluation: boolean;
-  includeLevelUpSuggestion: boolean;
-  includeClozeReview: boolean;
   theme: 'light' | 'dark';
 }
 
 const DEFAULT_SETTINGS: AppSettings = {
   apiKey: '',
   model: 'gemini-3.5-flash',
-  includeNaturalExpressions: true,
-  includeGrammarTendency: true,
-  includeCefrEvaluation: true,
-  includeLevelUpSuggestion: true,
-  includeClozeReview: true,
   theme: 'dark',
 };
 

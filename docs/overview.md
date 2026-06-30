@@ -60,7 +60,7 @@ src/
         ├── practice/                # 英文入力・添削結果表示
         ├── history/                 # 過去セッション一覧・インポート/エクスポート
         ├── mistakes/                # ミス傾向分析ダッシュボード
-        └── settings/                # API キー・モデル・機能トグル・テーマ設定
+        └── settings/                # API キー・モデル・テーマ設定
 ```
 
 ---
@@ -71,7 +71,7 @@ src/
 [Practice ページ]
     ↓ userText（ユーザー入力の英文）
 [GeminiService.correct()]
-    ↓ buildPrompt(settings) + userText → Gemini API
+    ↓ buildPrompt() + userText → Gemini API
 [レスポンス: Markdown 本文 + <mistakes>JSON</mistakes>]
     ↓ parseMistakes() で Markdown と JSON を分離
 [StorageService.saveSession()] → LocalStorage に保存
@@ -105,10 +105,6 @@ interface CorrectionSession {
 interface AppSettings {
   apiKey: string;
   model: string;
-  includeNaturalExpressions: boolean;
-  includeGrammarTendency: boolean;
-  includeCefrEvaluation: boolean;
-  includeLevelUpSuggestion: boolean;
   theme: 'light' | 'dark';
 }
 ```

@@ -1,4 +1,4 @@
-<!-- @file Mistakes ページテンプレート。学習統計ダッシュボード・スコア推移グラフ・CEFR推移グラフ・カテゴリ別ミス頻度バー・頻出ミスリストを表示する。 -->
+<!-- @file Mistakes ページテンプレート。学習統計ダッシュボード・スコア推移グラフ・CEFR推移グラフ（横軸=添削日付）・カテゴリ別ミス頻度バー・頻出ミスリストを表示する。 -->
 <div class="page">
   <h1 class="page-title">ミス傾向</h1>
 
@@ -54,6 +54,11 @@
                 <circle [attr.cx]="d.x" [attr.cy]="d.y" r="2.5" [attr.fill]="s.color" />
               }
             }
+            <!-- x軸ラベル（日付） -->
+            @for (t of xAxisLabels(); track t.x) {
+              <text class="axis-label" [attr.x]="t.x" [attr.y]="xAxisLabelY"
+                    [attr.text-anchor]="t.anchor">{{ t.label }}</text>
+            }
           </svg>
           <div class="cefr-legend">
             @for (s of scoreChart(); track s.name) {
@@ -88,6 +93,11 @@
               @for (d of s.dots; track $index) {
                 <circle [attr.cx]="d.x" [attr.cy]="d.y" r="2.5" [attr.fill]="s.color" />
               }
+            }
+            <!-- x軸ラベル（日付） -->
+            @for (t of xAxisLabels(); track t.x) {
+              <text class="axis-label" [attr.x]="t.x" [attr.y]="xAxisLabelY"
+                    [attr.text-anchor]="t.anchor">{{ t.label }}</text>
             }
           </svg>
           <div class="cefr-legend">

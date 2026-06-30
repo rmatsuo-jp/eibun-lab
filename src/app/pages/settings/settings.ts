@@ -1,6 +1,6 @@
 /**
- * @file 設定ページ。アカウント（Google SSO ログイン/同期）・API キー・モデル選択・機能トグル・テーマ切り替えを管理する。
- * promptPreview は computed() で settings signal から自動生成される。
+ * @file 設定ページ。アカウント（Google SSO ログイン/同期）・API キー・モデル選択・テーマ切り替えを管理する。
+ * promptPreview は computed() で buildPrompt() から自動生成される（添削項目は全て常時有効）。
  */
 import { Component, computed, inject, signal } from '@angular/core';
 import { FormsModule } from '@angular/forms';
@@ -54,7 +54,7 @@ export class Settings {
 
   // ── 状態管理（signal） ────────────────────────────────────────────
   settings = signal<AppSettings>(this.initSettings());
-  promptPreview = computed(() => buildPrompt(this.settings()));
+  promptPreview = computed(() => buildPrompt());
   saved = signal(false);
   showKey = signal(false);
 

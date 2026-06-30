@@ -1,4 +1,4 @@
-<!-- @file Settings ページテンプレート。アカウント（Google SSO 同期）・テーマ・API キー・モデル・添削オプション・プロンプトプレビューを含む。 -->
+<!-- @file Settings ページテンプレート。アカウント（Google SSO 同期）・テーマ・API キー・モデル・プロンプトプレビューを含む。 -->
 <div class="page">
   <h1 class="page-title">設定</h1>
 
@@ -66,60 +66,8 @@
   </div>
 
   <div class="form-group">
-    <label class="label">添削オプション</label>
-    <p class="hint">常に含まれる項目：文法ミスの指摘・理由説明、添削後の全文、ミス一覧（JSON）</p>
-    <div class="option-list">
-      <label class="option-item">
-        <input type="checkbox"
-          [checked]="settings().includeNaturalExpressions"
-          (change)="update('includeNaturalExpressions', $any($event.target).checked)" />
-        <span>
-          <strong>より自然な表現の提案</strong>
-          <span class="option-desc">ネイティブらしい言い回しのアドバイス</span>
-        </span>
-      </label>
-      <label class="option-item">
-        <input type="checkbox"
-          [checked]="settings().includeGrammarTendency"
-          (change)="update('includeGrammarTendency', $any($event.target).checked)" />
-        <span>
-          <strong>文法ミスの傾向分析</strong>
-          <span class="option-desc">犯しやすいミスの癖と今後の対策</span>
-        </span>
-      </label>
-      <label class="option-item">
-        <input type="checkbox"
-          [checked]="settings().includeCefrEvaluation"
-          (change)="update('includeCefrEvaluation', $any($event.target).checked)" />
-        <span>
-          <strong>定量評価（スコア＋CEFR）</strong>
-          <span class="option-desc">文法・語彙・内容を10点満点で採点し、エラー密度と暫定CEFR（A1〜C2）も提示</span>
-        </span>
-      </label>
-      <label class="option-item">
-        <input type="checkbox"
-          [checked]="settings().includeLevelUpSuggestion"
-          (change)="update('includeLevelUpSuggestion', $any($event.target).checked)" />
-        <span>
-          <strong>レベルアップ表現の提案</strong>
-          <span class="option-desc">CEFR評価より一段階上のレベルのサンプル英文と解説</span>
-        </span>
-      </label>
-      <label class="option-item">
-        <input type="checkbox"
-          [checked]="settings().includeClozeReview"
-          (change)="update('includeClozeReview', $any($event.target).checked)" />
-        <span>
-          <strong>復習カードの自動生成</strong>
-          <span class="option-desc">添削から穴埋め（クローズ）＋4択の復習カードを生成し、ドリルで出題</span>
-        </span>
-      </label>
-    </div>
-  </div>
-
-  <div class="form-group">
     <label class="label">プロンプトプレビュー</label>
-    <p class="hint">上記の選択をもとに自動生成されるプロンプトです。</p>
+    <p class="hint">添削時に自動生成されるプロンプトです。</p>
     <textarea class="textarea" rows="12" readonly [value]="promptPreview()"></textarea>
   </div>
 

@@ -62,8 +62,8 @@ sequenceDiagram
 
     User->>P: 英文を入力して送信
     P->>S: getSettings()
-    S-->>P: AppSettings（apiKey, model, トグル）
-    P->>P: buildPrompt(settings) で完全プロンプト生成
+    S-->>P: AppSettings（apiKey, model, theme）
+    P->>P: buildPrompt() で完全プロンプト生成
     P->>G: correct(apiKey, model, prompt, userText)
     G->>API: generateContent(fullPrompt)
     API-->>G: テキスト（Markdown + <mistakes>/<evaluation> JSON）
@@ -83,10 +83,6 @@ erDiagram
     APP_SETTINGS {
         string apiKey
         string model
-        boolean includeNaturalExpressions
-        boolean includeGrammarTendency
-        boolean includeCefrEvaluation
-        boolean includeLevelUpSuggestion
         string theme
     }
 
@@ -133,29 +129,11 @@ graph LR
 
 ```mermaid
 flowchart TD
-    Start(["buildPrompt(settings)"])
-    S1["① 文法・語法ミスの指摘（固定）"]
-    T1{includeNaturalExpressions?}
-    S2["② 自然な表現の提案"]
-    S3["③ 添削後全文 + mistakes JSON 形式（固定）"]
-    T2{includeGrammarTendency?}
-    A1["【文法ミスの傾向】"]
-    T3{includeCefrEvaluation?}
-    A2["【CEFR評価】+ <cefr>JSON タグ出力"]
-    T4{includeLevelUpSuggestion?}
-    A3["【レベルアップ表現の提案】"]
+    Start(["buildPrompt()"])
+    S1["前文（役割指示・固定）"]
+    S2["SECTIONS を配列順に全て連結\n（文法ミス指摘 / 自然な表現 / 添削後全文 / mistakes JSON /\n 文法傾向 / 定量評価＋evaluation JSON / レベルアップ / 復習カード＋review JSON）"]
     S4["英作文: {USER_TEXT}（固定）"]
     End(["完成プロンプト文字列"])
 
-    Start --> S1 --> T1
-    T1 -->|Yes| S2 --> S3
-    T1 -->|No| S3
-    S3 --> T2
-    T2 -->|Yes| A1 --> T3
-    T2 -->|No| T3
-    T3 -->|Yes| A2 --> T4
-    T3 -->|No| T4
-    T4 -->|Yes| A3 --> S4
-    T4 -->|No| S4
-    S4 --> End
+    Start --> S1 --> S2 --> S4 --> End
 ```

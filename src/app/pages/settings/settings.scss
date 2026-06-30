@@ -175,52 +175,6 @@
   }
 }
 
-.option-list {
-  display: flex;
-  flex-direction: column;
-  gap: 0.75rem;
-}
-
-.option-item {
-  display: flex;
-  align-items: flex-start;
-  gap: 0.75rem;
-  padding: 0.75rem 1rem;
-  border: 2px solid var(--color-border);
-  border-radius: 0.75rem;
-  cursor: pointer;
-  transition: border-color 0.2s;
-
-  &:hover {
-    border-color: var(--color-primary);
-  }
-
-  input[type="checkbox"] {
-    width: 1.125rem;
-    height: 1.125rem;
-    margin-top: 0.125rem;
-    accent-color: var(--color-primary);
-    cursor: pointer;
-    flex-shrink: 0;
-  }
-
-  span {
-    display: flex;
-    flex-direction: column;
-    gap: 0.125rem;
-  }
-
-  strong {
-    font-size: 0.9375rem;
-    color: var(--color-text);
-  }
-}
-
-.option-desc {
-  font-size: 0.8125rem;
-  color: var(--color-text-muted);
-}
-
 .theme-toggle {
   display: flex;
   gap: 0.5rem;
@@ -331,10 +285,5 @@
   .page {
     max-width: 960px;
     padding: 2rem;
-  }
-
-  .option-list {
-    display: grid;
-    grid-template-columns: repeat(2, 1fr);
   }
 }

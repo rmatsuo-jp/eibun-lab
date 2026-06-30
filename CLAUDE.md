@@ -54,7 +54,7 @@ src/
         ├── drill/                   # 弱点克服ドリル（頻出ミス出題・自動採点）
         ├── history/                 # 過去セッション一覧・検索・インポート/エクスポート
         ├── mistakes/                # 学習統計・ミス傾向・スコア/CEFR推移ダッシュボード
-        └── settings/                # API キー・モデル・機能トグル・テーマ設定
+        └── settings/                # API キー・モデル・テーマ設定
 ```
 
 ---
@@ -63,7 +63,7 @@ src/
 
 ```
 [Practice ページ]
-    ↓ buildPrompt(settings) + userText
+    ↓ buildPrompt() + userText
 [GeminiService.correct()]
     ↓ Gemini API
 [レスポンス: Markdown + <mistakes>JSON</mistakes> + <evaluation>JSON</evaluation>]
@@ -103,13 +103,13 @@ interface CorrectionSession {
   original: string;    // ユーザーが入力した英文
   corrected: string;   // Gemini が返した添削済み Markdown
   mistakes: Mistake[];
-  evaluation?: WritingEvaluation; // 任意。定量評価が有効なセッションのみ持つ
+  evaluation?: WritingEvaluation; // 任意。定量評価を含むセッションが持つ（旧データは欠落し得る）
 }
 ```
 
-`AppSettings`（storage.service.ts）: `apiKey`, `model`, `includeNaturalExpressions`, `includeGrammarTendency`, `includeCefrEvaluation`, `includeLevelUpSuggestion`, `includeClozeReview`, `theme`
+`AppSettings`（storage.service.ts）: `apiKey`, `model`, `theme`
 
-プロンプトは `utils/prompt.util.ts` の宣言的 `SECTIONS` 配列で管理（項目追加 = 配列にオブジェクト1つ）。`includeClozeReview` 有効時は `<review>` タグで穴埋め復習カード（`ReviewItem[]`）を出力させ、Drill ページの「穴埋め復習」モードで出題する。
+プロンプトは `utils/prompt.util.ts` の宣言的 `SECTIONS` 配列で管理（項目追加 = 配列にオブジェクト1つ）。全添削項目は常時有効で、`buildPrompt()`（引数なし）が全セクションを順に連結する。`<review>` タグで穴埋め復習カード（`ReviewItem[]`）を出力させ、Drill ページの「穴埋め復習」モードで出題する。
 
 ---
 
@@ -149,7 +149,7 @@ npm test         # Vitest 実行
 - **コンポーネント**: Standalone（`imports: []` で直接インポート）。
 - **永続化**: `StorageService` 経由のみ。コンポーネントから直接 `localStorage` を操作しない。
 - **API 呼び出し**: `GeminiService` 経由のみ。
-- **プロンプト構築**: `buildPrompt(settings)` で一元管理（utils/prompt.util.ts）。
+- **プロンプト構築**: `buildPrompt()` で一元管理（utils/prompt.util.ts）。
 - **スタイル**: SCSS ファイルはコンポーネントと同名で同ディレクトリに配置。
 
 ---
