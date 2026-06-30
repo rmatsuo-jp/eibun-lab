@@ -85,7 +85,8 @@
   stroke-dasharray: 3 3;
 }
 
-.grid-label {
+.grid-label,
+.axis-label {
   fill: var(--color-text-muted);
   font-size: 8px;
 }

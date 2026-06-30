@@ -2,6 +2,7 @@
  * @file ミス傾向分析ページ。
  * StorageService の sessions signal から computed() でリアクティブに学習統計・ミス統計・評価推移を集計し、
  * 統計ダッシュボード（streak等）・スコア推移グラフ・CEFR推移グラフ・頻度バー・頻出ミスリストを表示する。
+ * 推移グラフの横軸は添削日付（M/D形式、両グラフ共通の xAxisLabels で描画。点数が多い場合は間引く）。
  */
 import { Component, computed, inject } from '@angular/core';
 import { StorageService, cefrToNumber } from '../../services/storage.service';
@@ -84,6 +85,27 @@ export class Mistakes {
       build('語彙', '#34d399', e => e.vocabularyCefr),
       build('内容', '#f59e0b', e => e.contentCefr),
     ];
+  });
+
+  // ── 横軸の日付ラベル（両グラフ共通。2点以上のときのみ。最大5個に間引く） ──
+  readonly xAxisLabelY = CHART.h - 6;
+  xAxisLabels = computed<{ x: number; label: string; anchor: string }[]>(() => {
+    const history = this.evalHistory();
+    if (history.length < 2) return [];
+    const n = history.length;
+    // 表示するインデックスを選定（n<=5なら全点、それ超は先頭・末尾＋等間隔で計5点）
+    const MAX = 5;
+    const indices = n <= MAX
+      ? history.map((_, i) => i)
+      : Array.from({ length: MAX }, (_, k) => Math.round((k / (MAX - 1)) * (n - 1)));
+    return [...new Set(indices)].map(i => {
+      const d = new Date(history[i].date);
+      return {
+        x: this.xFor(i, n),
+        label: `${d.getMonth() + 1}/${d.getDate()}`,
+        anchor: i === 0 ? 'start' : i === n - 1 ? 'end' : 'middle',
+      };
+    });
   });
 
   barWidth(count: number): string {
