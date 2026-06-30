@@ -123,6 +123,26 @@ npm test         # Vitest 実行
 
 ---
 
+## バージョン運用
+
+バージョンは **Conventional Commits + semantic-release** で自動採番する。手動で `package.json` の
+`version` を編集しない。main への push をトリガに GitHub Actions が最新タグ以降のコミット種別を解析し、
+バージョンを上げてタグ・GitHub Release・`CHANGELOG.md` を生成する。
+
+| コミット種別 | バージョン上昇 | 例 |
+|---|---|---|
+| `fix:` / `perf:` | PATCH | 1.0.0 → 1.0.1 |
+| `feat:` | MINOR | 1.0.0 → 1.1.0 |
+| `feat!:` / 本文に `BREAKING CHANGE:` | MAJOR | 1.0.0 → 2.0.0 |
+| `docs:` `chore:` `refactor:` `style:` `test:` `ci:` | 上昇なし | — |
+
+- `src/version.ts`（`APP_VERSION` / `RELEASE_DATE`）は **リリース時のみ** semantic-release が
+  `scripts/generate-version.mjs` を実行して更新し、version 更新コミットに含める。
+  普段の `npm start` / `npm run build` では再生成されない（= 日付差分が紛れ込まない）。
+- 設定（`.releaserc.json`）とリリースフローは3プロジェクト共通。
+
+---
+
 ## コーディング規約
 
 - **リアクティブ**: `signal()` を使用（`BehaviorSubject` は使わない）。
