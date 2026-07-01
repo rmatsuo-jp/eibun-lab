@@ -1,4 +1,4 @@
-<!-- @file Settings ページテンプレート。アカウント（Google SSO 同期）・テーマ・API キー・モデル優先順位（ドラッグ&ドロップ）・プロンプトプレビューを含む。 -->
+<!-- @file Settings ページテンプレート。アカウント（Google SSO 同期）・テーマ・API キー・モデル優先順位（ドラッグ&ドロップ）を含む。 -->
 <div class="page">
   <h1 class="page-title">設定</h1>
 
@@ -74,12 +74,6 @@
         </li>
       }
     </ul>
-  </div>
-
-  <div class="form-group">
-    <label class="label">プロンプトプレビュー</label>
-    <p class="hint">添削時に自動生成されるプロンプトです。</p>
-    <textarea class="textarea" rows="12" readonly [value]="promptPreview()"></textarea>
   </div>
 
   <div class="actions">

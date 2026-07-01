@@ -1,12 +1,10 @@
 /**
  * @file 設定ページ。アカウント（Google SSO ログイン/同期）・API キー・モデル優先順位（ドラッグ&ドロップ）・テーマ切り替えを管理する。
- * promptPreview は computed() で buildPrompt() から自動生成される（添削項目は全て常時有効）。
  */
-import { Component, computed, inject, signal } from '@angular/core';
+import { Component, inject, signal } from '@angular/core';
 import { FormsModule } from '@angular/forms';
 import { StorageService, AppSettings } from '../../services/storage.service';
 import { AuthService } from '../../services/auth.service';
-import { buildPrompt } from '../../utils/prompt.util';
 import { APP_VERSION, RELEASE_DATE } from '../../../version';
 
 @Component({
@@ -57,7 +55,6 @@ export class Settings {
 
   // ── 状態管理（signal） ────────────────────────────────────────────
   settings = signal<AppSettings>(this.initSettings());
-  promptPreview = computed(() => buildPrompt());
   saved = signal(false);
   showKey = signal(false);
 
