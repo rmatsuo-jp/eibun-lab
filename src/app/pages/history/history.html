@@ -1,4 +1,4 @@
-<!-- @file History ページテンプレート。セッション一覧・展開表示・複数選択削除・キーワード検索、JSON インポート/エクスポートボタンを含む。 -->
+<!-- @file History ページテンプレート。セッション一覧・展開表示（元の英作文 + 評価スコアパネル + 添削解説 + ミスリスト）・複数選択削除・キーワード検索、JSON インポート/エクスポートボタンを含む。 -->
 <div class="page">
   <h1 class="page-title">履歴</h1>
 
@@ -72,7 +72,36 @@
             <h3 class="detail-title">元の英作文</h3>
             <pre class="detail-text original">{{ session.original }}</pre>
 
-            <h3 class="detail-title">添削結果</h3>
+            @if (session.evaluation; as ev) {
+              <h3 class="detail-title">評価スコア</h3>
+              <div class="eval-panel">
+                <div class="eval-grid">
+                  <div class="eval-card">
+                    <span class="eval-name">総合</span>
+                    <span class="eval-score">{{ ev.overallScore }}</span>
+                    <span class="eval-cefr">{{ ev.overallCefr }}</span>
+                  </div>
+                  <div class="eval-card">
+                    <span class="eval-name">文法</span>
+                    <span class="eval-score">{{ ev.grammarScore }}</span>
+                    <span class="eval-cefr">{{ ev.grammarCefr }}</span>
+                  </div>
+                  <div class="eval-card">
+                    <span class="eval-name">語彙</span>
+                    <span class="eval-score">{{ ev.vocabularyScore }}</span>
+                    <span class="eval-cefr">{{ ev.vocabularyCefr }}</span>
+                  </div>
+                  <div class="eval-card">
+                    <span class="eval-name">内容</span>
+                    <span class="eval-score">{{ ev.contentScore }}</span>
+                    <span class="eval-cefr">{{ ev.contentCefr }}</span>
+                  </div>
+                </div>
+                <div class="eval-density">エラー密度（100語あたり）: <strong>{{ ev.errorDensity }}</strong></div>
+              </div>
+            }
+
+            <h3 class="detail-title">添削解説</h3>
             <div class="detail-text markdown-body" [innerHTML]="toHtml(session.corrected)"></div>
 
             @if (session.mistakes.length > 0) {

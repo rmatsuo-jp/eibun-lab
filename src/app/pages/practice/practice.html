@@ -1,4 +1,4 @@
-<!-- @file Practice ページテンプレート。日付選択・入力エリア・エラー表示・送信ボタン・添削結果（元の英作文 + Markdown + ミスリスト）を含む。 -->
+<!-- @file Practice ページテンプレート。日付選択・入力エリア・エラー表示・送信ボタン・添削結果（元の英作文 + 評価スコアパネル + 添削解説Markdown + ミスリスト）を含む。 -->
 <div class="page">
   <h1 class="page-title">英作文添削</h1>
 
@@ -40,7 +40,37 @@
       <h2 class="section-title">元の英作文</h2>
       <div class="original-box">{{ state.result()!.original }}</div>
 
-      <h2 class="section-title">添削結果</h2>
+      <!-- ── 評価スコアパネル（<evaluation> JSON 由来。本文の解説文とは分離した厳格データ表示） ── -->
+      @if (state.result()!.evaluation; as ev) {
+        <h2 class="section-title">評価スコア</h2>
+        <div class="eval-panel">
+          <div class="eval-grid">
+            <div class="eval-card">
+              <span class="eval-name">総合</span>
+              <span class="eval-score">{{ ev.overallScore }}</span>
+              <span class="eval-cefr">{{ ev.overallCefr }}</span>
+            </div>
+            <div class="eval-card">
+              <span class="eval-name">文法</span>
+              <span class="eval-score">{{ ev.grammarScore }}</span>
+              <span class="eval-cefr">{{ ev.grammarCefr }}</span>
+            </div>
+            <div class="eval-card">
+              <span class="eval-name">語彙</span>
+              <span class="eval-score">{{ ev.vocabularyScore }}</span>
+              <span class="eval-cefr">{{ ev.vocabularyCefr }}</span>
+            </div>
+            <div class="eval-card">
+              <span class="eval-name">内容</span>
+              <span class="eval-score">{{ ev.contentScore }}</span>
+              <span class="eval-cefr">{{ ev.contentCefr }}</span>
+            </div>
+          </div>
+          <div class="eval-density">エラー密度（100語あたり）: <strong>{{ ev.errorDensity }}</strong></div>
+        </div>
+      }
+
+      <h2 class="section-title">添削解説</h2>
       <div class="result-box markdown-body" [innerHTML]="toHtml(state.result()!.corrected)"></div>
 
       @if (state.result()!.mistakes.length > 0) {
