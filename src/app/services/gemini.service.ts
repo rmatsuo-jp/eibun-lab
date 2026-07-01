@@ -1,11 +1,13 @@
 /**
  * @file Google Gemini API との通信を担うサービス。
  * correct() でプロンプトを送信し、レスポンスから添削文・mistakes JSON・定量評価(WritingEvaluation)・復習カードを分離して返す。
+ * 定量評価は AI の3観点スコア＋errorDensity を受け取り、総合スコア・CEFR は evaluation.util で算出して補完する。
  * gemini-3.5-flash でエラーが発生した場合、gemini-2.5-flash に自動フォールバックする。
  */
 import { Injectable } from '@angular/core';
 import { GoogleGenerativeAI } from '@google/generative-ai';
 import { Mistake, ReviewItem, WritingEvaluation } from '../models/session.model';
+import { buildEvaluation } from '../utils/evaluation.util';
 
 export interface CorrectionResult {
   corrected: string;
@@ -61,30 +63,34 @@ export class GeminiService {
   }
 
   // ── レスポンス解析: <evaluation>...</evaluation> タグから定量評価を抽出（失敗時 undefined） ─
-  // スコア5項目（数値）とCEFR4項目（文字列）が型まで揃う時のみ採用する。
+  // 採用条件は3観点スコア＋errorDensity（数値）が揃うこと。CEFR4項目はAIの実判定値を優先採用し、
+  // 欠落/不正時は buildEvaluation() 側で scoreToCefr にフォールバックする。総合スコアは常にコード算出。
+  // 余計なコードフェンス等が混じっても最初の {...} を抽出して救済する。
   private parseEvaluation(text: string): WritingEvaluation | undefined {
     const match = text.match(/<evaluation>([\s\S]*?)<\/evaluation>/);
     if (!match) return undefined;
+    // コードフェンスを除去し、最初の {...} ブロックだけを取り出す（軽い正規化）
+    const cleaned = match[1].replace(/```[a-z]*/gi, '').trim();
+    const objMatch = cleaned.match(/\{[\s\S]*\}/);
+    if (!objMatch) return undefined;
     try {
-      const json = JSON.parse(match[1].trim()) as Partial<WritingEvaluation>;
+      const json = JSON.parse(objMatch[0]) as Partial<WritingEvaluation>;
       const num = (v: unknown): v is number => typeof v === 'number' && !Number.isNaN(v);
       const str = (v: unknown): v is string => typeof v === 'string' && v.length > 0;
       if (
-        num(json.grammarScore) && num(json.vocabularyScore) && num(json.contentScore) &&
-        num(json.overallScore) && num(json.errorDensity) &&
-        str(json.grammarCefr) && str(json.vocabularyCefr) && str(json.contentCefr) && str(json.overallCefr)
+        num(json.grammarScore) && num(json.vocabularyScore) &&
+        num(json.contentScore) && num(json.errorDensity)
       ) {
-        return {
+        return buildEvaluation({
           grammarScore: json.grammarScore,
           vocabularyScore: json.vocabularyScore,
           contentScore: json.contentScore,
-          overallScore: json.overallScore,
           errorDensity: json.errorDensity,
-          grammarCefr: json.grammarCefr,
-          vocabularyCefr: json.vocabularyCefr,
-          contentCefr: json.contentCefr,
-          overallCefr: json.overallCefr,
-        };
+          grammarCefr: str(json.grammarCefr) ? json.grammarCefr : undefined,
+          vocabularyCefr: str(json.vocabularyCefr) ? json.vocabularyCefr : undefined,
+          contentCefr: str(json.contentCefr) ? json.contentCefr : undefined,
+          overallCefr: str(json.overallCefr) ? json.overallCefr : undefined,
+        });
       }
       return undefined;
     } catch {

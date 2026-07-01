@@ -10,7 +10,7 @@ import { Injectable, inject, signal } from '@angular/core';
 import { GeminiService } from '../../services/gemini.service';
 import { StorageService } from '../../services/storage.service';
 import { buildPrompt } from '../../utils/prompt.util';
-import { CorrectionSession, Mistake, ReviewItem } from '../../models/session.model';
+import { CorrectionSession, Mistake, ReviewItem, WritingEvaluation } from '../../models/session.model';
 
 // ── 日付ユーティリティ ───────────────────────────────────────────
 /**
@@ -36,7 +36,7 @@ export class PracticeState {
   selectedDate = signal(todayLocal());
   loading = signal(false);
   error = signal('');
-  result = signal<{ original: string; corrected: string; mistakes: Mistake[]; reviewItems?: ReviewItem[] } | null>(null);
+  result = signal<{ original: string; corrected: string; mistakes: Mistake[]; evaluation?: WritingEvaluation; reviewItems?: ReviewItem[] } | null>(null);
 
   // ── グローバル通知（ルートのバナーが購読） ────────────────────────
   // null = 非表示。完了/エラーはユーザーが閉じるか添削タブ遷移で消す。

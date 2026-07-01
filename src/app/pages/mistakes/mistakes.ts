@@ -71,7 +71,7 @@ export class Mistakes {
     ];
   });
 
-  // ── CEFR 推移グラフ用の3系列（暫定CEFRを数値化、2点以上のときのみ描画） ──
+  // ── CEFR 推移グラフ用の4系列（総合・文法・語彙・内容。暫定CEFRを数値化、2点以上のときのみ描画） ──
   cefrChart = computed<ChartSeries[]>(() => {
     const history = this.evalHistory();
     if (history.length < 2) return [];
@@ -81,6 +81,7 @@ export class Mistakes {
       return { name, color, line: dots.map(d => `${d.x},${d.y}`).join(' '), dots };
     };
     return [
+      build('総合', '#60a5fa', e => e.overallCefr),
       build('文法', '#a78bfa', e => e.grammarCefr),
       build('語彙', '#34d399', e => e.vocabularyCefr),
       build('内容', '#f59e0b', e => e.contentCefr),

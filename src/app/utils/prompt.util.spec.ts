@@ -19,7 +19,13 @@ describe('buildPrompt', () => {
     expect(p).toContain('【定量評価（10点満点・0.5刻み）】');
     expect(p).toContain('エラー密度');
     expect(p).toContain('<evaluation>');
-    expect(p).toContain('"overallScore"');
+    expect(p).toContain('"grammarScore"');
+    expect(p).toContain('"errorDensity"');
+    // CEFR4項目はAIの出力対象（JSON例に含める）。総合スコアのみシステム算出のため含めない。
+    expect(p).toContain('"grammarCefr"');
+    expect(p).toContain('"overallCefr"');
+    expect(p).not.toContain('"overallScore"');
+    expect(p).toContain('【CEFR評価の根拠】');
     expect(p).toContain('【レベルアップした表現の提案】');
     expect(p).toContain('【復習用カードの生成】');
     expect(p).toContain('<review>');

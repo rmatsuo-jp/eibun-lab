@@ -260,6 +260,7 @@ export class StorageService {
 
   // ── 評価推移: evaluation を持つセッションを日付昇順で返す（同一日付は最新を採用） ─
   // スコア推移グラフ・CEFR推移グラフの両方がこの履歴を参照する。
+  // CEFR は AI の実判定値をそのまま用いる（スコア由来で上書きすると過大評価に戻るため正規化しない）。
   getEvaluationHistory(): { date: string; evaluation: WritingEvaluation }[] {
     const byDay = new Map<string, { date: string; evaluation: WritingEvaluation }>();
     for (const s of this.activeSessions()) {
