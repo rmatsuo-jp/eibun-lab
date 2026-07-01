@@ -1,3 +1,11 @@
+# [1.3.0](https://github.com/rmatsuo-jp/study-english/compare/v1.2.0...v1.3.0) (2026-07-01)
+
+
+### Features
+
+* CEFR判定の精度を改善し総合スコアはシステム側算出に統一 ([59b5a8c](https://github.com/rmatsuo-jp/study-english/commit/59b5a8c6619133768113aac6ea8b0b3d806c1486))
+* 添削結果の評価スコアを解説より上に表示し項目名を整理 ([94fc472](https://github.com/rmatsuo-jp/study-english/commit/94fc47286474e6738dc7bae36c83ba9f77a7954e))
+
 # [1.2.0](https://github.com/rmatsuo-jp/study-english/compare/v1.1.0...v1.2.0) (2026-06-30)
 
 
