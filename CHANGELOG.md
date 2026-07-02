@@ -1,3 +1,13 @@
+# [1.4.0](https://github.com/rmatsuo-jp/study-english/compare/v1.3.0...v1.4.0) (2026-07-02)
+
+
+### Features
+
+* 使用モデルを5種類に拡張しフォールバック優先順位を設定可能にする ([d267d65](https://github.com/rmatsuo-jp/study-english/commit/d267d656ceeb09fe7a4469cbf2031b1a91984456))
+* 設定タブのプロンプトプレビューを削除 ([89a93bf](https://github.com/rmatsuo-jp/study-english/commit/89a93bfacf255fda44ae9aabab3ac58ba5af4504))
+* 設定画面に未保存変更の警告機能を追加 ([cc30a9d](https://github.com/rmatsuo-jp/study-english/commit/cc30a9d4a1984f8d5fb61e0e13b7da5c277d544a))
+* 開発タブでGemini API送受信ログを確認できるようにする ([7fa2156](https://github.com/rmatsuo-jp/study-english/commit/7fa215673b926d0ae6734bb0f835c5ae67e1ccd0))
+
 # [1.3.0](https://github.com/rmatsuo-jp/study-english/compare/v1.2.0...v1.3.0) (2026-07-01)
 
 
