@@ -48,8 +48,8 @@
     @for (session of filteredSessions(); track session.id) {
       <div class="session-card"
            [class.selected]="isSelected(session.id)"
-           (click)="selectionMode() ? toggleSelect(session.id, $event) : toggle(session.id)">
-        <div class="session-header">
+           (click)="selectionMode() && toggleSelect(session.id, $event)">
+        <div class="session-header" (click)="!selectionMode() && toggle(session.id)">
           <div class="session-meta">
             @if (selectionMode()) {
               <span class="checkbox-icon">{{ isSelected(session.id) ? '☑' : '☐' }}</span>
@@ -65,7 +65,7 @@
             }
           </div>
         </div>
-        <p class="session-preview">{{ session.original }}</p>
+        <p class="session-preview" (click)="!selectionMode() && toggle(session.id)">{{ session.original }}</p>
 
         @if (!selectionMode() && expandedId() === session.id) {
           <div class="session-detail" (click)="$event.stopPropagation()">
@@ -102,7 +102,7 @@
             }
 
             <h3 class="detail-title">添削解説</h3>
-            <div class="detail-text markdown-body" [innerHTML]="toHtml(session.corrected)"></div>
+            <div class="detail-text markdown-body" [innerHTML]="toHtml(session)"></div>
 
             @if (session.mistakes.length > 0) {
               <h3 class="detail-title">ミスリスト</h3>

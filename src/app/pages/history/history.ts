@@ -49,9 +49,19 @@ export class History {
     });
   });
 
-  toHtml(markdown: string): SafeHtml {
-    // marked → DOMPurify でサニタイズした HTML のみ信頼済みとして渡す。
-    return this.sanitizer.bypassSecurityTrustHtml(renderSafeMarkdown(markdown));
+  // セッションID単位でキャッシュし、[innerHTML] へ毎回同じ参照を返す。
+  // 参照が変わるとテンプレート再評価のたびに innerHTML が再設定され、
+  // ユーザーがドラッグ選択したテキストが消えてしまうため。
+  private htmlCache = new Map<string, SafeHtml>();
+
+  toHtml(session: CorrectionSession): SafeHtml {
+    let html = this.htmlCache.get(session.id);
+    if (!html) {
+      // marked → DOMPurify でサニタイズした HTML のみ信頼済みとして渡す。
+      html = this.sanitizer.bypassSecurityTrustHtml(renderSafeMarkdown(session.corrected));
+      this.htmlCache.set(session.id, html);
+    }
+    return html;
   }
 
   toggle(id: string) {
