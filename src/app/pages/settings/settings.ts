@@ -1,7 +1,8 @@
 /**
  * @file 設定ページ。アカウント（Google SSO ログイン/同期）・API キー・モデル優先順位（ドラッグ&ドロップ）・テーマ切り替えを管理する。
+ * 未保存の変更は isDirty で検知し、保存ボタンの強調表示と離脱時の確認ダイアログ（settings.guard.ts）に使う。
  */
-import { Component, inject, signal } from '@angular/core';
+import { Component, computed, inject, signal } from '@angular/core';
 import { FormsModule } from '@angular/forms';
 import { StorageService, AppSettings } from '../../services/storage.service';
 import { AuthService } from '../../services/auth.service';
@@ -58,6 +59,10 @@ export class Settings {
   saved = signal(false);
   showKey = signal(false);
 
+  // ── 未保存変更の検知（保存済み内容とのスナップショット比較） ──────
+  private savedSnapshot = signal<AppSettings>(this.settings());
+  isDirty = computed(() => JSON.stringify(this.settings()) !== JSON.stringify(this.savedSnapshot()));
+
   // ── モデル優先順位のドラッグ&ドロップ並び替え ────────────────────
   private dragIndex = signal<number | null>(null);
 
@@ -104,7 +109,14 @@ export class Settings {
 
   save() {
     this.storage.saveSettings(this.settings());
+    this.savedSnapshot.set(this.settings());
     this.saved.set(true);
     setTimeout(() => this.saved.set(false), 2000);
+  }
+
+  // ── 他ページへの遷移時に未保存の変更を警告（settings.guard.ts から呼ばれる） ──
+  canDeactivate(): boolean {
+    if (!this.isDirty()) return true;
+    return window.confirm('保存されていない変更があります。移動しますか？');
   }
 }

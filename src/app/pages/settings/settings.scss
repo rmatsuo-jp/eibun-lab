@@ -158,7 +158,15 @@
 
 .actions {
   display: flex;
+  align-items: center;
   justify-content: flex-end;
+  gap: 0.75rem;
+}
+
+.unsaved-hint {
+  font-size: 0.8125rem;
+  color: #f59e0b;
+  font-weight: 600;
 }
 
 .section-divider {
@@ -261,6 +269,10 @@
   &:disabled {
     opacity: 0.6;
     cursor: default;
+  }
+
+  &.pending {
+    box-shadow: 0 0 0 3px color-mix(in srgb, #f59e0b 35%, transparent);
   }
 }
 
