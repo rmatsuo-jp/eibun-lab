@@ -68,7 +68,7 @@
         <p class="session-preview">{{ session.original }}</p>
 
         @if (!selectionMode() && expandedId() === session.id) {
-          <div class="session-detail">
+          <div class="session-detail" (click)="$event.stopPropagation()">
             <h3 class="detail-title">元の英作文</h3>
             <pre class="detail-text original">{{ session.original }}</pre>
 
