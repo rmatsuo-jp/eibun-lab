@@ -1,7 +1,9 @@
 /**
  * @file LocalStorage への永続化を担うサービス。
- * セッション管理（CRUD）・設定管理・ミス統計集計・学習統計（streak等）を一元管理する。
+ * セッション管理（CRUD）・設定管理・ミス統計集計・学習統計（streak等）・ドリル習熟度を一元管理する。
  * sessions signal でリアクティブなキャッシュを提供する。
+ * ドリルの出題元（getFrequentMistakes/getReviewItems）は直近 RECENT_SESSION_LIMIT 件のみを対象にし、
+ * 各問題の正誤履歴は drillProgress signal（DRILL_PROGRESS_KEY）で正解ストリークとして永続化する。
  * ログイン中（AuthService）は Firestore とも双方向同期し、複数端末でセッションを共有する。
  * 削除は物理削除せず deleted フラグ（tombstone）で表現し、削除も多端末へ伝播させる。
  * コンポーネントから直接 localStorage を操作せず、必ずこのサービスを経由すること。
@@ -13,7 +15,7 @@ import {
   getDocs,
   setDoc,
 } from 'firebase/firestore';
-import { CorrectionSession, Mistake, ReviewItem, WritingEvaluation } from '../models/session.model';
+import { CorrectionSession, DrillProgress, Mistake, ReviewItem, WritingEvaluation } from '../models/session.model';
 import { AuthService } from './auth.service';
 import { firestore } from './firebase.init';
 
@@ -26,6 +28,18 @@ export function cefrToNumber(level: string): number {
 
 const SESSIONS_KEY = 'correction_sessions';
 const SETTINGS_KEY = 'app_settings';
+const DRILL_PROGRESS_KEY = 'study-english-drill-progress';
+// ドリルの出題元（頻出ミス・復習カード）に使う直近セッション件数。
+// 古いセッションのミスは今のレベルではもう犯していないことが多いため、直近分に絞って「今の弱点」を優先出題する。
+const RECENT_SESSION_LIMIT = 15;
+// 連続正解がこの回数に達したら「習熟済み」とみなし、ドリルでの出題重みを下げる。
+export const DRILL_MASTERY_STREAK = 3;
+
+// ── ドリル進捗のキー生成 ─────────────────────────────────────────
+// ミスは original を、復習カードは sentence+answer を正規化してキーにする（drill.ts と共有）。
+export function normalizeDrillKey(s: string): string {
+  return s.toLowerCase().trim().replace(/\s+/g, ' ');
+}
 
 // ── 学習統計型（ダッシュボード表示用） ──────────────────────────────
 export interface StudyStats {
@@ -65,6 +79,11 @@ export class StorageService {
   // 公開ビューは削除済みを除外。表示・集計はすべてこちらを基準にする。
   private activeSessions = computed(() => this._sessions().filter(s => !s.deleted));
   readonly sessions = this.activeSessions;
+  // 直近 RECENT_SESSION_LIMIT 件のみ（ドリルの出題元）。activeSessions は新しい順（saveSession が先頭に追加）。
+  private recentSessions = computed(() => this.activeSessions().slice(0, RECENT_SESSION_LIMIT));
+
+  // ── ドリル習熟度キャッシュ（key = normalizeDrillKey の結果） ─────────
+  private drillProgress = signal<Record<string, DrillProgress>>(this.loadDrillProgress());
 
   private auth = inject(AuthService);
 
@@ -94,6 +113,37 @@ export class StorageService {
   private persist(sessions: CorrectionSession[]): void {
     localStorage.setItem(SESSIONS_KEY, JSON.stringify(sessions));
     this._sessions.set(sessions);
+  }
+
+  // ── ドリル習熟度の永続化 ──────────────────────────────────────────
+  private loadDrillProgress(): Record<string, DrillProgress> {
+    const raw = localStorage.getItem(DRILL_PROGRESS_KEY);
+    if (!raw) return {};
+    try {
+      return JSON.parse(raw) as Record<string, DrillProgress>;
+    } catch {
+      return {};
+    }
+  }
+
+  getDrillProgress(key: string): DrillProgress | undefined {
+    return this.drillProgress()[normalizeDrillKey(key)];
+  }
+
+  // 正解なら連続正解数を+1、不正解なら0にリセットして保存する。
+  recordDrillResult(key: string, correct: boolean): void {
+    const normalized = normalizeDrillKey(key);
+    const current = this.drillProgress();
+    const prevStreak = current[normalized]?.correctStreak ?? 0;
+    const updated: Record<string, DrillProgress> = {
+      ...current,
+      [normalized]: {
+        correctStreak: correct ? prevStreak + 1 : 0,
+        lastAttemptAt: new Date().toISOString(),
+      },
+    };
+    localStorage.setItem(DRILL_PROGRESS_KEY, JSON.stringify(updated));
+    this.drillProgress.set(updated);
   }
 
   // ── セッション管理 ────────────────────────────────────────────────
@@ -302,11 +352,12 @@ export class StorageService {
     return `${y}-${m}-${day}`;
   }
 
+  // 直近 RECENT_SESSION_LIMIT 件から集計する（今のレベルではもう犯していない古いミスを除外するため）。
   getFrequentMistakes(): (Mistake & { count: number })[] {
-    const all = this.activeSessions().flatMap(s => s.mistakes);
+    const all = this.recentSessions().flatMap(s => s.mistakes);
     const seen = new Map<string, Mistake & { count: number }>();
     for (const m of all) {
-      const key = m.original.toLowerCase().trim();
+      const key = normalizeDrillKey(m.original);
       const existing = seen.get(key);
       if (existing) {
         existing.count++;
@@ -319,8 +370,8 @@ export class StorageService {
       .slice(0, 20);
   }
 
-  // ── 復習カード集計: 全セッションの reviewItems を平坦化して返す（Drill の穴埋め復習で出題） ─
+  // ── 復習カード集計: 直近 RECENT_SESSION_LIMIT 件の reviewItems を平坦化して返す（Drill の穴埋め復習で出題） ─
   getReviewItems(): ReviewItem[] {
-    return this.activeSessions().flatMap(s => s.reviewItems ?? []);
+    return this.recentSessions().flatMap(s => s.reviewItems ?? []);
   }
 }

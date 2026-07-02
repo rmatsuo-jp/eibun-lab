@@ -1,6 +1,6 @@
 /**
  * @file アプリ全体で使うドメイン型定義。Mistake（1件のミス情報）・WritingEvaluation（定量評価＝スコア＋CEFR）・
- * ReviewItem（穴埋め復習カード）と CorrectionSession（1回の添削セッション）を定義する。
+ * ReviewItem（穴埋め復習カード）・DrillProgress（ドリルの習熟度）と CorrectionSession（1回の添削セッション）を定義する。
  */
 
 // ── Mistake: Gemini が返す1件のミス情報 ─────────────────────────
@@ -20,6 +20,14 @@ export interface ReviewItem {
   hint: string;        // 日本語ヒント
   translation: string; // 英文の日本語訳
   choices: string[];   // 4択（正解を1つ含む）
+}
+
+// ── DrillProgress: ドリルの1問（ミス or 復習カード）ごとの習熟度 ─────
+// key（正規化した original、または sentence+answer）ごとに StorageService が保持する。
+// correctStreak が一定数以上になると出題の重みを下げ、既に習熟した問題の再出題頻度を減らす。
+export interface DrillProgress {
+  correctStreak: number;  // 連続正解数
+  lastAttemptAt: string;  // 直近に解答した日時（ISO 8601）
 }
 
 // ── WritingEvaluation: 1回の添削の定量評価（スコア＋暫定CEFR） ─────
