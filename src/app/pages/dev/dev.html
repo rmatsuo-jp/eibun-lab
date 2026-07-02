@@ -1,0 +1,134 @@
+<!-- @file 開発者用ページテンプレート。入出力ログ一覧・HTMLライブプレビュー・buildPrompt()プレビュー・localStorageダンプの4セクション。 -->
+<div class="page">
+  <h1 class="page-title">開発</h1>
+  <p class="hint">添削プロンプトの改善やHTML表示のUX検証に使う開発者向けツールです。ユーザーの学習データには影響しません。</p>
+
+  <!-- ── a. 入出力ログ一覧 ────────────────────────────────────────── -->
+  <div class="form-group">
+    <div class="section-header">
+      <label class="label">Gemini 入出力ログ（直近{{ logs().length }}件）</label>
+      @if (logs().length > 0) {
+        <button class="btn-secondary" type="button" (click)="clearLogs()">クリア</button>
+      }
+    </div>
+    @if (logs().length === 0) {
+      <p class="hint">まだログがありません。添削ページで英文を送信すると記録されます。</p>
+    }
+    @for (entry of logs(); track entry.id) {
+      <div class="log-entry">
+        <button class="log-header" type="button" (click)="toggleExpand(entry.id)">
+          <span class="log-time">{{ entry.timestamp | date: 'MM/dd HH:mm:ss' }}</span>
+          <span class="log-model">{{ entry.model }}</span>
+          <span class="log-preview">{{ entry.userText.slice(0, 40) }}</span>
+          <span class="log-caret">{{ expandedId() === entry.id ? '▲' : '▼' }}</span>
+        </button>
+        @if (expandedId() === entry.id) {
+          <div class="log-body">
+            <div class="log-block">
+              <div class="block-header">
+                <span class="block-title">入力（userText）</span>
+                <button class="copy-btn" type="button" (click)="copy(entry.id + '-userText', entry.userText)">
+                  {{ copiedKey() === entry.id + '-userText' ? 'コピーしました' : 'コピー' }}
+                </button>
+              </div>
+              <textarea class="textarea" rows="3" readonly [value]="entry.userText"></textarea>
+            </div>
+
+            <div class="log-block">
+              <div class="block-header">
+                <span class="block-title">送信プロンプト全文</span>
+                <button class="copy-btn" type="button" (click)="copy(entry.id + '-prompt', entry.fullPrompt)">
+                  {{ copiedKey() === entry.id + '-prompt' ? 'コピーしました' : 'コピー' }}
+                </button>
+              </div>
+              <textarea class="textarea" rows="8" readonly [value]="entry.fullPrompt"></textarea>
+            </div>
+
+            <div class="log-block">
+              <div class="block-header">
+                <span class="block-title">生レスポンス</span>
+                <button class="copy-btn" type="button" (click)="copy(entry.id + '-raw', entry.rawResponse)">
+                  {{ copiedKey() === entry.id + '-raw' ? 'コピーしました' : 'コピー' }}
+                </button>
+              </div>
+              <textarea class="textarea" rows="8" readonly [value]="entry.rawResponse"></textarea>
+            </div>
+
+            <div class="log-block">
+              <div class="block-header">
+                <span class="block-title">パース済み JSON（mistakes / evaluation / reviewItems）</span>
+                <button class="copy-btn" type="button" (click)="copy(entry.id + '-parsed', json(entry.parsed))">
+                  {{ copiedKey() === entry.id + '-parsed' ? 'コピーしました' : 'コピー' }}
+                </button>
+              </div>
+              <textarea class="textarea" rows="8" readonly [value]="json(entry.parsed)"></textarea>
+            </div>
+
+            <button class="btn-secondary" type="button" (click)="sendToPreview(entry)">
+              添削後Markdownをプレビューへ送る ↓
+            </button>
+          </div>
+        }
+      </div>
+    }
+  </div>
+
+  <hr class="section-divider" />
+
+  <!-- ── b. 添削後 HTML ライブプレビュー ─────────────────────────── -->
+  <div class="form-group">
+    <label class="label">添削後 HTML ライブプレビュー</label>
+    <p class="hint">Markdown ソースと実際のレンダリング結果を並べて確認できます。</p>
+    <div class="preview-grid">
+      <div>
+        <span class="block-title">Markdown ソース</span>
+        <textarea class="textarea" rows="12" [(ngModel)]="previewMarkdown" name="previewMarkdown"></textarea>
+      </div>
+      <div>
+        <span class="block-title">レンダリング結果</span>
+        <div class="preview-render" [innerHTML]="previewHtml()"></div>
+      </div>
+    </div>
+  </div>
+
+  <hr class="section-divider" />
+
+  <!-- ── c. buildPrompt() プレビュー ─────────────────────────────── -->
+  <div class="form-group">
+    <div class="section-header">
+      <label class="label">buildPrompt() プレビュー</label>
+      <button class="copy-btn" type="button" (click)="copy('prompt-preview', promptPreview())">
+        {{ copiedKey() === 'prompt-preview' ? 'コピーしました' : 'コピー' }}
+      </button>
+    </div>
+    <textarea class="textarea" rows="10" readonly [value]="promptPreview()"></textarea>
+  </div>
+
+  <hr class="section-divider" />
+
+  <!-- ── d. localStorage 生データダンプ ──────────────────────────── -->
+  <div class="form-group">
+    <div class="section-header">
+      <label class="label">correction_sessions（生データ）</label>
+      <button class="copy-btn" type="button" (click)="copy('sessions-dump', sessionsDump())">
+        {{ copiedKey() === 'sessions-dump' ? 'コピーしました' : 'コピー' }}
+      </button>
+    </div>
+    <textarea class="textarea" rows="10" readonly [value]="sessionsDump()"></textarea>
+  </div>
+
+  <div class="form-group">
+    <div class="section-header">
+      <label class="label">app_settings（生データ）</label>
+      <div class="header-actions">
+        <button class="toggle-key" type="button" (click)="showApiKey.set(!showApiKey())">
+          {{ showApiKey() ? 'APIキーを隠す' : 'APIキーを表示' }}
+        </button>
+        <button class="copy-btn" type="button" (click)="copy('settings-dump', settingsDump())">
+          {{ copiedKey() === 'settings-dump' ? 'コピーしました' : 'コピー' }}
+        </button>
+      </div>
+    </div>
+    <textarea class="textarea" rows="6" readonly [value]="settingsDump()"></textarea>
+  </div>
+</div>

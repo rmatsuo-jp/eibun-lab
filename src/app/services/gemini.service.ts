@@ -2,12 +2,14 @@
  * @file Google Gemini API との通信を担うサービス。
  * correct() でプロンプトを送信し、レスポンスから添削文・mistakes JSON・定量評価(WritingEvaluation)・復習カードを分離して返す。
  * 定量評価は AI の3観点スコア＋errorDensity を受け取り、総合スコア・CEFR は evaluation.util で算出して補完する。
- * gemini-3.5-flash でエラーが発生した場合、gemini-2.5-flash に自動フォールバックする。
+ * モデル優先順位配列（AppSettings.modelPriority）を先頭から順に試し、失敗したら次のモデルへフォールバックする。
+ * 成功した呼び出しは DevLogService に生プロンプト・生レスポンスを記録し、開発タブ（pages/dev）で確認できるようにする。
  */
-import { Injectable } from '@angular/core';
+import { Injectable, inject } from '@angular/core';
 import { GoogleGenerativeAI } from '@google/generative-ai';
 import { Mistake, ReviewItem, WritingEvaluation } from '../models/session.model';
 import { buildEvaluation } from '../utils/evaluation.util';
+import { DevLogService } from './dev-log.service';
 
 export interface CorrectionResult {
   corrected: string;
@@ -18,16 +20,24 @@ export interface CorrectionResult {
 
 @Injectable({ providedIn: 'root' })
 export class GeminiService {
-  // ── API 呼び出し（gemini-3.5-flash 失敗時は gemini-2.5-flash にフォールバック） ─
-  async correct(apiKey: string, model: string, prompt: string, userText: string): Promise<CorrectionResult> {
-    try {
-      return await this.callApi(apiKey, model, prompt, userText);
-    } catch (e) {
-      if (model === 'gemini-3.5-flash') {
-        return await this.callApi(apiKey, 'gemini-2.5-flash', prompt, userText);
+  private devLog = inject(DevLogService);
+
+  // ── API 呼び出し（modelPriority を先頭から順に試し、失敗したら次のモデルへフォールバック） ─
+  async correct(
+    apiKey: string,
+    modelPriority: string[],
+    prompt: string,
+    userText: string
+  ): Promise<CorrectionResult> {
+    let lastError: unknown;
+    for (const model of modelPriority) {
+      try {
+        return await this.callApi(apiKey, model, prompt, userText);
+      } catch (e) {
+        lastError = e;
       }
-      throw e;
     }
+    throw lastError;
   }
 
   private async callApi(apiKey: string, model: string, prompt: string, userText: string): Promise<CorrectionResult> {
@@ -46,6 +56,14 @@ export class GeminiService {
       .replace(/<evaluation>[\s\S]*?<\/evaluation>/g, '')
       .replace(/<review>[\s\S]*?<\/review>/g, '')
       .trim();
+
+    this.devLog.record({
+      model,
+      fullPrompt,
+      userText,
+      rawResponse: text,
+      parsed: { corrected, mistakes, evaluation, reviewItems },
+    });
 
     return { corrected, mistakes, evaluation, reviewItems };
   }

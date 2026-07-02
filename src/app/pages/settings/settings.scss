@@ -80,22 +80,60 @@
   }
 }
 
-.select {
-  width: 100%;
-  padding: 0.75rem;
+// ── モデル優先順位（ドラッグ&ドロップ並び替えリスト） ───────────────
+.model-priority-list {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 0.5rem;
+}
+
+.model-priority-item {
+  display: flex;
+  align-items: center;
+  gap: 0.75rem;
+  padding: 0.625rem 0.875rem;
   border: 2px solid var(--color-border);
   border-radius: 0.75rem;
-  font-size: 1rem;
   background: var(--color-surface);
-  color: var(--color-text);
-  appearance: none;
-  cursor: pointer;
+  cursor: grab;
   transition: border-color 0.2s;
 
-  &:focus {
-    outline: none;
+  &:active {
+    cursor: grabbing;
+  }
+
+  &:hover {
     border-color: var(--color-primary);
   }
+}
+
+.priority-rank {
+  flex-shrink: 0;
+  width: 1.5rem;
+  height: 1.5rem;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  border-radius: 50%;
+  background: var(--color-primary-light);
+  color: var(--color-primary);
+  font-size: 0.75rem;
+  font-weight: 700;
+}
+
+.priority-label {
+  flex: 1;
+  font-size: 0.9375rem;
+  color: var(--color-text);
+}
+
+.drag-handle {
+  flex-shrink: 0;
+  color: var(--color-text-muted);
+  font-size: 1rem;
 }
 
 .textarea {
@@ -120,7 +158,15 @@
 
 .actions {
   display: flex;
+  align-items: center;
   justify-content: flex-end;
+  gap: 0.75rem;
+}
+
+.unsaved-hint {
+  font-size: 0.8125rem;
+  color: #f59e0b;
+  font-weight: 600;
 }
 
 .section-divider {
@@ -223,6 +269,10 @@
   &:disabled {
     opacity: 0.6;
     cursor: default;
+  }
+
+  &.pending {
+    box-shadow: 0 0 0 3px color-mix(in srgb, #f59e0b 35%, transparent);
   }
 }
 

@@ -21,6 +21,6 @@ describe('App', () => {
     await fixture.whenStable();
     const compiled = fixture.nativeElement as HTMLElement;
     const labels = Array.from(compiled.querySelectorAll('.nav-item span')).map(el => el.textContent?.trim());
-    expect(labels).toEqual(['添削', 'ドリル', '履歴', '傾向', '設定']);
+    expect(labels).toEqual(['添削', 'ドリル', '履歴', '傾向', '設定', '開発']);
   });
 });

@@ -39,13 +39,21 @@ export interface StudyStats {
 // ── 設定型・デフォルト値 ──────────────────────────────────────────
 export interface AppSettings {
   apiKey: string;
-  model: string;
+  modelPriority: string[]; // API送信の試行順（先頭が最優先、失敗したら次のモデルへフォールバック）
   theme: 'light' | 'dark';
 }
 
+const DEFAULT_MODEL_PRIORITY = [
+  'gemini-3.5-flash',
+  'gemini-3-flash',
+  'gemini-2.5-flash',
+  'gemini-3.1-flash-lite',
+  'gemini-2.5-flash-lite',
+];
+
 const DEFAULT_SETTINGS: AppSettings = {
   apiKey: '',
-  model: 'gemini-3.5-flash',
+  modelPriority: DEFAULT_MODEL_PRIORITY,
   theme: 'dark',
 };
 
@@ -175,11 +183,21 @@ export class StorageService {
   }
 
   // ── 設定管理 ──────────────────────────────────────────────────────
+  // 旧バージョン（単一モデル文字列 `model` を持つ設定）からの移行にも対応する:
+  // `modelPriority` が無く `model` のみ持つ場合、その値を先頭に置きデフォルト順で残りを埋める。
   getSettings(): AppSettings {
     const raw = localStorage.getItem(SETTINGS_KEY);
     if (!raw) return { ...DEFAULT_SETTINGS };
     try {
-      return { ...DEFAULT_SETTINGS, ...(JSON.parse(raw) as Partial<AppSettings>) };
+      const parsed = JSON.parse(raw) as Partial<AppSettings> & { model?: string };
+      const merged: AppSettings = { ...DEFAULT_SETTINGS, ...parsed };
+      if (!parsed.modelPriority && parsed.model) {
+        merged.modelPriority = [
+          parsed.model,
+          ...DEFAULT_MODEL_PRIORITY.filter(m => m !== parsed.model),
+        ];
+      }
+      return merged;
     } catch {
       return { ...DEFAULT_SETTINGS };
     }

@@ -66,7 +66,7 @@ export class PracticeState {
     // 注: ここで result はクリアしない（新しい結果を受信して初めて置き換える）。
 
     try {
-      const res = await this.gemini.correct(settings.apiKey, settings.model, buildPrompt(), text);
+      const res = await this.gemini.correct(settings.apiKey, settings.modelPriority, buildPrompt(), text);
       this.result.set({ original: text, ...res });
       this.notice.set({ status: 'success', message: '添削が完了しました' });
 
