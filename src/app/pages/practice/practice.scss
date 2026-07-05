@@ -304,6 +304,8 @@
   gap: 0.4rem;
   max-height: 240px;
   overflow-y: auto;
+  -webkit-overflow-scrolling: touch;
+  overscroll-behavior: contain;
 }
 
 .bulk-item,

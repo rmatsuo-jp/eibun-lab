@@ -20,11 +20,14 @@
 
 .toolbar {
   display: flex;
+  flex-wrap: wrap;
   gap: 0.5rem;
   margin-bottom: 1.25rem;
 }
 
 .toolbar-btn {
+  flex: 1 1 calc(50% - 0.25rem);
+  min-height: 2.75rem;
   background: var(--color-surface);
   border: 1px solid var(--color-border);
   color: var(--color-text);
@@ -121,10 +124,6 @@
   padding: 0.15rem 0.5rem;
   border-radius: 999px;
   font-weight: 600;
-}
-
-.select-btn {
-  margin-left: auto;
 }
 
 .delete-selected-btn {
@@ -351,7 +350,7 @@
 
 .calendar-cell {
   position: relative;
-  aspect-ratio: 3.2 / 1;
+  min-height: 2.75rem;
   display: flex;
   flex-direction: column;
   align-items: center;
@@ -433,5 +432,14 @@
     white-space: normal;
     overflow: visible;
     text-overflow: unset;
+  }
+
+  .toolbar-btn {
+    flex: 0 0 auto;
+    min-height: auto;
+  }
+
+  .select-btn {
+    margin-left: auto;
   }
 }
