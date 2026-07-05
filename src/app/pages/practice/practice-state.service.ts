@@ -6,7 +6,7 @@
  * notice signal は「処理中／完了／エラー」をルートコンポーネントのグローバルバナーへ伝え、
  * どのタブにいても添削の状況が分かるようにする。
  * 一括添削（bulkEntries/bulkProgress/submitBulk）は JSON テンプレートでアップロードした複数日分の
- * 英作文を1件ずつ順番に添削・保存する正式機能。セッション組み立ては buildSession() に共通化し、
+ * 英作文を BULK_CONCURRENCY 件ずつ並列添削・保存する正式機能。セッション組み立ては buildSession() に共通化し、
  * 単発添削（submit）と一括添削（submitBulk）の両方から使う。
  */
 import { Injectable, inject, signal } from '@angular/core';
@@ -110,7 +110,10 @@ export class PracticeState {
     };
   }
 
-  // ── 一括添削: JSONテンプレートからアップロードした複数の英作文を順番に添削する ─
+  // ── 一括添削: JSONテンプレートからアップロードした複数の英作文を並列添削する ──
+  // 同時実行数を BULK_CONCURRENCY 件に制限したワーカープールで処理し、Gemini API のレート制限を超えないようにする。
+  private readonly BULK_CONCURRENCY = 3;
+
   bulkEntries = signal<BulkEntry[]>([]);
   bulkProgress = signal<
     { date: string; text: string; status: 'pending' | 'loading' | 'success' | 'error'; errorMessage?: string }[]
@@ -139,22 +142,35 @@ export class PracticeState {
 
     let successCount = 0;
     let errorCount = 0;
+    let completedCount = 0;
+    let nextIndex = 0;
 
-    for (let i = 0; i < entries.length; i++) {
-      const entry = entries[i];
-      this.updateBulkStatus(i, 'loading');
-      this.notice.set({ status: 'loading', message: `一括添削中 (${i + 1}/${entries.length})` });
-      try {
-        const res = await this.gemini.correct(settings.apiKey, settings.modelPriority, buildPrompt(), entry.text);
-        const session = this.buildSession(entry.date, entry.text, res);
-        this.storage.saveSession(session);
-        this.updateBulkStatus(i, 'success');
-        successCount++;
-      } catch (e) {
-        this.updateBulkStatus(i, 'error', e instanceof Error ? e.message : String(e));
-        errorCount++;
+    // 各ワーカーは nextIndex を同期的にインクリメントしてから await するため、
+    // インデックスの重複・取りこぼしは発生しない。
+    const worker = async () => {
+      while (nextIndex < entries.length) {
+        const i = nextIndex++;
+        const entry = entries[i];
+        this.updateBulkStatus(i, 'loading');
+        try {
+          const res = await this.gemini.correct(settings.apiKey, settings.modelPriority, buildPrompt(), entry.text);
+          const session = this.buildSession(entry.date, entry.text, res);
+          this.storage.saveSession(session);
+          this.updateBulkStatus(i, 'success');
+          successCount++;
+        } catch (e) {
+          this.updateBulkStatus(i, 'error', e instanceof Error ? e.message : String(e));
+          errorCount++;
+        } finally {
+          completedCount++;
+          this.notice.set({ status: 'loading', message: `一括添削中 (${completedCount}/${entries.length})` });
+        }
       }
-    }
+    };
+
+    await Promise.all(
+      Array.from({ length: Math.min(this.BULK_CONCURRENCY, entries.length) }, () => worker())
+    );
 
     this.bulkRunning.set(false);
     this.notice.set({
