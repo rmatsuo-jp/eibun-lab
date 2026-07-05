@@ -1,3 +1,23 @@
+# [1.6.0](https://github.com/rmatsuo-jp/study-english/compare/v1.5.0...v1.6.0) (2026-07-05)
+
+
+### Bug Fixes
+
+* ミスカテゴリの英日表記ゆれを正規化して統計の重複を解消 ([4924e1d](https://github.com/rmatsuo-jp/study-english/commit/4924e1d227b88d8c1875084395f313dd6addca38))
+
+
+### Features
+
+* レベルアップ表現を構造化しDrillに日付別3段階タイピングモードを追加 ([9c48f29](https://github.com/rmatsuo-jp/study-english/commit/9c48f29af1d02be922b7946342959ce0102605c0))
+* 履歴にカレンダー表示を追加し添削済みの日を一目で確認できるように ([346eef9](https://github.com/rmatsuo-jp/study-english/commit/346eef96973f7b41c450289d9fc14bc165950191))
+* 履歴のすべて選択/解除ボタンとエクスポートファイル名の分単位タイムスタンプ化 ([b784fee](https://github.com/rmatsuo-jp/study-english/commit/b784fee127e5e2551530ce2b1a8dfeafa5584522))
+* 推移グラフに凡例クリックでの系列強調とCEFR全段階表示を追加 ([64a5927](https://github.com/rmatsuo-jp/study-english/commit/64a592777d599194b38688e256f177deaf0eeeb7))
+
+
+### Performance Improvements
+
+* 一括添削を同時実行数3件の並列処理に変更 ([dada7bb](https://github.com/rmatsuo-jp/study-english/commit/dada7bbfc32a1363be991a58da991c5010c92c76))
+
 # [1.5.0](https://github.com/rmatsuo-jp/study-english/compare/v1.4.0...v1.5.0) (2026-07-05)
 
 
