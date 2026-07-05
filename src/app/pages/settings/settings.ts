@@ -4,8 +4,8 @@
  */
 import { Component, computed, inject, signal } from '@angular/core';
 import { FormsModule } from '@angular/forms';
-import { StorageService, AppSettings } from '../../services/storage.service';
-import { AuthService } from '../../services/auth.service';
+import { StorageService, AppSettings } from '../../services/storage/storage.service';
+import { AuthService } from '../../services/firebase/auth.service';
 import { APP_VERSION, RELEASE_DATE } from '../../../version';
 
 @Component({

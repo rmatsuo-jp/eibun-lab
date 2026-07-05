@@ -10,7 +10,7 @@ import { NgTemplateOutlet } from '@angular/common';
 import { DomSanitizer, SafeHtml } from '@angular/platform-browser';
 import { renderSafeMarkdown } from '../../utils/markdown.util';
 import { formatTimestampForFilename, toDayKey } from '../../utils/date.util';
-import { StorageService } from '../../services/storage.service';
+import { StorageService } from '../../services/storage/storage.service';
 import { CorrectionSession } from '../../models/session.model';
 
 interface CalendarCell {

@@ -10,8 +10,8 @@
  * 単発添削（submit）と一括添削（submitBulk）の両方から使う。
  */
 import { Injectable, inject, signal } from '@angular/core';
-import { GeminiService, CorrectionResult } from '../../services/gemini.service';
-import { StorageService } from '../../services/storage.service';
+import { GeminiService, CorrectionResult } from '../../services/gemini/gemini.service';
+import { StorageService } from '../../services/storage/storage.service';
 import { buildPrompt } from '../../utils/prompt.util';
 import { BulkEntry } from '../../utils/bulk-import.util';
 import { CorrectionSession, LevelUpItem, Mistake, ReviewItem, WritingEvaluation } from '../../models/session.model';

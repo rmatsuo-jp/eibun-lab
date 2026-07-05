@@ -4,7 +4,7 @@
  * 開発タブ（pages/dev）から閲覧・コピーするためだけに存在し、学習データ（CorrectionSession）とは無関係。
  */
 import { Injectable, signal } from '@angular/core';
-import { LevelUpItem, Mistake, ReviewItem, WritingEvaluation } from '../models/session.model';
+import { LevelUpItem, Mistake, ReviewItem, WritingEvaluation } from '../../models/session.model';
 
 export interface DevLogEntry {
   id: string;
@@ -20,6 +20,7 @@ export interface DevLogEntry {
     reviewItems?: ReviewItem[];
     levelUpItems?: LevelUpItem[];
   };
+  parseWarnings?: string[]; // レスポンス解析（<mistakes>等のタグ）が失敗した項目のログ（正常時は空）
 }
 
 const LOGS_KEY = 'dev_logs';
