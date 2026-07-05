@@ -139,3 +139,23 @@ html, body {
 @media (min-width: 768px) {
   .markdown-body { font-size: 1rem; }
 }
+
+// ── キーボードフォーカスの可視化（全ページ共通） ───────────────────
+// コンポーネントごとの :focus スタイルに頼らず、ここ1箇所で全ボタン/リンク/tabindex要素に適用する。
+// :focus-visible はブラウザがキーボード操作由来と判定した時だけ効くため、マウスクリックでは表示されない。
+:focus-visible {
+  outline: 3px solid var(--color-primary);
+  outline-offset: 2px;
+  border-radius: 4px;
+}
+
+// ── 強調ボタン（次に押すボタン）＝Enterで進められることを明示 ─────
+.btn-primary {
+  position: relative;
+}
+.btn-primary::after {
+  content: '⏎';
+  margin-left: 0.4em;
+  opacity: 0.7;
+  font-size: 0.9em;
+}

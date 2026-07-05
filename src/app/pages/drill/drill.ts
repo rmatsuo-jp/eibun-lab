@@ -17,8 +17,10 @@
  * 出題順は完全ランダムではなく、頻度（ミスの出現回数）と習熟度（正解ストリーク）で重み付けし、
  * 頻出かつ未習熟の問題ほど手前に出やすくする。回答結果は StorageService.recordDrillResult で永続化し、
  * 習熟済み（DRILL_MASTERY_STREAK 以上）の問題は次回以降の出題重みを下げる。
+ * 答え合わせ後（revealed→true）は #nextBtn（levelup/mistakes・cloze で共用のテンプレート参照名）へ
+ * 自動フォーカスし、Enterキーだけで次の問題に進めるようにしている。
  */
-import { Component, computed, inject, signal } from '@angular/core';
+import { Component, computed, effect, ElementRef, inject, signal, viewChild } from '@angular/core';
 import { DatePipe } from '@angular/common';
 import { FormsModule } from '@angular/forms';
 import { DRILL_MASTERY_STREAK, normalizeDrillKey, StorageService } from '../../services/storage.service';
@@ -64,6 +66,10 @@ interface LevelUpQuiz {
 export class Drill {
   private storage = inject(StorageService);
 
+  // 答え合わせ後に表示される「次へ」ボタン（levelup/mistakes・cloze どちらか一方のみ描画される）。
+  // revealed() が true になった直後に自動フォーカスし、Enterキーだけで次の問題へ進めるようにする。
+  private nextBtn = viewChild<ElementRef<HTMLButtonElement>>('nextBtn');
+
   // ── 出題元（モードごとの件数をスタート画面で表示） ───────────────
   mistakeCount = computed(() => this.storage.getFrequentMistakes().length);
   clozeCount = computed(() => this.storage.getReviewItems().length);
@@ -81,7 +87,7 @@ export class Drill {
   userAnswer = signal('');
   revealed = signal(false);
   currentCorrect = signal(false);     // 現在の問題が正解扱いか
-  choiceMode = signal(false);         // 現在の問題を4択 UI で出しているか（クローズのみ）
+  choiceMode = signal(false);         // 4択 UI で出題中か（cloze は常に true、mistakes は常に false）
   score = signal(0);
   hintShown = signal(false);          // 日本語訳をヒントボタンで表示中か（デフォルト非表示）
 
@@ -100,6 +106,16 @@ export class Drill {
   currentLevelUp = computed(() => this.levelUpQuiz()[this.index()] ?? null);
   total = computed(() => this.mode() === 'levelup' ? this.levelUpQuiz().length : this.quiz().length);
 
+  constructor() {
+    // 答え合わせ直後（revealed→true）にレンダリングが確定してから「次へ」ボタンへフォーカスを移す。
+    // setTimeout(0) で描画完了後まで待たないと、切り替わった @if ブロック内の要素がまだ存在しない。
+    effect(() => {
+      if (this.revealed()) {
+        setTimeout(() => this.nextBtn()?.nativeElement.focus());
+      }
+    });
+  }
+
   // ── ドリル開始: モードのデータを重み付きシャッフルしてスナップショット ───
   // weight * Math.random() の降順ソートで、頻出・未習熟の問題ほど手前に出やすくしつつ、
   // 完全な固定順にはならないよう毎回ランダム性を持たせる（軽量な重み付きシャッフル）。
@@ -110,7 +126,7 @@ export class Drill {
     this.userAnswer.set('');
     this.revealed.set(false);
     this.currentCorrect.set(false);
-    this.choiceMode.set(false);
+    this.choiceMode.set(mode === 'cloze');
     this.finished.set(false);
     this.hintShown.set(false);
     this.maskLevel.set(0);
@@ -282,12 +298,6 @@ export class Drill {
       .join(' ');
   }
 
-  // ── 4択へ切替（クローズのみ）。ヒントを見せつつ選択式で答えやすくする ─
-  switchToChoices() {
-    if (this.revealed()) return;
-    this.choiceMode.set(true);
-  }
-
   // ヒント（日本語訳）の表示切り替え。答え合わせ後は自動表示されるため、その前にだけ使う。
   toggleHint() {
     this.hintShown.update(v => !v);
@@ -419,7 +429,7 @@ export class Drill {
     this.userAnswer.set('');
     this.revealed.set(false);
     this.currentCorrect.set(false);
-    this.choiceMode.set(false);
+    this.choiceMode.set(this.mode() === 'cloze');
     this.hintShown.set(false);
     this.mistakeKind.set(null);
 

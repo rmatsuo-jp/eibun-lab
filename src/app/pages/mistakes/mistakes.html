@@ -1,4 +1,5 @@
-<!-- @file Mistakes ページテンプレート。学習統計ダッシュボード・スコア推移グラフ・CEFR推移グラフ（横軸=添削日付）・カテゴリ別ミス頻度バー・頻出ミスリストを表示する。 -->
+<!-- @file Mistakes ページテンプレート。学習統計ダッシュボード・スコア推移グラフ・CEFR推移グラフ（横軸=添削日付）・カテゴリ別ミス頻度バー・頻出ミスリストを表示する。
+     グラフ凡例（.legend-item）は tabindex/role="button"+keydown.enter/space でキーボードからも系列ハイライトを切り替えられる。 -->
 <div class="page">
   <h1 class="page-title">ミス傾向</h1>
 
@@ -65,7 +66,12 @@
           </svg>
           <div class="cefr-legend">
             @for (s of scoreChart(); track s.name) {
-              <span class="legend-item" [class.active]="highlightedSeries() === s.name" (click)="toggleHighlight(s.name)">
+              <span class="legend-item" tabindex="0" role="button"
+                    [attr.aria-pressed]="highlightedSeries() === s.name"
+                    [class.active]="highlightedSeries() === s.name"
+                    (click)="toggleHighlight(s.name)"
+                    (keydown.enter)="toggleHighlight(s.name)"
+                    (keydown.space)="$event.preventDefault(); toggleHighlight(s.name)">
                 <span class="legend-dot" [style.background]="s.color"></span>{{ s.name }}
               </span>
             }
@@ -108,7 +114,12 @@
           </svg>
           <div class="cefr-legend">
             @for (s of cefrChart(); track s.name) {
-              <span class="legend-item" [class.active]="highlightedSeries() === s.name" (click)="toggleHighlight(s.name)">
+              <span class="legend-item" tabindex="0" role="button"
+                    [attr.aria-pressed]="highlightedSeries() === s.name"
+                    [class.active]="highlightedSeries() === s.name"
+                    (click)="toggleHighlight(s.name)"
+                    (keydown.enter)="toggleHighlight(s.name)"
+                    (keydown.space)="$event.preventDefault(); toggleHighlight(s.name)">
                 <span class="legend-dot" [style.background]="s.color"></span>{{ s.name }}
               </span>
             }

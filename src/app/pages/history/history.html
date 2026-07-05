@@ -1,4 +1,5 @@
-<!-- @file History ページテンプレート。上部に常設のカレンダー（月表示グリッドで添削済みの日をドット表示）、下部にセッション一覧（キーワード検索・複数選択削除）を1画面で表示する。カレンダーで日付を選ぶと一覧がその日だけに絞り込まれる。セッションカードの描画は #sessionCard テンプレートとして共用する。 -->
+<!-- @file History ページテンプレート。上部に常設のカレンダー（月表示グリッドで添削済みの日をドット表示）、下部にセッション一覧（キーワード検索・複数選択削除）を1画面で表示する。カレンダーで日付を選ぶと一覧がその日だけに絞り込まれる。セッションカードの描画は #sessionCard テンプレートとして共用する。
+     session-card/session-header は選択モードに応じて tabindex/role を切り替え、keydown.enter/space でも開閉・選択できる。 -->
 <div class="page">
   <h1 class="page-title">履歴</h1>
 
@@ -98,8 +99,19 @@
 <ng-template #sessionCard let-session>
   <div class="session-card"
        [class.selected]="isSelected(session.id)"
-       (click)="selectionMode() && toggleSelect(session.id, $event)">
-    <div class="session-header" (click)="!selectionMode() && toggle(session.id)">
+       [attr.tabindex]="selectionMode() ? 0 : -1"
+       [attr.role]="selectionMode() ? 'button' : null"
+       [attr.aria-pressed]="selectionMode() ? isSelected(session.id) : null"
+       (click)="selectionMode() && toggleSelect(session.id, $event)"
+       (keydown.enter)="selectionMode() && toggleSelect(session.id, $event)"
+       (keydown.space)="$event.preventDefault(); selectionMode() && toggleSelect(session.id, $event)">
+    <div class="session-header"
+         [attr.tabindex]="selectionMode() ? -1 : 0"
+         [attr.role]="selectionMode() ? null : 'button'"
+         [attr.aria-expanded]="selectionMode() ? null : expandedId() === session.id"
+         (click)="!selectionMode() && toggle(session.id)"
+         (keydown.enter)="!selectionMode() && toggle(session.id)"
+         (keydown.space)="$event.preventDefault(); !selectionMode() && toggle(session.id)">
       <div class="session-meta">
         @if (selectionMode()) {
           <span class="checkbox-icon">{{ isSelected(session.id) ? '☑' : '☐' }}</span>

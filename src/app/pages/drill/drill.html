@@ -144,7 +144,7 @@
               <button class="btn-secondary" (click)="markCorrect()">正解にする</button>
             }
             <button class="btn-secondary" (click)="retry()">もう一度</button>
-            <button class="btn-primary" (click)="next()">
+            <button class="btn-primary" #nextBtn (click)="next()">
               {{ index() + 1 >= total() ? '結果を見る' : '次の問題へ' }}
             </button>
           </div>
@@ -159,7 +159,7 @@
       <div class="quiz-card">
         <span class="category-badge">{{ q.badge }}</span>
         <p class="quiz-prompt">
-          {{ mode() === 'cloze' ? '空所に入る語を答えてください。' : '次の表現を正しく直してください。' }}
+          {{ mode() === 'cloze' ? '正しい語を選んでください。' : '次の表現を正しく直してください。' }}
         </p>
         <p class="quiz-original">{{ q.prompt }}</p>
         @if (q.translation) {
@@ -181,9 +181,6 @@
           @if (!revealed()) {
             <div class="quiz-actions">
               <button class="btn-primary" (click)="check()" [disabled]="!userAnswer().trim()">答え合わせ</button>
-              @if (mode() === 'cloze' && q.choices) {
-                <button class="btn-secondary" (click)="switchToChoices()">ヒント（4択に切替）</button>
-              }
             </div>
           }
         } @else {
@@ -211,7 +208,7 @@
             @if (!currentCorrect()) {
               <button class="btn-secondary" (click)="markCorrect()">正解にする</button>
             }
-            <button class="btn-primary" (click)="next()">
+            <button class="btn-primary" #nextBtn (click)="next()">
               {{ index() + 1 >= total() ? '結果を見る' : '次へ' }}
             </button>
           </div>
