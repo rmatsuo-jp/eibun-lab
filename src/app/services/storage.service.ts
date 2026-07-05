@@ -7,6 +7,7 @@
  * ログイン中（AuthService）は Firestore とも双方向同期し、複数端末でセッションを共有する。
  * 削除は物理削除せず deleted フラグ（tombstone）で表現し、削除も多端末へ伝播させる。
  * コンポーネントから直接 localStorage を操作せず、必ずこのサービスを経由すること。
+ * ミスカテゴリは英語表記・表記ゆれが混在し得るため、normalizeCategory() で日本語カテゴリへ正規化してから集計する。
  */
 import { computed, effect, Injectable, inject, signal } from '@angular/core';
 import {
@@ -24,6 +25,25 @@ export const CEFR_ORDER = ['A1', 'A2', 'B1', 'B2', 'C1', 'C2'] as const;
 export function cefrToNumber(level: string): number {
   const idx = CEFR_ORDER.indexOf(level.toUpperCase().trim() as (typeof CEFR_ORDER)[number]);
   return idx === -1 ? 0 : idx + 1;
+}
+
+// ミスカテゴリの表記ゆれ正規化（英語表記・過去データの細分化表記 → 日本語カテゴリへ寄せる）。
+// プロンプト側で日本語固定リストを指示した後も、過去に保存済みの英語カテゴリのミスが残るため集計側でも正規化する。
+const CATEGORY_ALIASES: Record<string, string> = {
+  'grammar': '文法',
+  'vocabulary': '語彙',
+  'word choice': '語彙',
+  'verb/word choice': '語彙',
+  'spelling': 'スペリング',
+  'collocation': 'コロケーション',
+  'noun/number': '文法',
+  'preposition/article': '文法',
+  '語法/名詞句の構成': '語法',
+  '語順/副詞の位置': '語順',
+};
+export function normalizeCategory(category: string): string {
+  const trimmed = category.trim();
+  return CATEGORY_ALIASES[trimmed.toLowerCase()] ?? CATEGORY_ALIASES[trimmed] ?? trimmed;
 }
 
 const SESSIONS_KEY = 'correction_sessions';
@@ -279,11 +299,13 @@ export class StorageService {
   }
 
   // ── ミス統計集計（sessions signal を読むため computed() 内で依存追跡される） ─
+  // カテゴリは normalizeCategory() で正規化してから集計し、英日表記の重複を防ぐ。
   getMistakeStats(): { category: string; count: number }[] {
     const counts: Record<string, number> = {};
     for (const session of this.activeSessions()) {
       for (const m of session.mistakes) {
-        counts[m.category] = (counts[m.category] ?? 0) + 1;
+        const category = normalizeCategory(m.category);
+        counts[category] = (counts[category] ?? 0) + 1;
       }
     }
     return Object.entries(counts)

@@ -38,6 +38,7 @@ const SECTIONS: PromptSection[] = [
     id: 'mistakes',
     text: `【ミス一覧（JSON）】
 上で指摘したミスを、回答の末尾に次のJSON形式で再掲してください。
+categoryは必ず日本語で、次の固定リストから最も近いものを1つ選んでください（英語表記や独自の表記は禁止）: 文法 / 語彙 / スペリング / コロケーション / 語法 / 構文 / 語順
 <mistakes>
 {"mistakes":[{"category":"カテゴリ","original":"元の表現","corrected":"正しい表現","explanation":"説明"}]}
 </mistakes>`,
