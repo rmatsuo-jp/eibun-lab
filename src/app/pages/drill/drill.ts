@@ -19,6 +19,9 @@
  * 習熟済み（DRILL_MASTERY_STREAK 以上）の問題は次回以降の出題重みを下げる。
  * 答え合わせ後（revealed→true）は #nextBtn（levelup/mistakes・cloze で共用のテンプレート参照名）へ
  * 自動フォーカスし、Enterキーだけで次の問題に進めるようにしている。
+ * levelup の答え合わせ後ボタンは「次へ」（同じ文を更新後の maskLevel のまま再出題、実体は retry()）と
+ * 「中断」（backToSentenceList() で文一覧選択画面に戻る）の2つのみで、mistakes/cloze にある
+ * 「正解にする」（markCorrect）は levelup では提供しない。
  */
 import { Component, computed, effect, ElementRef, inject, signal, viewChild } from '@angular/core';
 import { DatePipe } from '@angular/common';
@@ -384,25 +387,8 @@ export class Drill {
     return 'typo';
   }
 
-  // ── 自己判定: 自動採点が不一致でも正解として加点（英語は表現揺れが大きいため） ─
+  // ── 自己判定: 自動採点が不一致でも正解として加点（英語は表現揺れが大きいため）。mistakes/cloze 専用 ─
   markCorrect() {
-    if (this.mode() === 'levelup') {
-      const cur = this.currentLevelUp();
-      if (!cur || !this.revealed() || this.currentCorrect()) return;
-      this.currentCorrect.set(true);
-      this.mistakeKind.set(null);
-      const sessionId = this.currentSessionId();
-      const level = this.maskLevel();
-      if (level >= cur.maxLevel) {
-        if (sessionId) this.storage.setLevelUpItemProgress(sessionId, cur.key, level, true);
-        this.masteredCount.update(c => c + 1);
-      } else {
-        const nextLevel = level + 1;
-        this.maskLevel.set(nextLevel);
-        if (sessionId) this.storage.setLevelUpItemProgress(sessionId, cur.key, nextLevel, false);
-      }
-      return;
-    }
     const cur = this.current();
     if (!cur || !this.revealed() || this.currentCorrect()) return;
     this.currentCorrect.set(true);
@@ -410,7 +396,9 @@ export class Drill {
     this.storage.recordDrillResult(cur.key, true);
   }
 
-  // 同じ問題（levelupは同じ maskLevel）にもう一度挑戦する。
+  // 同じ問題にもう一度挑戦する（mistakesの「もう一度」／levelupの「次へ」の実体。
+  // index・maskLevelには触れないため、levelupでは直前の答え合わせで更新済みのmaskLevelのまま
+  // 同じ文が再出題される）。
   retry() {
     this.userAnswer.set('');
     this.revealed.set(false);
@@ -419,6 +407,7 @@ export class Drill {
     this.hintShown.set(false);
   }
 
+  // mistakes/cloze 専用: 次の問題（配列の次要素）に進む。
   next() {
     const nextIndex = this.index() + 1;
     if (nextIndex >= this.total()) {
@@ -432,13 +421,6 @@ export class Drill {
     this.choiceMode.set(this.mode() === 'cloze');
     this.hintShown.set(false);
     this.mistakeKind.set(null);
-
-    if (this.mode() === 'levelup') {
-      const sessionId = this.currentSessionId();
-      const nextItem = this.levelUpQuiz()[nextIndex];
-      const saved = sessionId && nextItem ? this.storage.getLevelUpProgress(sessionId)[nextItem.key] : undefined;
-      this.maskLevel.set(saved?.maskLevel ?? 0);
-    }
   }
 
   // スタート画面（モード選択）に戻る

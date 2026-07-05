@@ -1,9 +1,12 @@
-<!-- @file Drill ページテンプレート。モード選択（頻出ミス／穴埋め復習／レベルアップ・タイピング）→出題→答え合わせ→次へ→結果サマリーの流れ。
+<!-- @file Drill ページテンプレート。モード選択（頻出ミス／穴埋め復習／レベルアップ・タイピング）→出題→答え合わせ→次へ→結果サマリーの流れ
+     （レベルアップ・タイピングのみ結果サマリーへは至らず、答え合わせ後は「次へ」で同じ文のまま／「中断」で文一覧に戻る）。
      日本語訳はどのモードでも既定非表示で、「ヒント」ボタン押下時または答え合わせ後にのみ表示する。
      レベルアップ・タイピングは 日付選択 → 文一覧選択 → 出題 の3段階。日付を選ぶとその日の文一覧（進捗バッジ付き）が
      表示され、任意の文を選んで出題画面に進む（途中再開可）。
      各文は maskLevel（0=全文表示〜maxLevel=全単語マスク）の一本道で進行し、正解のたびに隠れる単語が増える。
      不正解時はタイポ（見えている単語のミス）なら据え置き、理解度不足（隠れている単語のミス）なら1段階戻る。
+     答え合わせ後は「次へ」で同じ文を更新後の maskLevel のまま再出題し、「中断」で文一覧選択画面に戻る
+     （別の文に進みたい場合は中断→文一覧から選び直す）。
      日付・文ごとの進捗はセッションID単位で保存され、日付選択・文一覧の各画面で完了状況の確認・途中再開ができる。 -->
 <div class="page">
   <h1 class="page-title">弱点克服ドリル</h1>
@@ -140,13 +143,8 @@
             <span class="correct-text">{{ item.leveledUp }}</span>
           </div>
           <div class="post-actions">
-            @if (!currentCorrect()) {
-              <button class="btn-secondary" (click)="markCorrect()">正解にする</button>
-            }
-            <button class="btn-secondary" (click)="retry()">もう一度</button>
-            <button class="btn-primary" #nextBtn (click)="next()">
-              {{ index() + 1 >= total() ? '結果を見る' : '次の問題へ' }}
-            </button>
+            <button class="btn-secondary" (click)="backToSentenceList()">中断</button>
+            <button class="btn-primary" #nextBtn (click)="retry()">次へ</button>
           </div>
         }
       </div>
