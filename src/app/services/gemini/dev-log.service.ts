@@ -4,7 +4,8 @@
  * 開発タブ（pages/dev）から閲覧・コピーするためだけに存在し、学習データ（CorrectionSession）とは無関係。
  */
 import { Injectable, signal } from '@angular/core';
-import { LevelUpItem, Mistake, ReviewItem, WritingEvaluation } from '../models/session.model';
+import { environment } from '../../../environments/environment';
+import { LevelUpItem, Mistake, ReviewItem, WritingEvaluation } from '../../models/session.model';
 
 export interface DevLogEntry {
   id: string;
@@ -20,6 +21,7 @@ export interface DevLogEntry {
     reviewItems?: ReviewItem[];
     levelUpItems?: LevelUpItem[];
   };
+  parseWarnings?: string[]; // レスポンス解析（<mistakes>等のタグ）が失敗した項目のログ（正常時は空）
 }
 
 const LOGS_KEY = 'dev_logs';
@@ -45,6 +47,8 @@ export class DevLogService {
   }
 
   record(entry: Omit<DevLogEntry, 'id' | 'timestamp'>): void {
+    // /dev ページは本番ビルドのルートテーブルから除外されるため、閲覧手段のない本番では記録自体をスキップする。
+    if (environment.production) return;
     const full: DevLogEntry = {
       ...entry,
       id: `${Date.now()}-${Math.random().toString(36).slice(2)}`,

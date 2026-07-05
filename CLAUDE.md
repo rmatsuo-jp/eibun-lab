@@ -45,16 +45,34 @@ src/
     ├── models/
     │   └── session.model.ts         # Mistake / WritingEvaluation / CorrectionSession 型定義
     ├── services/
-    │   ├── gemini.service.ts        # Gemini API 呼び出し・レスポンス解析（mistakes/evaluation）
-    │   └── storage.service.ts       # LocalStorage 永続化・統計集計（streak/スコア・CEFR推移）
-    ├── utils/
-    │   └── prompt.util.ts           # buildPrompt() プロンプト動的生成（純粋関数）
+    │   ├── firebase/                # Firebase SDK 基盤層
+    │   │   ├── firebase.init.ts     # initializeApp()（Auth/Firestoreインスタンス生成）
+    │   │   └── auth.service.ts      # Google SSO 認証
+    │   ├── storage/                 # LocalStorage 永続化（storage.service.ts が束ねるファサード＋各ストア）
+    │   │   ├── storage.service.ts   # 永続化窓口（他ストアへ委譲）
+    │   │   ├── session-store.service.ts    # セッションCRUD
+    │   │   ├── settings-store.service.ts   # APIキー・モデル優先順位・テーマ
+    │   │   ├── drill-progress.service.ts   # ドリル習熟度・レベルアップ進捗
+    │   │   └── firestore-sync.service.ts   # Firestore 双方向同期
+    │   └── gemini/                  # Gemini API 連携
+    │       ├── gemini.service.ts    # Gemini API 呼び出し・レスポンス解析（mistakes/evaluation）
+    │       └── dev-log.service.ts   # 開発用の送受信ログ記録
+    ├── utils/                       # 純粋関数群（Angular DI 非依存）
+    │   ├── prompt.util.ts           # buildPrompt() プロンプト動的生成
+    │   ├── session-stats.util.ts    # セッション配列からの統計・集計計算
+    │   ├── gemini-parse.util.ts     # Geminiレスポンスのタグ抽出＋JSON検証
+    │   ├── evaluation.util.ts       # 総合スコア・CEFR算出
+    │   ├── markdown.util.ts         # Markdown → 安全なHTML変換
+    │   ├── bulk-import.util.ts      # 一括添削インポート/エクスポート
+    │   ├── clipboard.util.ts        # クリップボードコピー
+    │   └── date.util.ts             # 日付フォーマット/日付キー変換
     └── pages/
         ├── practice/                # 英文入力・添削結果表示
         ├── drill/                   # 弱点克服ドリル（頻出ミス出題・自動採点）
         ├── history/                 # 過去セッション一覧・検索・インポート/エクスポート
         ├── mistakes/                # 学習統計・ミス傾向・スコア/CEFR推移ダッシュボード
-        └── settings/                # API キー・モデル・テーマ設定
+        ├── settings/                # API キー・モデル・テーマ設定
+        └── dev/                     # 開発者用ページ（Gemini入出力ログ・プレビュー確認）
 ```
 
 ---

@@ -7,7 +7,7 @@
  * 凡例クリックで highlightedSeries を切り替えて対象系列を強調表示できる。
  */
 import { Component, computed, inject, signal } from '@angular/core';
-import { StorageService, cefrToNumber } from '../../services/storage.service';
+import { StorageService, cefrToNumber } from '../../services/storage/storage.service';
 import { Mistake, WritingEvaluation } from '../../models/session.model';
 
 // 推移グラフの寸法（SVG viewBox）。スコア・CEFR 両グラフで共用する。

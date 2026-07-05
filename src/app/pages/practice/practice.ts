@@ -9,7 +9,7 @@ import { DomSanitizer, SafeHtml } from '@angular/platform-browser';
 import { renderSafeMarkdown } from '../../utils/markdown.util';
 import { buildBulkTemplateJson, buildBulkTemplateFromSessions, parseBulkImportJson } from '../../utils/bulk-import.util';
 import { formatTimestampForFilename } from '../../utils/date.util';
-import { StorageService } from '../../services/storage.service';
+import { StorageService } from '../../services/storage/storage.service';
 import { PracticeState } from './practice-state.service';
 
 @Component({

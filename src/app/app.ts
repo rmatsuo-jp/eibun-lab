@@ -6,7 +6,8 @@
  */
 import { Component, inject, signal } from '@angular/core';
 import { Router, RouterOutlet, RouterLink, RouterLinkActive } from '@angular/router';
-import { StorageService } from './services/storage.service';
+import { environment } from '../environments/environment';
+import { StorageService } from './services/storage/storage.service';
 import { PracticeState } from './pages/practice/practice-state.service';
 
 @Component({
@@ -21,6 +22,9 @@ export class App {
 
   // ── サイドバー（PCレイアウト時のみ）の格納状態。既定値 false = 表示中 ──
   protected sidebarCollapsed = signal(false);
+
+  // ── 開発用ナビ項目の表示可否（本番ビルドでは /dev ルート自体が存在しないため非表示にする） ─
+  protected isDev = !environment.production;
 
   constructor() {
     const theme = inject(StorageService).getSettings().theme;

@@ -1,4 +1,4 @@
-<!-- @file History ページテンプレート。上部に常設のカレンダー（月表示グリッドで添削済みの日をドット表示）、下部にセッション一覧（キーワード検索・複数選択削除）を1画面で表示する。カレンダーで日付を選ぶと一覧がその日だけに絞り込まれる。セッションカードの描画は #sessionCard テンプレートとして共用する。
+<!-- @file History ページテンプレート。上部に常設のカレンダー（月表示グリッドで添削済みの日を総合スコア/CEFR表示、評価未取得の旧データはドット表示）、下部にセッション一覧（キーワード検索・複数選択削除）を1画面で表示する。カレンダーで日付を選ぶと一覧がその日だけに絞り込まれる。セッションカードの描画は #sessionCard テンプレートとして共用し、折りたたみ表示でも総合スコア/CEFRバッジを表示する。
      session-card/session-header は選択モードに応じて tabindex/role を切り替え、keydown.enter/space でも開閉・選択できる。 -->
 <div class="page">
   <h1 class="page-title">履歴</h1>
@@ -25,7 +25,12 @@
               [class.has-session]="cell.hasSession"
               (click)="selectDay(cell.dayKey)">
         <span class="cell-day">{{ cell.date.getDate() }}</span>
-        @if (cell.hasSession) {
+        @if (cell.evaluation; as ev) {
+          <span class="cell-eval-row">
+            <span class="cell-score">{{ ev.overallScore }}</span>
+            <span class="cell-cefr">{{ ev.overallCefr }}</span>
+          </span>
+        } @else if (cell.hasSession) {
           <span class="cell-dot"></span>
         }
       </button>
@@ -117,6 +122,10 @@
           <span class="checkbox-icon">{{ isSelected(session.id) ? '☑' : '☐' }}</span>
         }
         <span class="session-date">{{ formatDate(session.date) }}</span>
+        @if (session.evaluation; as ev) {
+          <span class="score-badge">{{ ev.overallScore }}</span>
+          <span class="score-cefr">{{ ev.overallCefr }}</span>
+        }
         @if (session.mistakes.length > 0) {
           <span class="mistake-count">ミス {{ session.mistakes.length }}件</span>
         }

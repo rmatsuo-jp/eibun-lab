@@ -27,12 +27,15 @@
  * ただし全単語マスクの状態（maskLevel === maxLevel）で正答し習熟達成した瞬間だけは、この2ボタンの代わりに
  * 「文一覧に戻る」1ボタンのみを表示する（判定・遷移先はテンプレート側の条件分岐のみで完結し、
  * ロジック側の変更は不要。習熟の記録自体は checkTyping() が既に行う）。
+ * signal状態に依存しない純粋ロジック（重み付きシャッフル・回答正規化・マスク順生成・マスク対象計算）は
+ * drill-quiz.util.ts に切り出しており、単体テスト可能。このファイルは状態管理と3モードのオーケストレーションに専念する。
  */
 import { Component, computed, effect, ElementRef, inject, signal, viewChild } from '@angular/core';
 import { DatePipe } from '@angular/common';
 import { FormsModule } from '@angular/forms';
-import { DRILL_MASTERY_STREAK, normalizeDrillKey, StorageService } from '../../services/storage.service';
+import { DRILL_MASTERY_STREAK, normalizeDrillKey, StorageService } from '../../services/storage/storage.service';
 import { CorrectionSession, Mistake, ReviewItem } from '../../models/session.model';
+import { buildHideOrder, maskedIndices, normalizeAnswer, shuffleByWeight } from './drill-quiz.util';
 
 // 出題モード。null は未選択（スタート画面）。
 type Mode = 'mistakes' | 'cloze' | 'levelup';
@@ -149,7 +152,7 @@ export class Drill {
 
     if (mode !== 'levelup') {
       const source = mode === 'cloze' ? this.buildClozeQuizzes() : this.buildMistakeQuizzes();
-      this.quiz.set(this.shuffleByWeight(source));
+      this.quiz.set(shuffleByWeight(source));
     }
     // levelup は日付選択後に selectLevelUpDate() が levelUpQuiz を構築するため、ここでは何も積まない。
     this.started.set(true);
@@ -168,7 +171,7 @@ export class Drill {
         original: item.original,
         translation: item.translation,
         words,
-        hideOrder: this.buildHideOrder(item.leveledUp, words.length),
+        hideOrder: buildHideOrder(item.leveledUp, words.length),
         maxLevel: Math.min(6, Math.max(3, words.length)),
       };
     });
@@ -225,13 +228,6 @@ export class Drill {
     return { maskLevel: saved?.maskLevel ?? 0, completed: saved?.completed ?? false };
   }
 
-  private shuffleByWeight<T extends { weight: number }>(source: T[]): T[] {
-    return source
-      .map(q => ({ q, score: q.weight * Math.random() }))
-      .sort((a, b) => b.score - a.score)
-      .map(({ q }) => q);
-  }
-
   // 頻出ミス → Quiz へ正規化。重みは出現回数を基準に、習熟済み（連続正解が一定数以上）なら減衰させる。
   private buildMistakeQuizzes(): Quiz[] {
     return this.storage.getFrequentMistakes().map((m: Mistake & { count: number }) => {
@@ -271,38 +267,14 @@ export class Drill {
     return streak >= DRILL_MASTERY_STREAK ? baseWeight * 0.2 : baseWeight;
   }
 
-  // ── マスクする単語の優先順を、文字列から決定的に生成する ─────────
-  // 同じ文なら常に同じ並びになるため、隠す順序自体は保存せずいつでも再現できる（保存するのは maskLevel のみ）。
-  // シンプルな文字列ハッシュを種にした mulberry32 で疑似乱数列を作り、Fisher–Yates でシャッフルする。
-  private buildHideOrder(seedText: string, length: number): number[] {
-    let h = 0;
-    for (let i = 0; i < seedText.length; i++) {
-      h = (Math.imul(31, h) + seedText.charCodeAt(i)) | 0;
-    }
-    let state = h >>> 0 || 1;
-    const rand = () => {
-      state = (state + 0x6d2b79f5) | 0;
-      let t = Math.imul(state ^ (state >>> 15), 1 | state);
-      t = (t + Math.imul(t ^ (t >>> 7), 61 | t)) ^ t;
-      return ((t ^ (t >>> 14)) >>> 0) / 4294967296;
-    };
-    const order = Array.from({ length }, (_, i) => i);
-    for (let i = order.length - 1; i > 0; i--) {
-      const j = Math.floor(rand() * (i + 1));
-      [order[i], order[j]] = [order[j], order[i]];
-    }
-    return order;
-  }
-
   // 現在の maskLevel で隠れている単語インデックスの集合を返す。
-  private maskedIndices(item: LevelUpQuiz, level: number): Set<number> {
-    const hiddenCount = Math.round((item.words.length * level) / item.maxLevel);
-    return new Set(item.hideOrder.slice(0, hiddenCount));
+  private maskedIndicesFor(item: LevelUpQuiz, level: number): Set<number> {
+    return maskedIndices(item.hideOrder, item.words.length, item.maxLevel, level);
   }
 
   // ── 表示用: maskLevel に応じて隠れた単語を同じ視覚幅のアンダースコアに置換した文を返す ─
   maskedSentence(item: LevelUpQuiz): string {
-    const hidden = this.maskedIndices(item, this.maskLevel());
+    const hidden = this.maskedIndicesFor(item, this.maskLevel());
     return item.words
       .map((w, i) => (hidden.has(i) ? '_'.repeat(Math.max(w.length, 3)) : w))
       .join(' ');
@@ -356,7 +328,7 @@ export class Drill {
   private grade(answer: string) {
     const cur = this.current();
     if (!cur) return;
-    const correct = this.normalize(answer) === this.normalize(cur.answer);
+    const correct = normalizeAnswer(answer) === normalizeAnswer(cur.answer);
     this.currentCorrect.set(correct);
     if (correct) this.score.update(s => s + 1);
     this.revealed.set(true);
@@ -373,7 +345,7 @@ export class Drill {
     const cur = this.currentLevelUp();
     if (!cur) return;
 
-    const correct = this.normalize(this.userAnswer()) === this.normalize(cur.leveledUp);
+    const correct = normalizeAnswer(this.userAnswer()) === normalizeAnswer(cur.leveledUp);
     this.currentCorrect.set(correct);
     this.revealed.set(true);
 
@@ -410,9 +382,9 @@ export class Drill {
     const userWords = userInput.split(/\s+/).filter(w => w.length > 0);
     if (userWords.length !== item.words.length) return 'gap';
 
-    const hidden = this.maskedIndices(item, this.maskLevel());
+    const hidden = this.maskedIndicesFor(item, this.maskLevel());
     for (let i = 0; i < item.words.length; i++) {
-      if (this.normalize(userWords[i]) !== this.normalize(item.words[i]) && hidden.has(i)) {
+      if (normalizeAnswer(userWords[i]) !== normalizeAnswer(item.words[i]) && hidden.has(i)) {
         return 'gap';
       }
     }
@@ -468,9 +440,5 @@ export class Drill {
     this.levelUpQuiz.set([]);
     this.currentSessionId.set(null);
     this.hintShown.set(false);
-  }
-
-  private normalize(s: string): string {
-    return s.toLowerCase().trim().replace(/[.!?,;:'"]+$/g, '').replace(/\s+/g, ' ');
   }
 }

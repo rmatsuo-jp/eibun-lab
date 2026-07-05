@@ -10,7 +10,7 @@ import {
   persistentLocalCache,
   persistentMultipleTabManager,
 } from 'firebase/firestore';
-import { environment } from '../../environments/environment';
+import { environment } from '../../../environments/environment';
 
 // ── 初期化（モジュール読み込み時に 1 度だけ実行される） ──────────────
 const app = initializeApp(environment.firebase);
