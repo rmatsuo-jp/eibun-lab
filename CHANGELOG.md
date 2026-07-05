@@ -1,3 +1,15 @@
+# [0.3.0](https://github.com/rmatsuo-jp/study-english/compare/v0.2.0...v0.3.0) (2026-07-05)
+
+
+### Bug Fixes
+
+* 欠落していたgemini-models.constants.tsを追加しsettings.tsから共用 ([4f12928](https://github.com/rmatsuo-jp/study-english/commit/4f12928cb55edaab70938f9ee21728b6f64f8b44))
+
+
+### Features
+
+* スコア推移グラフのY軸をデータ範囲に応じて動的にズーム ([6996a7a](https://github.com/rmatsuo-jp/study-english/commit/6996a7af842b879c27c95551148ba7840cece4ea))
+
 # [0.2.0](https://github.com/rmatsuo-jp/study-english/compare/v0.1.0...v0.2.0) (2026-07-05)
 
 
