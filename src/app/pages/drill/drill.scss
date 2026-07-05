@@ -235,9 +235,17 @@
   grid-template-columns: 1fr 1fr;
   gap: 0.5rem;
   margin-bottom: 1rem;
+
+  &:focus-visible {
+    outline: 2px solid var(--color-primary);
+    outline-offset: 2px;
+  }
 }
 
 .choice-btn {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
   background: var(--color-bg);
   color: var(--color-text);
   border: 2px solid var(--color-border);
@@ -255,6 +263,27 @@
     opacity: 0.6;
     cursor: not-allowed;
   }
+
+  // キー1〜4で選択中の選択肢（Enter確定前のハイライト）
+  &.selected {
+    border-color: var(--color-primary);
+    background: color-mix(in srgb, var(--color-primary) 12%, var(--color-bg));
+  }
+}
+
+// 数字キー(1〜4)で選べることを示すバッジ
+.choice-key {
+  flex-shrink: 0;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 1.375rem;
+  height: 1.375rem;
+  border-radius: 999px;
+  background: var(--color-border);
+  color: var(--color-text-muted);
+  font-size: 0.75rem;
+  font-weight: 600;
 }
 
 .quiz-hint {

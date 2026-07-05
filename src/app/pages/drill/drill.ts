@@ -3,7 +3,9 @@
  * 3 つの出題モードを持つ:
  *  - 'mistakes' 頻出ミス（getFrequentMistakes）: 誤った表現の訂正を入力で答える。
  *  - 'cloze'    穴埋め復習（getReviewItems）: 添削から生成したクローズカード。既定は入力、
- *               「ヒント（4択）」ボタンで類似4択に切り替えて答えられる。
+ *               「ヒント（4択）」ボタンで類似4択に切り替えて答えられる。4択モードはキー1〜4で
+ *               選択肢をハイライト（selectedChoiceIndex）し、Enterで確定して採点する
+ *               （マウスクリックは従来通り即採点）。
  *  - 'levelup'  レベルアップ・タイピング（getSessionsWithLevelUp）: まず日付（＝1回の添削セッション）を選び、
  *               次にその日の文一覧から取り組みたい1文を選んで出題する（セッション横断のシャッフルはしない。
  *               文の並びは Gemini が返した元の順番のまま）。
@@ -94,6 +96,7 @@ export class Drill {
   revealed = signal(false);
   currentCorrect = signal(false);     // 現在の問題が正解扱いか
   choiceMode = signal(false);         // 4択 UI で出題中か（cloze は常に true、mistakes は常に false）
+  selectedChoiceIndex = signal<number | null>(null); // 4択でキー(1〜4)選択中の選択肢インデックス（Enterで確定するまで採点しない）
   score = signal(0);
   hintShown = signal(false);          // 日本語訳をヒントボタンで表示中か（デフォルト非表示）
 
@@ -133,6 +136,7 @@ export class Drill {
     this.revealed.set(false);
     this.currentCorrect.set(false);
     this.choiceMode.set(mode === 'cloze');
+    this.selectedChoiceIndex.set(null);
     this.finished.set(false);
     this.hintShown.set(false);
     this.maskLevel.set(0);
@@ -323,6 +327,31 @@ export class Drill {
     this.grade(choice);
   }
 
+  // ── 4択のキーボード操作: 数字キー(1〜4)で選択肢をハイライトし、Enterで確定して採点する ─
+  // マウスクリック（choose()の直接呼び出し）とは異なり、数字キー単独では採点しない
+  // （選択とEnterでの確定を分離することで、押し間違いをEnter前に選び直せるようにしている）。
+  onChoiceKeydown(event: KeyboardEvent) {
+    if (!this.choiceMode() || this.revealed()) return;
+    const choices = this.current()?.choices;
+    if (!choices) return;
+
+    if (event.key >= '1' && event.key <= '4') {
+      const idx = Number(event.key) - 1;
+      if (idx < choices.length) {
+        this.selectedChoiceIndex.set(idx);
+        event.preventDefault();
+      }
+      return;
+    }
+
+    if (event.key === 'Enter') {
+      const idx = this.selectedChoiceIndex();
+      if (idx === null) return;
+      event.preventDefault();
+      this.choose(choices[idx]);
+    }
+  }
+
   // 共通採点処理。結果は StorageService に永続化し、次回以降の出題重みに反映する。
   private grade(answer: string) {
     const cur = this.current();
@@ -408,6 +437,7 @@ export class Drill {
     this.currentCorrect.set(false);
     this.mistakeKind.set(null);
     this.hintShown.set(false);
+    this.selectedChoiceIndex.set(null);
   }
 
   // mistakes/cloze 専用: 次の問題（配列の次要素）に進む。
@@ -424,6 +454,7 @@ export class Drill {
     this.choiceMode.set(this.mode() === 'cloze');
     this.hintShown.set(false);
     this.mistakeKind.set(null);
+    this.selectedChoiceIndex.set(null);
   }
 
   // スタート画面（モード選択）に戻る
