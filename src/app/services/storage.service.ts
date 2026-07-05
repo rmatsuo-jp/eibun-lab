@@ -20,6 +20,7 @@ import {
 import { CorrectionSession, DrillProgress, Mistake, ReviewItem, WritingEvaluation } from '../models/session.model';
 import { AuthService } from './auth.service';
 import { firestore } from './firebase.init';
+import { toDayKey } from '../utils/date.util';
 
 // CEFR レベルを数値化（グラフ描画用）。未知の値は 0 として扱う。
 export const CEFR_ORDER = ['A1', 'A2', 'B1', 'B2', 'C1', 'C2'] as const;
@@ -324,16 +325,16 @@ export class StorageService {
       : Math.round((totalMistakes / totalSessions) * 10) / 10;
 
     // セッションが存在する日付（ローカル時刻 YYYY-MM-DD）の集合
-    const dayKeys = new Set(sessions.map(s => this.toDayKey(s.date)));
+    const dayKeys = new Set(sessions.map(s => toDayKey(s.date)));
 
     // 連続学習日数: 今日 or 昨日を起点に、連続して遡れる日数を数える
     let currentStreak = 0;
     const cursor = new Date();
-    if (!dayKeys.has(this.toDayKey(cursor.toISOString()))) {
+    if (!dayKeys.has(toDayKey(cursor.toISOString()))) {
       // 今日まだ未学習なら昨日を起点にする（昨日があれば streak 継続中とみなす）
       cursor.setDate(cursor.getDate() - 1);
     }
-    while (dayKeys.has(this.toDayKey(cursor.toISOString()))) {
+    while (dayKeys.has(toDayKey(cursor.toISOString()))) {
       currentStreak++;
       cursor.setDate(cursor.getDate() - 1);
     }
@@ -356,7 +357,7 @@ export class StorageService {
     const byDay = new Map<string, { date: string; evaluation: WritingEvaluation }>();
     for (const s of this.activeSessions()) {
       if (!s.evaluation) continue;
-      const key = this.toDayKey(s.date);
+      const key = toDayKey(s.date);
       const existing = byDay.get(key);
       // 同一日付は date（ISO）が新しい方を採用
       if (!existing || s.date > existing.date) {
@@ -364,15 +365,6 @@ export class StorageService {
       }
     }
     return [...byDay.values()].sort((a, b) => a.date.localeCompare(b.date));
-  }
-
-  // ── 日付をローカル時刻の YYYY-MM-DD キーに正規化 ──────────────────
-  private toDayKey(iso: string): string {
-    const d = new Date(iso);
-    const y = d.getFullYear();
-    const m = String(d.getMonth() + 1).padStart(2, '0');
-    const day = String(d.getDate()).padStart(2, '0');
-    return `${y}-${m}-${day}`;
   }
 
   // 直近 RECENT_SESSION_LIMIT 件から集計する（今のレベルではもう犯していない古いミスを除外するため）。

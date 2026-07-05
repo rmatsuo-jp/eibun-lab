@@ -13,3 +13,13 @@ export function formatTimestampForFilename(date: Date = new Date()): string {
   const mi = pad(date.getMinutes());
   return `${yy}${mm}${dd}${hh}${mi}`;
 }
+
+// ── 日付キー正規化（streak集計・カレンダー表示で共用） ───────────────
+/** ISO日時をローカル時刻の YYYY-MM-DD キーに正規化する。 */
+export function toDayKey(iso: string): string {
+  const d = new Date(iso);
+  const y = d.getFullYear();
+  const m = String(d.getMonth() + 1).padStart(2, '0');
+  const day = String(d.getDate()).padStart(2, '0');
+  return `${y}-${m}-${day}`;
+}
