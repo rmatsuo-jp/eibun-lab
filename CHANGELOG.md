@@ -1,3 +1,11 @@
+# [0.2.0](https://github.com/rmatsuo-jp/study-english/compare/v0.1.0...v0.2.0) (2026-07-05)
+
+
+### Features
+
+* 履歴タブのカレンダー・リストに総合スコア/CEFRを表示 ([c7acc83](https://github.com/rmatsuo-jp/study-english/commit/c7acc83eb51a077cffe7b3a713849ed8968594e5))
+* 本番ビルドでは開発者ページ(/dev)をルートテーブルから除外 ([5aeda3f](https://github.com/rmatsuo-jp/study-english/commit/5aeda3f34947094b3a221e6b310241ac5131ef5b))
+
 # [0.1.0](https://github.com/rmatsuo-jp/study-english/compare/v0.0.0...v0.1.0) (2026-07-05)
 
 
