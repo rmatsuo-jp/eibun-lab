@@ -1,7 +1,8 @@
 /**
  * @file 過去の添削セッション一覧ページ。
- * ページ上部に月表示のカレンダー（添削済みの日をドット表示）を常設し、その下にセッション一覧を表示する単一画面構成。
+ * ページ上部に月表示のカレンダー（添削済みの日を総合スコア/CEFR表示。評価が無い旧データはドット表示）を常設し、その下にセッション一覧を表示する単一画面構成。
  * カレンダーで日付を選ぶと一覧がその日だけに絞り込まれ（キーワード検索と併用可）、複数選択削除・展開表示・日付ソート・JSON インポート/エクスポートも提供する。
+ * セッションカードは折りたたみ状態でも総合スコア/CEFRバッジを表示する。
  * StorageService の sessions signal を直接参照し、データ変更を自動反映する。
  */
 import { Component, ElementRef, ViewChild, computed, inject, signal } from '@angular/core';
@@ -11,7 +12,7 @@ import { DomSanitizer, SafeHtml } from '@angular/platform-browser';
 import { renderSafeMarkdown } from '../../utils/markdown.util';
 import { formatTimestampForFilename, toDayKey } from '../../utils/date.util';
 import { StorageService } from '../../services/storage/storage.service';
-import { CorrectionSession } from '../../models/session.model';
+import { CorrectionSession, WritingEvaluation } from '../../models/session.model';
 
 interface CalendarCell {
   date: Date;
@@ -19,6 +20,7 @@ interface CalendarCell {
   inMonth: boolean;
   hasSession: boolean;
   isToday: boolean;
+  evaluation?: WritingEvaluation;
 }
 
 @Component({
@@ -77,12 +79,14 @@ export class History {
     const cursor = new Date(start);
     while (cursor <= end) {
       const dayKey = toDayKey(cursor.toISOString());
+      const daySessions = byDay.get(dayKey);
       cells.push({
         date: new Date(cursor),
         dayKey,
         inMonth: cursor.getMonth() === monthIndex,
         hasSession: byDay.has(dayKey),
         isToday: dayKey === todayKey,
+        evaluation: daySessions?.at(-1)?.evaluation,
       });
       cursor.setDate(cursor.getDate() + 1);
     }

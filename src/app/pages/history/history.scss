@@ -126,6 +126,25 @@
   font-weight: 600;
 }
 
+// ── 総合スコア/CEFRバッジ（折りたたみ表示のセッションカードで独立表示） ──
+.score-badge {
+  font-size: 0.75rem;
+  font-weight: 700;
+  background: var(--color-primary-light, #ede9fe);
+  color: var(--color-primary);
+  padding: 0.15rem 0.5rem;
+  border-radius: 999px;
+}
+
+.score-cefr {
+  font-size: 0.75rem;
+  font-weight: 700;
+  color: #fff;
+  background: var(--color-primary);
+  padding: 0.15rem 0.5rem;
+  border-radius: 999px;
+}
+
 .delete-selected-btn {
   background: #fee2e2;
   border-color: #fca5a5;
@@ -399,6 +418,40 @@
 .calendar-cell.selected .cell-dot {
   background: #fff;
   box-shadow: 0 0 0 3px rgba(255, 255, 255, 0.35);
+}
+
+.cell-eval-row {
+  display: flex;
+  align-items: center;
+  gap: 0.2rem;
+}
+
+.cell-score {
+  font-size: 0.7rem;
+  font-weight: 700;
+  line-height: 1;
+  color: var(--color-primary);
+}
+
+.cell-cefr {
+  font-size: 0.6rem;
+  font-weight: 700;
+  line-height: 1;
+  color: #fff;
+  background: var(--color-primary);
+  padding: 0.05rem 0.3rem;
+  border-radius: 999px;
+}
+
+.calendar-cell.selected {
+  .cell-score {
+    color: #fff;
+  }
+
+  .cell-cefr {
+    background: #fff;
+    color: var(--color-primary);
+  }
 }
 
 .date-filter-banner {
