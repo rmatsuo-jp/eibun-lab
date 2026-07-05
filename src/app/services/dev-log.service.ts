@@ -4,7 +4,7 @@
  * 開発タブ（pages/dev）から閲覧・コピーするためだけに存在し、学習データ（CorrectionSession）とは無関係。
  */
 import { Injectable, signal } from '@angular/core';
-import { Mistake, ReviewItem, WritingEvaluation } from '../models/session.model';
+import { LevelUpItem, Mistake, ReviewItem, WritingEvaluation } from '../models/session.model';
 
 export interface DevLogEntry {
   id: string;
@@ -18,6 +18,7 @@ export interface DevLogEntry {
     mistakes: Mistake[];
     evaluation?: WritingEvaluation;
     reviewItems?: ReviewItem[];
+    levelUpItems?: LevelUpItem[];
   };
 }
 

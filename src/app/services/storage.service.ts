@@ -2,7 +2,8 @@
  * @file LocalStorage への永続化を担うサービス。
  * セッション管理（CRUD）・設定管理・ミス統計集計・学習統計（streak等）・ドリル習熟度を一元管理する。
  * sessions signal でリアクティブなキャッシュを提供する。
- * ドリルの出題元（getFrequentMistakes/getReviewItems）は直近 RECENT_SESSION_LIMIT 件のみを対象にし、
+ * ドリルの出題元（getFrequentMistakes/getReviewItems）は直近 RECENT_SESSION_LIMIT 件のみを対象にするが、
+ * レベルアップ・タイピング（getSessionsWithLevelUp）は日付単位で1セッションを選ぶ方式のため全期間を対象にする。
  * 各問題の正誤履歴は drillProgress signal（DRILL_PROGRESS_KEY）で正解ストリークとして永続化する。
  * ログイン中（AuthService）は Firestore とも双方向同期し、複数端末でセッションを共有する。
  * 削除は物理削除せず deleted フラグ（tombstone）で表現し、削除も多端末へ伝播させる。
@@ -208,10 +209,10 @@ export class StorageService {
     return collection(firestore, 'apps', 'study_english', 'users', uid, 'sessions');
   }
 
-  // Firestore は undefined を受け付けないため、値が undefined の任意フィールド（evaluation / reviewItems）を
+  // Firestore は undefined を受け付けないため、値が undefined の任意フィールド（evaluation / reviewItems / levelUpItems）を
   // フィールドごと除外する。任意フィールドが増えても OPTIONAL_FIELDS に足すだけで対応できる。
   private toDocData(session: CorrectionSession): Record<string, unknown> {
-    const OPTIONAL_FIELDS: (keyof CorrectionSession)[] = ['evaluation', 'reviewItems'];
+    const OPTIONAL_FIELDS: (keyof CorrectionSession)[] = ['evaluation', 'reviewItems', 'levelUpItems'];
     const data: Record<string, unknown> = { ...session };
     for (const field of OPTIONAL_FIELDS) {
       if (data[field] === undefined) delete data[field];
@@ -395,5 +396,13 @@ export class StorageService {
   // ── 復習カード集計: 直近 RECENT_SESSION_LIMIT 件の reviewItems を平坦化して返す（Drill の穴埋め復習で出題） ─
   getReviewItems(): ReviewItem[] {
     return this.recentSessions().flatMap(s => s.reviewItems ?? []);
+  }
+
+  // ── レベルアップ例文を持つセッション一覧: Drill の日付選択画面で使う ─
+  // 直近 RECENT_SESSION_LIMIT 件には絞らず、全期間の levelUpItems を持つセッションを対象にする
+  // （日付単位で1セッションを選んでその中の例文を順にたどる仕様のため、古い日付も選択肢に残す）。
+  // sessions（= activeSessions）は既に新しい順にソート済みなので、追加のソートは不要。
+  getSessionsWithLevelUp(): CorrectionSession[] {
+    return this.sessions().filter(s => (s.levelUpItems?.length ?? 0) > 0);
   }
 }
