@@ -1,8 +1,8 @@
 <!-- @file アプリシェル。router-outlet（メインコンテンツ）・グローバル添削通知バナー・ボトムナビ（6タブ）を配置する。
      各ナビ項目は routerLinkActive を #rlaN で参照して aria-current="page" を付与し、通知バナーは
      tabindex/role/keydown.enter でキーボードからも開けるようにしている。
-     PCレイアウト（サイドバー表示時）では nav 先頭の sidebar-toggle ボタンで格納/展開を切り替えられる
-     （app.ts の sidebarCollapsed signal に連動）。 -->
+     PCレイアウト（サイドバー表示時）では nav 先頭にアプリタイトル（sidebar-title）を表示し、
+     続く sidebar-toggle ボタンで格納/展開を切り替えられる（app.ts の sidebarCollapsed signal に連動）。 -->
 <div class="app-shell" [class.sidebar-collapsed]="sidebarCollapsed()">
   <main class="app-content">
     <router-outlet />
@@ -22,11 +22,14 @@
   }
 
   <nav class="bottom-nav" [class.collapsed]="sidebarCollapsed()">
-    <button type="button" class="sidebar-toggle" (click)="toggleSidebar()" [attr.aria-label]="sidebarCollapsed() ? 'サイドバーを表示' : 'サイドバーを格納'">
-      <svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
-        <polyline points="15 18 9 12 15 6"/>
-      </svg>
-    </button>
+    <div class="sidebar-header">
+      <a routerLink="/practice" class="sidebar-title"><span>英作文ラボ</span></a>
+      <button type="button" class="sidebar-toggle" (click)="toggleSidebar()" [attr.aria-label]="sidebarCollapsed() ? 'サイドバーを表示' : 'サイドバーを格納'">
+        <svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+          <polyline points="15 18 9 12 15 6"/>
+        </svg>
+      </button>
+    </div>
     <a routerLink="/practice" routerLinkActive="active" #rla1="routerLinkActive" [attr.aria-current]="rla1.isActive ? 'page' : null" class="nav-item">
       <svg xmlns="http://www.w3.org/2000/svg" width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
         <path d="M12 20h9"/><path d="M16.5 3.5a2.121 2.121 0 0 1 3 3L7 19l-4 1 1-4L16.5 3.5z"/>
