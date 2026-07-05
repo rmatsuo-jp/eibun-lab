@@ -49,9 +49,12 @@
             }
             <!-- 系列 -->
             @for (s of scoreChart(); track s.name) {
-              <polyline [attr.points]="s.line" fill="none" [attr.stroke]="s.color" stroke-width="2" />
+              <polyline [attr.points]="s.line" fill="none" [attr.stroke]="s.color"
+                        [attr.stroke-width]="highlightedSeries() && highlightedSeries() !== s.name ? 1.5 : 2.5"
+                        [attr.opacity]="highlightedSeries() && highlightedSeries() !== s.name ? 0.3 : 1" />
               @for (d of s.dots; track $index) {
-                <circle [attr.cx]="d.x" [attr.cy]="d.y" r="2.5" [attr.fill]="s.color" />
+                <circle [attr.cx]="d.x" [attr.cy]="d.y" r="2.5" [attr.fill]="s.color"
+                        [attr.opacity]="highlightedSeries() && highlightedSeries() !== s.name ? 0.3 : 1" />
               }
             }
             <!-- x軸ラベル（日付） -->
@@ -62,7 +65,7 @@
           </svg>
           <div class="cefr-legend">
             @for (s of scoreChart(); track s.name) {
-              <span class="legend-item">
+              <span class="legend-item" [class.active]="highlightedSeries() === s.name" (click)="toggleHighlight(s.name)">
                 <span class="legend-dot" [style.background]="s.color"></span>{{ s.name }}
               </span>
             }
@@ -89,9 +92,12 @@
             }
             <!-- 系列 -->
             @for (s of cefrChart(); track s.name) {
-              <polyline [attr.points]="s.line" fill="none" [attr.stroke]="s.color" stroke-width="2" />
+              <polyline [attr.points]="s.line" fill="none" [attr.stroke]="s.color"
+                        [attr.stroke-width]="highlightedSeries() && highlightedSeries() !== s.name ? 1.5 : 2.5"
+                        [attr.opacity]="highlightedSeries() && highlightedSeries() !== s.name ? 0.3 : 1" />
               @for (d of s.dots; track $index) {
-                <circle [attr.cx]="d.x" [attr.cy]="d.y" r="2.5" [attr.fill]="s.color" />
+                <circle [attr.cx]="d.x" [attr.cy]="d.y" r="2.5" [attr.fill]="s.color"
+                        [attr.opacity]="highlightedSeries() && highlightedSeries() !== s.name ? 0.3 : 1" />
               }
             }
             <!-- x軸ラベル（日付） -->
@@ -102,7 +108,7 @@
           </svg>
           <div class="cefr-legend">
             @for (s of cefrChart(); track s.name) {
-              <span class="legend-item">
+              <span class="legend-item" [class.active]="highlightedSeries() === s.name" (click)="toggleHighlight(s.name)">
                 <span class="legend-dot" [style.background]="s.color"></span>{{ s.name }}
               </span>
             }
