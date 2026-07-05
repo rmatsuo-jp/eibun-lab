@@ -43,7 +43,7 @@
         <div class="cefr-chart">
           <svg [attr.viewBox]="'0 0 ' + chartBox.w + ' ' + chartBox.h" preserveAspectRatio="xMidYMid meet">
             <!-- y軸グリッド -->
-            @for (g of scoreLevels; track g.label) {
+            @for (g of scoreLevels(); track g.label) {
               <line class="grid-line" [attr.x1]="chartBox.padL" [attr.x2]="chartBox.w - chartBox.padR"
                     [attr.y1]="g.y" [attr.y2]="g.y" />
               <text class="grid-label" [attr.x]="2" [attr.y]="g.y + 3">{{ g.label }}</text>

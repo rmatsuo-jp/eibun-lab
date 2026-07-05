@@ -8,27 +8,15 @@
  * 一括添削（bulkEntries/bulkProgress/submitBulk）は JSON テンプレートでアップロードした複数日分の
  * 英作文を BULK_CONCURRENCY 件ずつ並列添削・保存する正式機能。セッション組み立ては buildSession() に共通化し、
  * 単発添削（submit）と一括添削（submitBulk）の両方から使う。
+ * 「今日」のローカル日付キー算出は date.util.ts の toDayKey() を共用する（重複実装しない）。
  */
 import { Injectable, inject, signal } from '@angular/core';
 import { GeminiService, CorrectionResult } from '../../services/gemini/gemini.service';
 import { StorageService } from '../../services/storage/storage.service';
 import { buildPrompt } from '../../utils/prompt.util';
 import { BulkEntry } from '../../utils/bulk-import.util';
+import { toDayKey } from '../../utils/date.util';
 import { CorrectionSession, LevelUpItem, Mistake, ReviewItem, WritingEvaluation } from '../../models/session.model';
-
-// ── 日付ユーティリティ ───────────────────────────────────────────
-/**
- * ローカルタイムゾーンの「今日」を YYYY-MM-DD 形式で返す純粋関数。
- * toISOString() は UTC 変換のため JST 早朝に前日へずれる。それを避けるため
- * getFullYear/getMonth/getDate（いずれもローカル時刻基準）から組み立てる。
- */
-function todayLocal(): string {
-  const d = new Date();
-  const y = d.getFullYear();
-  const m = String(d.getMonth() + 1).padStart(2, '0');
-  const day = String(d.getDate()).padStart(2, '0');
-  return `${y}-${m}-${day}`;
-}
 
 @Injectable({ providedIn: 'root' })
 export class PracticeState {
@@ -37,7 +25,7 @@ export class PracticeState {
 
   // ── 状態管理（signal。コンポーネント破棄後も保持される） ──────────
   userText = signal('');
-  selectedDate = signal(todayLocal());
+  selectedDate = signal(toDayKey(new Date().toISOString()));
   loading = signal(false);
   error = signal('');
   result = signal<{ original: string; corrected: string; mistakes: Mistake[]; evaluation?: WritingEvaluation; reviewItems?: ReviewItem[]; levelUpItems?: LevelUpItem[] } | null>(null);

@@ -2,8 +2,10 @@
  * @file 一括添削用 JSON テンプレートの生成・アップロードされた JSON の解析を行う純粋関数群。
  * date は practice-state.service.ts と同じ 'YYYY-MM-DD' 形式。
  * buildBulkTemplateFromSessions() は History の既存セッションをテンプレート形式に変換する（再添削の検証用）。
+ * ローカル日付キーへの変換は date.util.ts の toDayKey() を共用する（重複実装しない）。
  */
 import { CorrectionSession } from '../models/session.model';
+import { toDayKey } from './date.util';
 
 export interface BulkEntry {
   date: string;
@@ -20,19 +22,11 @@ export function buildBulkTemplateJson(): string {
 }
 
 // ── 履歴セッションから一括添削テンプレートを生成 ──────────────────────
-// date は ISO 文字列（UTC基準）のため、ローカルタイムゾーンの年月日から 'YYYY-MM-DD' を組み立てる
+// date は ISO 文字列（UTC基準）のため、toDayKey() でローカルタイムゾーンの 'YYYY-MM-DD' に変換する
 // （toISOString().slice(0,10) は UTC 変換で日付がずれるため使わない）。
-function toLocalDateKey(iso: string): string {
-  const d = new Date(iso);
-  const y = d.getFullYear();
-  const m = String(d.getMonth() + 1).padStart(2, '0');
-  const day = String(d.getDate()).padStart(2, '0');
-  return `${y}-${m}-${day}`;
-}
-
 export function buildBulkTemplateFromSessions(sessions: CorrectionSession[]): string {
   const entries: BulkEntry[] = sessions.map(s => ({
-    date: toLocalDateKey(s.date),
+    date: toDayKey(s.date),
     text: s.original,
   }));
   return JSON.stringify(entries, null, 2);

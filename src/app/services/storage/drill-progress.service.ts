@@ -8,6 +8,7 @@
 import { Injectable, signal } from '@angular/core';
 import { DrillProgress, LevelUpItemProgress } from '../../models/session.model';
 import { normalizeDrillKey } from '../../utils/session-stats.util';
+import { readJson, writeJson } from '../../utils/local-storage.util';
 
 const DRILL_PROGRESS_KEY = 'study-english-drill-progress';
 const LEVELUP_PROGRESS_KEY = 'study-english-levelup-progress';
@@ -23,13 +24,7 @@ export class DrillProgressService {
   private levelUpProgress = signal<Record<string, Record<string, LevelUpItemProgress>>>(this.loadLevelUpProgress());
 
   private loadDrillProgress(): Record<string, DrillProgress> {
-    const raw = localStorage.getItem(DRILL_PROGRESS_KEY);
-    if (!raw) return {};
-    try {
-      return JSON.parse(raw) as Record<string, DrillProgress>;
-    } catch {
-      return {};
-    }
+    return readJson<Record<string, DrillProgress>>(DRILL_PROGRESS_KEY, {});
   }
 
   getDrillProgress(key: string): DrillProgress | undefined {
@@ -48,18 +43,12 @@ export class DrillProgressService {
         lastAttemptAt: new Date().toISOString(),
       },
     };
-    localStorage.setItem(DRILL_PROGRESS_KEY, JSON.stringify(updated));
+    writeJson(DRILL_PROGRESS_KEY, updated);
     this.drillProgress.set(updated);
   }
 
   private loadLevelUpProgress(): Record<string, Record<string, LevelUpItemProgress>> {
-    const raw = localStorage.getItem(LEVELUP_PROGRESS_KEY);
-    if (!raw) return {};
-    try {
-      return JSON.parse(raw) as Record<string, Record<string, LevelUpItemProgress>>;
-    } catch {
-      return {};
-    }
+    return readJson<Record<string, Record<string, LevelUpItemProgress>>>(LEVELUP_PROGRESS_KEY, {});
   }
 
   // セッション（日付）1件分の進捗（itemKey → maskLevel/completed）を返す。未着手なら空オブジェクト。
@@ -77,7 +66,7 @@ export class DrillProgressService {
         [itemKey]: { maskLevel, completed },
       },
     };
-    localStorage.setItem(LEVELUP_PROGRESS_KEY, JSON.stringify(updated));
+    writeJson(LEVELUP_PROGRESS_KEY, updated);
     this.levelUpProgress.set(updated);
   }
 }

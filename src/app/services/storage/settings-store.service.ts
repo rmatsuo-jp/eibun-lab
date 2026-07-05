@@ -1,9 +1,11 @@
 /**
  * @file アプリ設定（APIキー・モデル優先順位・テーマ）のローカル永続化を担うサービス。
  * StorageService から切り出した「設定管理」専任部分。旧バージョン（単一モデル文字列 `model`）からの
- * 移行ロジックもここに持つ。
+ * 移行ロジックもここに持つ。モデル一覧・デフォルト優先順位は gemini-models.constants.ts を共用する。
  */
 import { Injectable } from '@angular/core';
+import { DEFAULT_MODEL_PRIORITY } from '../gemini/gemini-models.constants';
+import { readJson, writeJson } from '../../utils/local-storage.util';
 
 const SETTINGS_KEY = 'app_settings';
 
@@ -13,14 +15,6 @@ export interface AppSettings {
   modelPriority: string[]; // API送信の試行順（先頭が最優先、失敗したら次のモデルへフォールバック）
   theme: 'light' | 'dark';
 }
-
-const DEFAULT_MODEL_PRIORITY = [
-  'gemini-3.5-flash',
-  'gemini-3-flash',
-  'gemini-2.5-flash',
-  'gemini-3.1-flash-lite',
-  'gemini-2.5-flash-lite',
-];
 
 const DEFAULT_SETTINGS: AppSettings = {
   apiKey: '',
@@ -33,24 +27,18 @@ export class SettingsStoreService {
   // 旧バージョン（単一モデル文字列 `model` を持つ設定）からの移行にも対応する:
   // `modelPriority` が無く `model` のみ持つ場合、その値を先頭に置きデフォルト順で残りを埋める。
   getSettings(): AppSettings {
-    const raw = localStorage.getItem(SETTINGS_KEY);
-    if (!raw) return { ...DEFAULT_SETTINGS };
-    try {
-      const parsed = JSON.parse(raw) as Partial<AppSettings> & { model?: string };
-      const merged: AppSettings = { ...DEFAULT_SETTINGS, ...parsed };
-      if (!parsed.modelPriority && parsed.model) {
-        merged.modelPriority = [
-          parsed.model,
-          ...DEFAULT_MODEL_PRIORITY.filter(m => m !== parsed.model),
-        ];
-      }
-      return merged;
-    } catch {
-      return { ...DEFAULT_SETTINGS };
+    const parsed = readJson<Partial<AppSettings> & { model?: string }>(SETTINGS_KEY, {});
+    const merged: AppSettings = { ...DEFAULT_SETTINGS, ...parsed };
+    if (!parsed.modelPriority && parsed.model) {
+      merged.modelPriority = [
+        parsed.model,
+        ...DEFAULT_MODEL_PRIORITY.filter(m => m !== parsed.model),
+      ];
     }
+    return merged;
   }
 
   saveSettings(settings: AppSettings): void {
-    localStorage.setItem(SETTINGS_KEY, JSON.stringify(settings));
+    writeJson(SETTINGS_KEY, settings);
   }
 }

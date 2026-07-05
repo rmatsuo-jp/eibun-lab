@@ -1,11 +1,13 @@
 /**
  * @file 設定ページ。アカウント（Google SSO ログイン/同期）・API キー・モデル優先順位（ドラッグ&ドロップ）・テーマ切り替えを管理する。
  * 未保存の変更は isDirty で検知し、保存ボタンの強調表示と離脱時の確認ダイアログ（settings.guard.ts）に使う。
+ * 選択可能なモデル一覧は gemini-models.constants.ts を共用する（settings-store.service.ts のデフォルト優先順位と同一ソース）。
  */
 import { Component, computed, inject, signal } from '@angular/core';
 import { FormsModule } from '@angular/forms';
 import { StorageService, AppSettings } from '../../services/storage/storage.service';
 import { AuthService } from '../../services/firebase/auth.service';
+import { GEMINI_MODELS } from '../../services/gemini/gemini-models.constants';
 import { APP_VERSION, RELEASE_DATE } from '../../../version';
 
 @Component({
@@ -46,13 +48,7 @@ export class Settings {
   readonly version = APP_VERSION;
   readonly releaseDate = RELEASE_DATE;
 
-  readonly models = [
-    { value: 'gemini-3.5-flash', label: 'Gemini 3.5 Flash' },
-    { value: 'gemini-3-flash', label: 'Gemini 3 Flash' },
-    { value: 'gemini-2.5-flash', label: 'Gemini 2.5 Flash' },
-    { value: 'gemini-3.1-flash-lite', label: 'Gemini 3.1 Flash Lite' },
-    { value: 'gemini-2.5-flash-lite', label: 'Gemini 2.5 Flash Lite' },
-  ];
+  readonly models = GEMINI_MODELS;
 
   // ── 状態管理（signal） ────────────────────────────────────────────
   settings = signal<AppSettings>(this.initSettings());

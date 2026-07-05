@@ -2,6 +2,8 @@
  * @file ミス傾向分析ページ。
  * StorageService の sessions signal から computed() でリアクティブに学習統計・ミス統計・評価推移を集計し、
  * 統計ダッシュボード（streak等）・スコア推移グラフ・CEFR推移グラフ・頻度バー・頻出ミスリストを表示する。
+ * スコア推移グラフのY軸は scoreDomain（実データの範囲±パディングを0.5刻みで丸めた範囲）に応じて動的にズームし、
+ * 4〜6点付近にスコアが集中していても起伏が見やすくなるようにしている（CEFR推移グラフは1〜6固定のまま）。
  * 推移グラフの横軸は添削日付（M/D形式、両グラフ共通の xAxisLabels で描画。点数が多い場合は間引く）。
  * 推移グラフの各系列は同値で重なった際も見分けられるよう縦方向に微小オフセット(JITTER_PX)を付与し、
  * 凡例クリックで highlightedSeries を切り替えて対象系列を強調表示できる。
@@ -46,12 +48,39 @@ export class Mistakes {
     this.highlightedSeries.update(current => (current === name ? null : name));
   }
 
-  // y軸グリッド（スコア 0〜10）
-  readonly scoreLevels = [
-    { label: '10', y: this.yForScore(10) },
-    { label: '5', y: this.yForScore(5) },
-    { label: '0', y: this.yForScore(0) },
-  ];
+  // スコアグラフのY軸表示範囲。データの実際のスコア帯（多くは4〜6点付近に集中）に合わせて
+  // 動的にズームすることで、0〜10固定スケールでは潰れて見えていた起伏を視認しやすくする。
+  scoreDomain = computed<{ min: number; max: number }>(() => {
+    const history = this.evalHistory();
+    const values = history.flatMap(h => [
+      h.evaluation.overallScore,
+      h.evaluation.grammarScore,
+      h.evaluation.vocabularyScore,
+      h.evaluation.contentScore,
+    ]);
+    if (values.length === 0) return { min: 0, max: 10 };
+    const rawMin = Math.min(...values);
+    const rawMax = Math.max(...values);
+    // 上下に0.5点のパディングを持たせてから、データが0.5刻みであることに合わせて0.5単位で丸める
+    const min = Math.max(0, Math.floor((rawMin - 0.5) * 2) / 2);
+    const max = Math.min(10, Math.ceil((rawMax + 0.5) * 2) / 2);
+    // 全データが同値に近い場合でも最低1点分の幅を確保する
+    if (max - min < 1) {
+      return { min: Math.max(0, min - 0.5), max: Math.min(10, max + 0.5) };
+    }
+    return { min, max };
+  });
+
+  // y軸グリッド（スコア）。scoreDomain の範囲を4段階に等分して表示する。
+  scoreLevels = computed<{ label: string; y: number }[]>(() => {
+    const domain = this.scoreDomain();
+    const steps = 4;
+    return Array.from({ length: steps + 1 }, (_, i) => {
+      const value = domain.max - ((domain.max - domain.min) * i) / steps;
+      const rounded = Math.round(value * 10) / 10;
+      return { label: `${rounded}`, y: this.yForScore(rounded, domain) };
+    });
+  });
   // y軸グリッド（CEFRレベル 1=A1 〜 6=C2。6段階すべてを表示し位置を明確にする）
   readonly cefrLevels = [
     { label: 'C2', y: this.yForCefr(6) },
@@ -73,9 +102,10 @@ export class Mistakes {
     const history = this.evalHistory();
     if (history.length < 2) return [];
     const n = history.length;
+    const domain = this.scoreDomain();
     const build = (name: string, color: string, seriesIndex: number, pick: (e: WritingEvaluation) => number): ChartSeries => {
       const offset = (seriesIndex - 1.5) * JITTER_PX;
-      const dots = history.map((h, i) => ({ x: this.xFor(i, n), y: this.yForScore(pick(h.evaluation)) + offset }));
+      const dots = history.map((h, i) => ({ x: this.xFor(i, n), y: this.yForScore(pick(h.evaluation), domain) + offset }));
       return { name, color, line: dots.map(d => `${d.x},${d.y}`).join(' '), dots };
     };
     return [
@@ -129,11 +159,12 @@ export class Mistakes {
     return `${Math.round((count / this.maxCount()) * 100)}%`;
   }
 
-  // スコア値（0〜10）を SVG の y 座標に変換
-  private yForScore(score: number): number {
+  // スコア値を SVG の y 座標に変換。domain（scoreDomain の範囲）に対する相対位置でマッピングする
+  private yForScore(score: number, domain: { min: number; max: number }): number {
     const innerH = CHART.h - CHART.padT - CHART.padB;
-    const clamped = Math.max(0, Math.min(10, score));
-    return CHART.padT + (1 - clamped / 10) * innerH;
+    const clamped = Math.max(domain.min, Math.min(domain.max, score));
+    const ratio = (clamped - domain.min) / (domain.max - domain.min);
+    return CHART.padT + (1 - ratio) * innerH;
   }
 
   // CEFR レベル値（1〜6）を SVG の y 座標に変換

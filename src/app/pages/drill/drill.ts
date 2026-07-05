@@ -27,46 +27,31 @@
  * ただし全単語マスクの状態（maskLevel === maxLevel）で正答し習熟達成した瞬間だけは、この2ボタンの代わりに
  * 「文一覧に戻る」1ボタンのみを表示する（判定・遷移先はテンプレート側の条件分岐のみで完結し、
  * ロジック側の変更は不要。習熟の記録自体は checkTyping() が既に行う）。
- * signal状態に依存しない純粋ロジック（重み付きシャッフル・回答正規化・マスク順生成・マスク対象計算）は
- * drill-quiz.util.ts に切り出しており、単体テスト可能。このファイルは状態管理と3モードのオーケストレーションに専念する。
+ * signal状態に依存しない純粋ロジック（重み付きシャッフル・回答正規化・マスク順生成・マスク対象計算・
+ * Quiz/LevelUpQuiz構築・不正解分類）は drill-quiz.util.ts に切り出しており、単体テスト可能。
+ * Quiz/LevelUpQuiz/MistakeKind の型定義も同ファイルへ移し、このファイルは状態管理と
+ * 3モードのオーケストレーションに専念する。
  */
 import { Component, computed, effect, ElementRef, inject, signal, viewChild } from '@angular/core';
 import { DatePipe } from '@angular/common';
 import { FormsModule } from '@angular/forms';
 import { DRILL_MASTERY_STREAK, normalizeDrillKey, StorageService } from '../../services/storage/storage.service';
 import { CorrectionSession, Mistake, ReviewItem } from '../../models/session.model';
-import { buildHideOrder, maskedIndices, normalizeAnswer, shuffleByWeight } from './drill-quiz.util';
+import {
+  buildClozeQuiz,
+  buildLevelUpQuiz,
+  buildMistakeQuiz,
+  classifyMistake,
+  LevelUpQuiz,
+  maskedIndices,
+  MistakeKind,
+  normalizeAnswer,
+  Quiz,
+  shuffleByWeight,
+} from './drill-quiz.util';
 
 // 出題モード。null は未選択（スタート画面）。
 type Mode = 'mistakes' | 'cloze' | 'levelup';
-
-// 不正解の分類。'typo' = 見えている単語の入力ミス（レベル据え置き）、'gap' = 隠れている単語を思い出せなかった（レベル低下）。
-type MistakeKind = 'typo' | 'gap';
-
-// 内部で扱う統一出題型。表示・採点に必要な値を両モードから正規化して持つ。
-interface Quiz {
-  key: string;         // 習熟度トラッキング用の一意キー（normalizeDrillKey 済み）
-  prompt: string;      // 出題本文（ミス: 誤表現 / クローズ: 穴埋め文）
-  answer: string;      // 正解文字列（採点基準）
-  hint: string;        // ヒント（日本語）
-  badge: string;       // カテゴリ等のバッジ表示
-  weight: number;      // 出題優先度（頻度 × 習熟度による重み）
-  translation?: string; // クローズのみ: 日本語訳
-  choices?: string[];   // クローズのみ: 4択
-}
-
-// レベルアップ・タイピング専用の出題型。Quiz とは形が異なる（マスク段階を持つ）ため独立させる。
-// 日付選択後、1セッション分の levelUpItems を Gemini が返した元の順番のまま使うため weight は持たない
-// （出題順のシャッフルは行わない）。
-interface LevelUpQuiz {
-  key: string;           // 習熟度トラッキング用の一意キー（normalizeDrillKey(leveledUp)）
-  leveledUp: string;     // 正解の全文（採点基準・マスク生成の元）
-  original: string;      // 元の（レベルアップ前の）文
-  translation: string;   // 日本語訳（ヒント表示用）
-  words: string[];       // leveledUp を空白区切りにした単語配列（マスク生成・diff判定の基準）
-  hideOrder: number[];   // words のインデックスを「隠す優先順」に並べた配列（決定的に生成、保存不要）
-  maxLevel: number;      // マスク段階の最大値（この段階で全単語がマスクされる）
-}
 
 @Component({
   selector: 'app-drill',
@@ -163,18 +148,9 @@ export class Drill {
   // ここでは特定の文へ自動ジャンプせず、levelUpSentenceChosen は false のまま文一覧を表示させる。
   selectLevelUpDate(session: CorrectionSession) {
     const progress = this.storage.getLevelUpProgress(session.id);
-    const items = (session.levelUpItems ?? []).map(item => {
-      const words = item.leveledUp.split(/\s+/).filter(w => w.length > 0);
-      return {
-        key: normalizeDrillKey(item.leveledUp),
-        leveledUp: item.leveledUp,
-        original: item.original,
-        translation: item.translation,
-        words,
-        hideOrder: buildHideOrder(item.leveledUp, words.length),
-        maxLevel: Math.min(6, Math.max(3, words.length)),
-      };
-    });
+    const items = (session.levelUpItems ?? []).map(item =>
+      buildLevelUpQuiz(item, normalizeDrillKey(item.leveledUp))
+    );
     this.levelUpQuiz.set(items);
     this.currentSessionId.set(session.id);
     this.masteredCount.set(Object.values(progress).filter(p => p.completed).length);
@@ -232,14 +208,7 @@ export class Drill {
   private buildMistakeQuizzes(): Quiz[] {
     return this.storage.getFrequentMistakes().map((m: Mistake & { count: number }) => {
       const key = normalizeDrillKey(m.original);
-      return {
-        key,
-        prompt: m.original,
-        answer: m.corrected,
-        hint: m.explanation,
-        badge: m.category,
-        weight: this.weightFor(key, m.count),
-      };
+      return buildMistakeQuiz(m, key, this.weightFor(key, m.count));
     });
   }
 
@@ -247,16 +216,7 @@ export class Drill {
   private buildClozeQuizzes(): Quiz[] {
     return this.storage.getReviewItems().map((r: ReviewItem) => {
       const key = normalizeDrillKey(`${r.sentence}${r.answer}`);
-      return {
-        key,
-        prompt: r.sentence,
-        answer: r.answer,
-        hint: r.hint,
-        badge: '穴埋め',
-        weight: this.weightFor(key, 1),
-        translation: r.translation,
-        choices: r.choices,
-      };
+      return buildClozeQuiz(r, key, this.weightFor(key, 1));
     });
   }
 
@@ -365,7 +325,7 @@ export class Drill {
       return;
     }
 
-    const kind = this.classifyMistake(cur, this.userAnswer());
+    const kind = classifyMistake(cur, this.userAnswer(), this.maskLevel());
     this.mistakeKind.set(kind);
     if (kind === 'gap') {
       const lowered = Math.max(0, this.maskLevel() - 1);
@@ -374,21 +334,6 @@ export class Drill {
     } else if (sessionId) {
       this.storage.setLevelUpItemProgress(sessionId, cur.key, this.maskLevel(), false);
     }
-  }
-
-  // ユーザー入力を正解の単語配列と突き合わせ、不一致がマスクされていない単語だけなら 'typo'、
-  // マスクされている単語にも及ぶ（または単語数が一致せず位置を特定できない）場合は 'gap' と判定する。
-  private classifyMistake(item: LevelUpQuiz, userInput: string): MistakeKind {
-    const userWords = userInput.split(/\s+/).filter(w => w.length > 0);
-    if (userWords.length !== item.words.length) return 'gap';
-
-    const hidden = this.maskedIndicesFor(item, this.maskLevel());
-    for (let i = 0; i < item.words.length; i++) {
-      if (normalizeAnswer(userWords[i]) !== normalizeAnswer(item.words[i]) && hidden.has(i)) {
-        return 'gap';
-      }
-    }
-    return 'typo';
   }
 
   // ── 自己判定: 自動採点が不一致でも正解として加点（英語は表現揺れが大きいため）。mistakes/cloze 専用 ─
