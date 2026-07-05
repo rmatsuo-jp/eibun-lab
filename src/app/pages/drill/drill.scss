@@ -121,9 +121,29 @@
   font-weight: 700;
 }
 
+// ── レベルアップ・タイピング: 文一覧選択画面（date-card を流用し、文の見た目だけ調整） ─
+.sentence-card {
+  .date-card-date {
+    font-weight: 400;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+    max-width: 70%;
+  }
+
+  .date-card-count {
+    flex-shrink: 0;
+  }
+}
+
 .date-card-count {
   font-size: 0.8125rem;
   color: var(--color-text-muted);
+
+  &.date-card-done {
+    color: #16a34a;
+    font-weight: 700;
+  }
 }
 
 // ── 出題中の進捗表示に添える小さなリンク風ボタン ────────────────────
@@ -175,33 +195,12 @@
   border-radius: 999px;
 }
 
-// ── レベルアップ・タイピングの Stage 切り替えタブ ────────────────────
-// Stage1/2/3 を常時表示し、自由な行き来・反復に対応する（進行の強制はしない）。
-.stage-tabs {
-  display: flex;
-  gap: 0.5rem;
-  margin-bottom: 1rem;
-}
-
-.stage-tab {
-  flex: 1;
-  background: var(--color-surface);
-  border: 1px solid var(--color-border);
-  border-radius: 0.5rem;
-  padding: 0.4rem 0.25rem;
+// ── レベルアップ・タイピングのマスク段階表示 ──────────────────────
+.mask-progress {
   font-size: 0.8125rem;
-  font-weight: 600;
-  color: var(--color-text-muted);
-  cursor: pointer;
-
-  &.active {
-    border-color: var(--color-primary);
-    color: var(--color-primary);
-  }
-
-  &.passed {
-    color: #16a34a;
-  }
+  font-weight: 700;
+  color: var(--color-primary);
+  margin-bottom: 0.75rem;
 }
 
 .quiz-prompt {

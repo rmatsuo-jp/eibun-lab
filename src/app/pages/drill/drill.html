@@ -1,7 +1,10 @@
 <!-- @file Drill ページテンプレート。モード選択（頻出ミス／穴埋め復習／レベルアップ・タイピング）→出題→答え合わせ→次へ→結果サマリーの流れ。
-     穴埋め復習は既定で入力、「ヒント（4択）」ボタンで選択式に切り替えられる。
-     レベルアップ・タイピングはまず日付（＝1回の添削セッション）を選び、その日の例文を元の順番のまま1文目から出題する。
-     各文の Stage1/2/3 のタブはいつでも自由にクリックでき、強制的な一方向進行はしない。 -->
+     日本語訳はどのモードでも既定非表示で、「ヒント」ボタン押下時または答え合わせ後にのみ表示する。
+     レベルアップ・タイピングは 日付選択 → 文一覧選択 → 出題 の3段階。日付を選ぶとその日の文一覧（進捗バッジ付き）が
+     表示され、任意の文を選んで出題画面に進む（途中再開可）。
+     各文は maskLevel（0=全文表示〜maxLevel=全単語マスク）の一本道で進行し、正解のたびに隠れる単語が増える。
+     不正解時はタイポ（見えている単語のミス）なら据え置き、理解度不足（隠れている単語のミス）なら1段階戻る。
+     日付・文ごとの進捗はセッションID単位で保存され、日付選択・文一覧の各画面で完了状況の確認・途中再開ができる。 -->
 <div class="page">
   <h1 class="page-title">弱点克服ドリル</h1>
 
@@ -34,7 +37,7 @@
 
       <div class="mode-card">
         <strong>レベルアップ・タイピング</strong>
-        <p>日付を選んで、その日のCEFR一段階上の表現を1文目から「見て打つ→穴埋めで打つ→見ずに打つ」の3段階タイピングで身体で覚えます。3段階は自由に行き来できます。</p>
+        <p>日付を選んで、その日のCEFR一段階上の表現を1文目から。正解するたびに単語が少しずつ隠れていき、全部隠れた状態で打てたら習熟です。</p>
         <p class="intro-count">対象日: {{ levelUpCount() }}日分</p>
         @if (levelUpCount() === 0) {
           <p class="empty-note">「レベルアップ表現の生成」を有効にして添削すると出題されます。</p>
@@ -51,7 +54,11 @@
         @for (s of levelUpDates(); track s.id) {
           <button class="date-card" (click)="selectLevelUpDate(s)">
             <span class="date-card-date">{{ s.date | date:'yyyy/MM/dd' }}</span>
-            <span class="date-card-count">{{ (s.levelUpItems ?? []).length }}文</span>
+            @if (progressForSession(s); as p) {
+              <span class="date-card-count" [class.date-card-done]="p.done === p.total && p.total > 0">
+                {{ p.done === p.total && p.total > 0 ? 'クリア済み' : (p.done + ' / ' + p.total + '文') }}
+              </span>
+            }
           </button>
         }
         @if (levelUpDates().length === 0) {
@@ -59,6 +66,24 @@
         }
       </div>
       <button class="btn-secondary" (click)="restart()">モード選択に戻る</button>
+    </div>
+  } @else if (mode() === 'levelup' && !levelUpSentenceChosen()) {
+    <!-- ── レベルアップ・タイピング: 文一覧選択画面 ── -->
+    <div class="intro">
+      <p>取り組みたい文を選んでください。進捗は文ごとに保存されるので、途中からでも再開できます。</p>
+      <div class="date-select">
+        @for (item of levelUpQuiz(); track item.key; let i = $index) {
+          @if (progressForItem(item); as p) {
+            <button class="date-card sentence-card" (click)="selectLevelUpSentence(i)">
+              <span class="date-card-date">{{ i + 1 }}. {{ item.original }}</span>
+              <span class="date-card-count" [class.date-card-done]="p.completed">
+                {{ p.completed ? '習熟済み' : (p.maskLevel === 0 ? '未着手' : 'マスク ' + p.maskLevel + ' / ' + item.maxLevel) }}
+              </span>
+            </button>
+          }
+        }
+      </div>
+      <button class="btn-secondary" (click)="backToDateSelect()">日付を選び直す</button>
     </div>
   } @else if (finished()) {
     <!-- ── 結果サマリー ── -->
@@ -75,32 +100,23 @@
     <!-- ── レベルアップ・タイピング出題中 ── -->
     <div class="progress">
       {{ index() + 1 }} / {{ total() }}
+      <button class="link-button" (click)="backToSentenceList()">文一覧に戻る</button>
       <button class="link-button" (click)="backToDateSelect()">日付を選び直す</button>
     </div>
 
     @if (currentLevelUp(); as item) {
       <div class="quiz-card">
-        <div class="stage-tabs">
-          @for (s of stages; track s) {
-            <button
-              class="stage-tab"
-              [class.active]="stage() === s"
-              [class.passed]="stagePassed()[s]"
-              (click)="selectStage(s)">
-              Stage {{ s }} {{ stagePassed()[s] ? '✓' : '' }}
-            </button>
-          }
-        </div>
+        <div class="mask-progress">マスク {{ maskLevel() }} / {{ item.maxLevel }}</div>
 
-        @if (stage() === 1) {
-          <p class="quiz-prompt">見て、そのままタイプしてください。</p>
-          <p class="quiz-original">{{ item.leveledUp }}</p>
-        } @else if (stage() === 2) {
-          <p class="quiz-prompt">空所を思い出しながら、全文をタイプしてください。</p>
-          <p class="quiz-original">{{ blankedSentence(item) }}</p>
-        } @else {
-          <p class="quiz-prompt">日本語訳だけを見て、英文をタイプしてください。</p>
+        <p class="quiz-prompt">
+          {{ maskLevel() === 0 ? '見て、そのままタイプしてください。' : '隠れた単語を思い出しながら、全文をタイプしてください。' }}
+        </p>
+        <p class="quiz-original">{{ maskedSentence(item) }}</p>
+
+        @if (hintShown() || revealed()) {
           <p class="quiz-translation">{{ item.translation }}</p>
+        } @else {
+          <button class="btn-secondary" (click)="toggleHint()">ヒント（日本語訳）</button>
         }
 
         <input class="answer-input" type="text"
@@ -117,7 +133,7 @@
 
         @if (revealed()) {
           <div class="answer-result" [class.correct]="currentCorrect()" [class.wrong]="!currentCorrect()">
-            {{ currentCorrect() ? '⭕ 正解！' : '❌ 不正解' }}
+            {{ currentCorrect() ? '⭕ 正解！' : (mistakeKind() === 'gap' ? '❌ 不正解（理解度不足：レベルを1段階下げます）' : '❌ 不正解（タイポ：同じレベルでもう一度）') }}
           </div>
           <div class="correct-answer">
             <span class="correct-label">正解</span>
@@ -127,7 +143,7 @@
             @if (!currentCorrect()) {
               <button class="btn-secondary" (click)="markCorrect()">正解にする</button>
             }
-            <button class="btn-secondary" (click)="selectStage(stage())">もう一度（同じStage）</button>
+            <button class="btn-secondary" (click)="retry()">もう一度</button>
             <button class="btn-primary" (click)="next()">
               {{ index() + 1 >= total() ? '結果を見る' : '次の問題へ' }}
             </button>
@@ -147,7 +163,11 @@
         </p>
         <p class="quiz-original">{{ q.prompt }}</p>
         @if (q.translation) {
-          <p class="quiz-translation">{{ q.translation }}</p>
+          @if (hintShown() || revealed()) {
+            <p class="quiz-translation">{{ q.translation }}</p>
+          } @else {
+            <button class="btn-secondary" (click)="toggleHint()">ヒント（日本語訳）</button>
+          }
         }
 
         @if (!choiceMode()) {
