@@ -136,15 +136,21 @@
 
         @if (revealed()) {
           <div class="answer-result" [class.correct]="currentCorrect()" [class.wrong]="!currentCorrect()">
-            {{ currentCorrect() ? '⭕ 正解！' : (mistakeKind() === 'gap' ? '❌ 不正解（理解度不足：レベルを1段階下げます）' : '❌ 不正解（タイポ：同じレベルでもう一度）') }}
+            {{ currentCorrect()
+                ? (maskLevel() >= item.maxLevel ? '🎉 正解！この文は習熟済みになりました' : '⭕ 正解！')
+                : (mistakeKind() === 'gap' ? '❌ 不正解（理解度不足：レベルを1段階下げます）' : '❌ 不正解（タイポ：同じレベルでもう一度）') }}
           </div>
           <div class="correct-answer">
             <span class="correct-label">正解</span>
             <span class="correct-text">{{ item.leveledUp }}</span>
           </div>
           <div class="post-actions">
-            <button class="btn-secondary" (click)="backToSentenceList()">中断</button>
-            <button class="btn-primary" #nextBtn (click)="retry()">次へ</button>
+            @if (currentCorrect() && maskLevel() >= item.maxLevel) {
+              <button class="btn-primary" #nextBtn (click)="backToSentenceList()">文一覧に戻る</button>
+            } @else {
+              <button class="btn-secondary" (click)="backToSentenceList()">中断</button>
+              <button class="btn-primary" #nextBtn (click)="retry()">次へ</button>
+            }
           </div>
         }
       </div>

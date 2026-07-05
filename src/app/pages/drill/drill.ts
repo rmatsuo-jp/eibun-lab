@@ -22,6 +22,9 @@
  * levelup の答え合わせ後ボタンは「次へ」（同じ文を更新後の maskLevel のまま再出題、実体は retry()）と
  * 「中断」（backToSentenceList() で文一覧選択画面に戻る）の2つのみで、mistakes/cloze にある
  * 「正解にする」（markCorrect）は levelup では提供しない。
+ * ただし全単語マスクの状態（maskLevel === maxLevel）で正答し習熟達成した瞬間だけは、この2ボタンの代わりに
+ * 「文一覧に戻る」1ボタンのみを表示する（判定・遷移先はテンプレート側の条件分岐のみで完結し、
+ * ロジック側の変更は不要。習熟の記録自体は checkTyping() が既に行う）。
  */
 import { Component, computed, effect, ElementRef, inject, signal, viewChild } from '@angular/core';
 import { DatePipe } from '@angular/common';
