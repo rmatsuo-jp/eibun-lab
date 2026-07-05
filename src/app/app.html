@@ -1,12 +1,16 @@
-<!-- @file アプリシェル。router-outlet（メインコンテンツ）・グローバル添削通知バナー・ボトムナビ（6タブ）を配置する。 -->
-<div class="app-shell">
+<!-- @file アプリシェル。router-outlet（メインコンテンツ）・グローバル添削通知バナー・ボトムナビ（6タブ）を配置する。
+     各ナビ項目は routerLinkActive を #rlaN で参照して aria-current="page" を付与し、通知バナーは
+     tabindex/role/keydown.enter でキーボードからも開けるようにしている。
+     PCレイアウト（サイドバー表示時）では nav 先頭の sidebar-toggle ボタンで格納/展開を切り替えられる
+     （app.ts の sidebarCollapsed signal に連動）。 -->
+<div class="app-shell" [class.sidebar-collapsed]="sidebarCollapsed()">
   <main class="app-content">
     <router-outlet />
   </main>
 
   <!-- ── グローバル添削通知（どのタブでも処理中/完了/エラーが分かる。タップで添削タブへ） ── -->
   @if (practiceState.notice(); as n) {
-    <div class="global-notice" [class]="'is-' + n.status" (click)="openResult()">
+    <div class="global-notice" [class]="'is-' + n.status" tabindex="0" role="button" (click)="openResult()" (keydown.enter)="openResult()">
       @if (n.status === 'loading') {
         <span class="spinner"></span>
       }
@@ -17,38 +21,43 @@
     </div>
   }
 
-  <nav class="bottom-nav">
-    <a routerLink="/practice" routerLinkActive="active" class="nav-item">
+  <nav class="bottom-nav" [class.collapsed]="sidebarCollapsed()">
+    <button type="button" class="sidebar-toggle" (click)="toggleSidebar()" [attr.aria-label]="sidebarCollapsed() ? 'サイドバーを表示' : 'サイドバーを格納'">
+      <svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+        <polyline points="15 18 9 12 15 6"/>
+      </svg>
+    </button>
+    <a routerLink="/practice" routerLinkActive="active" #rla1="routerLinkActive" [attr.aria-current]="rla1.isActive ? 'page' : null" class="nav-item">
       <svg xmlns="http://www.w3.org/2000/svg" width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
         <path d="M12 20h9"/><path d="M16.5 3.5a2.121 2.121 0 0 1 3 3L7 19l-4 1 1-4L16.5 3.5z"/>
       </svg>
       <span>添削</span>
     </a>
-    <a routerLink="/drill" routerLinkActive="active" class="nav-item">
+    <a routerLink="/drill" routerLinkActive="active" #rla2="routerLinkActive" [attr.aria-current]="rla2.isActive ? 'page' : null" class="nav-item">
       <svg xmlns="http://www.w3.org/2000/svg" width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
         <circle cx="12" cy="12" r="10"/><path d="M9.09 9a3 3 0 0 1 5.83 1c0 2-3 3-3 3"/><line x1="12" y1="17" x2="12.01" y2="17"/>
       </svg>
       <span>ドリル</span>
     </a>
-    <a routerLink="/history" routerLinkActive="active" class="nav-item">
+    <a routerLink="/history" routerLinkActive="active" #rla3="routerLinkActive" [attr.aria-current]="rla3.isActive ? 'page' : null" class="nav-item">
       <svg xmlns="http://www.w3.org/2000/svg" width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
         <path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14 2 14 8 20 8"/><line x1="16" y1="13" x2="8" y2="13"/><line x1="16" y1="17" x2="8" y2="17"/><polyline points="10 9 9 9 8 9"/>
       </svg>
       <span>履歴</span>
     </a>
-    <a routerLink="/mistakes" routerLinkActive="active" class="nav-item">
+    <a routerLink="/mistakes" routerLinkActive="active" #rla4="routerLinkActive" [attr.aria-current]="rla4.isActive ? 'page' : null" class="nav-item">
       <svg xmlns="http://www.w3.org/2000/svg" width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
         <line x1="18" y1="20" x2="18" y2="10"/><line x1="12" y1="20" x2="12" y2="4"/><line x1="6" y1="20" x2="6" y2="14"/>
       </svg>
       <span>傾向</span>
     </a>
-    <a routerLink="/settings" routerLinkActive="active" class="nav-item">
+    <a routerLink="/settings" routerLinkActive="active" #rla5="routerLinkActive" [attr.aria-current]="rla5.isActive ? 'page' : null" class="nav-item">
       <svg xmlns="http://www.w3.org/2000/svg" width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
         <circle cx="12" cy="12" r="3"/><path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 0 1-2.83 2.83l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-4 0v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 0 1-2.83-2.83l.06-.06A1.65 1.65 0 0 0 4.68 15a1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1 0-4h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 0 1 2.83-2.83l.06.06A1.65 1.65 0 0 0 9 4.68a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 4 0v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 0 1 2.83 2.83l-.06.06A1.65 1.65 0 0 0 19.4 9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 0 4h-.09a1.65 1.65 0 0 0-1.51 1z"/>
       </svg>
       <span>設定</span>
     </a>
-    <a routerLink="/dev" routerLinkActive="active" class="nav-item">
+    <a routerLink="/dev" routerLinkActive="active" #rla6="routerLinkActive" [attr.aria-current]="rla6.isActive ? 'page' : null" class="nav-item">
       <svg xmlns="http://www.w3.org/2000/svg" width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
         <polyline points="16 18 22 12 16 6"/><polyline points="8 6 2 12 8 18"/>
       </svg>

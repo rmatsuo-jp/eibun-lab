@@ -4,7 +4,7 @@
  * PracticeState.notice を購読し、どのタブにいても添削の処理中／完了／エラーを
  * グローバルバナーで表示する（タップで添削タブへ遷移）。
  */
-import { Component, inject } from '@angular/core';
+import { Component, inject, signal } from '@angular/core';
 import { Router, RouterOutlet, RouterLink, RouterLinkActive } from '@angular/router';
 import { StorageService } from './services/storage.service';
 import { PracticeState } from './pages/practice/practice-state.service';
@@ -19,6 +19,9 @@ export class App {
   protected practiceState = inject(PracticeState);
   private router = inject(Router);
 
+  // ── サイドバー（PCレイアウト時のみ）の格納状態。既定値 false = 表示中 ──
+  protected sidebarCollapsed = signal(false);
+
   constructor() {
     const theme = inject(StorageService).getSettings().theme;
     document.documentElement.dataset['theme'] = theme;
@@ -28,5 +31,10 @@ export class App {
   openResult() {
     this.router.navigate(['/practice']);
     this.practiceState.dismissNotice();
+  }
+
+  // ── サイドバー格納ボタン: 表示⇔格納をトグル ─────────────────
+  toggleSidebar() {
+    this.sidebarCollapsed.update((v) => !v);
   }
 }

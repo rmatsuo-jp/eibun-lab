@@ -109,6 +109,11 @@
   }
 }
 
+// ── サイドバー格納ボタン（モバイルの下部タブバーでは不要なので既定は非表示） ──
+.sidebar-toggle {
+  display: none;
+}
+
 // ── PC レイアウト（768px 以上）────────────────────────────────────
 @media (min-width: 768px) {
   .app-shell {
@@ -128,6 +133,47 @@
     border-top: none;
     border-right: 1px solid var(--color-border);
     padding-bottom: 0;
+    transition: width 0.2s ease;
+
+    &.collapsed {
+      width: 64px;
+
+      .nav-item {
+        justify-content: center;
+        padding: 0.875rem 0;
+
+        span {
+          display: none;
+        }
+      }
+    }
+  }
+
+  .sidebar-toggle {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    flex: 0 0 auto;
+    padding: 0.875rem 0;
+    margin: 0 1.25rem;
+    border: none;
+    border-bottom: 1px solid var(--color-border);
+    background: none;
+    color: var(--color-text-muted);
+    cursor: pointer;
+
+    svg {
+      flex-shrink: 0;
+      transition: transform 0.2s ease;
+    }
+
+    .collapsed & {
+      margin: 0;
+
+      svg {
+        transform: rotate(180deg);
+      }
+    }
   }
 
   .nav-item {
@@ -143,11 +189,22 @@
     padding-bottom: 1rem;
     margin-left: 220px;
     width: calc(100% - 220px);
+    transition: margin-left 0.2s ease, width 0.2s ease;
+  }
+
+  .app-shell.sidebar-collapsed .app-content {
+    margin-left: 64px;
+    width: calc(100% - 64px);
   }
 
   .global-notice {
     left: 220px;
     bottom: 1rem;
     margin: 0 1.5rem;
+    transition: left 0.2s ease;
+  }
+
+  .app-shell.sidebar-collapsed .global-notice {
+    left: 64px;
   }
 }
