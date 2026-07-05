@@ -8,8 +8,8 @@ describe('buildPrompt', () => {
     expect(p).toContain('【添削後の全文】');
     expect(p).toContain('【ミス一覧（JSON）】');
     expect(p).toContain('<mistakes>');
-    // 末尾はプレースホルダ
-    expect(p.endsWith('英作文:\n{USER_TEXT}')).toBe(true);
+    // 末尾はプレースホルダ（区切り記号で囲まれている）
+    expect(p.endsWith('英作文:\n###USER_DIARY_START###\n{USER_TEXT}\n###USER_DIARY_END###')).toBe(true);
   });
 
   it('全セクション（自然な表現・文法傾向・定量評価・レベルアップ・復習カード）を常に含む', () => {
