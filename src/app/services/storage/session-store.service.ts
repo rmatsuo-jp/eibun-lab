@@ -7,6 +7,7 @@
  */
 import { computed, Injectable, signal } from '@angular/core';
 import { CorrectionSession } from '../../models/session.model';
+import { readJson, writeJson } from '../../utils/local-storage.util';
 
 const SESSIONS_KEY = 'correction_sessions';
 
@@ -21,17 +22,11 @@ export class SessionStoreService {
   readonly allSessions = this._sessions;
 
   private loadFromStorage(): CorrectionSession[] {
-    const raw = localStorage.getItem(SESSIONS_KEY);
-    if (!raw) return [];
-    try {
-      return JSON.parse(raw) as CorrectionSession[];
-    } catch {
-      return [];
-    }
+    return readJson<CorrectionSession[]>(SESSIONS_KEY, []);
   }
 
   persist(sessions: CorrectionSession[]): void {
-    localStorage.setItem(SESSIONS_KEY, JSON.stringify(sessions));
+    writeJson(SESSIONS_KEY, sessions);
     this._sessions.set(sessions);
   }
 
