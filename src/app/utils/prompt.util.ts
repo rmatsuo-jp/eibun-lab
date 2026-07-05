@@ -3,7 +3,7 @@
  * 各指示を「宣言的なセクション定義（PromptSection）の配列」として持ち、buildPrompt() は
  * 全セクションを配列順に連結するだけの薄いオーケストレーションに徹する。
  * 新しい添削項目の追加 = SECTIONS 配列にオブジェクトを 1 つ足すだけで済む（拡張容易）。
- * 全項目は【】見出し形式に統一し、出力順（mistakes→evaluation→level-study-plan→review）は解析側の前提と一致させる。
+ * 全項目は【】見出し形式に統一し、出力順（mistakes→evaluation→level-study-plan→levelup→review）は解析側の前提と一致させる。
  * level-study-plan は判定済みCEFRを踏まえた「今のレベルから伸ばす具体的な学習法」を出させる項目（本文のみ、JSON出力なし）。
  * 定量データはAIに3観点スコア＋エラー密度＋4CEFRを出力させ、総合スコアのみシステム側（evaluation.util）で算出する。
  */
@@ -38,6 +38,7 @@ const SECTIONS: PromptSection[] = [
     id: 'mistakes',
     text: `【ミス一覧（JSON）】
 上で指摘したミスを、回答の末尾に次のJSON形式で再掲してください。
+categoryは必ず日本語で、次の固定リストから最も近いものを1つ選んでください（英語表記や独自の表記は禁止）: 文法 / 語彙 / スペリング / コロケーション / 語法 / 構文 / 語順
 <mistakes>
 {"mistakes":[{"category":"カテゴリ","original":"元の表現","corrected":"正しい表現","explanation":"説明"}]}
 </mistakes>`,
@@ -104,7 +105,11 @@ CEFRはCEFR公式ディスクリプタ（実際に「その言語で何ができ
   {
     id: 'level-up',
     text: `【レベルアップした表現の提案】
-CEFRの一段階上のレベルで同じ内容を書いた英文例を示し、レベルアップに役立つ語彙・構文を簡潔に解説してください。`,
+元の英文を1文ずつに分解し、それぞれをCEFRの一段階上のレベルで書き直した例文を作成してください。レベルアップに役立つコロケーション・構文があれば、その部分（leveledUp 内に実際に登場する完全一致の文字列）を key phrase として指定してください。1文につき key phrase は1〜2個程度にしてください。
+回答末尾（reviewの前）に次のJSON形式で出力してください。
+<levelup>
+{"levelUpItems":[{"original":"元の1文","leveledUp":"レベルアップした1文","keyPhrases":["該当箇所の完全一致文字列"],"translation":"レベルアップ文の日本語訳"}]}
+</levelup>`,
   },
   {
     id: 'cloze-review',
@@ -125,7 +130,7 @@ export function buildPrompt(): string {
 
 【出力規約（厳守）】
 - 各項目は必ず【】見出しで示すこと。
-- JSONブロック（<mistakes> / <evaluation> / <review>）は指定したスキーマ・キー名・型を厳守し、余計なキー・コメント・コードフェンス（\`\`\`）を付けないこと。
+- JSONブロック（<mistakes> / <evaluation> / <levelup> / <review>）は指定したスキーマ・キー名・型を厳守し、余計なキー・コメント・コードフェンス（\`\`\`）を付けないこと。
 - 数値はすべて半角。score系は0〜10（0.5刻み）、errorDensityは数値。
 - 定量データ（スコア・エラー密度）は本文の説明文に書かず、必ず指定のJSONブロックにのみ記載すること。`);
 

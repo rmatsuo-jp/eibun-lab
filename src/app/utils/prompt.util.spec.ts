@@ -27,6 +27,9 @@ describe('buildPrompt', () => {
     expect(p).not.toContain('"overallScore"');
     expect(p).toContain('【CEFR評価の根拠】');
     expect(p).toContain('【レベルアップした表現の提案】');
+    expect(p).toContain('<levelup>');
+    expect(p).toContain('"levelUpItems"');
+    expect(p).toContain('"keyPhrases"');
     expect(p).toContain('【復習用カードの生成】');
     expect(p).toContain('<review>');
     expect(p).toContain('"reviewItems"');

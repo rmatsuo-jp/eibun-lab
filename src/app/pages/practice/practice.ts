@@ -8,6 +8,7 @@ import { FormsModule } from '@angular/forms';
 import { DomSanitizer, SafeHtml } from '@angular/platform-browser';
 import { renderSafeMarkdown } from '../../utils/markdown.util';
 import { buildBulkTemplateJson, buildBulkTemplateFromSessions, parseBulkImportJson } from '../../utils/bulk-import.util';
+import { formatTimestampForFilename } from '../../utils/date.util';
 import { StorageService } from '../../services/storage.service';
 import { PracticeState } from './practice-state.service';
 
@@ -42,7 +43,7 @@ export class Practice {
     const blob = new Blob([buildBulkTemplateJson()], { type: 'application/json' });
     const a = document.createElement('a');
     a.href = URL.createObjectURL(blob);
-    a.download = `bulk_template_${new Date().toISOString().slice(0, 10)}.json`;
+    a.download = `bulk_template_${formatTimestampForFilename()}.json`;
     a.click();
     URL.revokeObjectURL(a.href);
   }
@@ -52,7 +53,7 @@ export class Practice {
     const blob = new Blob([json], { type: 'application/json' });
     const a = document.createElement('a');
     a.href = URL.createObjectURL(blob);
-    a.download = `bulk_from_history_${new Date().toISOString().slice(0, 10)}.json`;
+    a.download = `bulk_from_history_${formatTimestampForFilename()}.json`;
     a.click();
     URL.revokeObjectURL(a.href);
   }

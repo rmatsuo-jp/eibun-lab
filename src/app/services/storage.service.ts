@@ -2,11 +2,13 @@
  * @file LocalStorage への永続化を担うサービス。
  * セッション管理（CRUD）・設定管理・ミス統計集計・学習統計（streak等）・ドリル習熟度を一元管理する。
  * sessions signal でリアクティブなキャッシュを提供する。
- * ドリルの出題元（getFrequentMistakes/getReviewItems）は直近 RECENT_SESSION_LIMIT 件のみを対象にし、
+ * ドリルの出題元（getFrequentMistakes/getReviewItems）は直近 RECENT_SESSION_LIMIT 件のみを対象にするが、
+ * レベルアップ・タイピング（getSessionsWithLevelUp）は日付単位で1セッションを選ぶ方式のため全期間を対象にする。
  * 各問題の正誤履歴は drillProgress signal（DRILL_PROGRESS_KEY）で正解ストリークとして永続化する。
  * ログイン中（AuthService）は Firestore とも双方向同期し、複数端末でセッションを共有する。
  * 削除は物理削除せず deleted フラグ（tombstone）で表現し、削除も多端末へ伝播させる。
  * コンポーネントから直接 localStorage を操作せず、必ずこのサービスを経由すること。
+ * ミスカテゴリは英語表記・表記ゆれが混在し得るため、normalizeCategory() で日本語カテゴリへ正規化してから集計する。
  */
 import { computed, effect, Injectable, inject, signal } from '@angular/core';
 import {
@@ -18,12 +20,32 @@ import {
 import { CorrectionSession, DrillProgress, Mistake, ReviewItem, WritingEvaluation } from '../models/session.model';
 import { AuthService } from './auth.service';
 import { firestore } from './firebase.init';
+import { toDayKey } from '../utils/date.util';
 
 // CEFR レベルを数値化（グラフ描画用）。未知の値は 0 として扱う。
 export const CEFR_ORDER = ['A1', 'A2', 'B1', 'B2', 'C1', 'C2'] as const;
 export function cefrToNumber(level: string): number {
   const idx = CEFR_ORDER.indexOf(level.toUpperCase().trim() as (typeof CEFR_ORDER)[number]);
   return idx === -1 ? 0 : idx + 1;
+}
+
+// ミスカテゴリの表記ゆれ正規化（英語表記・過去データの細分化表記 → 日本語カテゴリへ寄せる）。
+// プロンプト側で日本語固定リストを指示した後も、過去に保存済みの英語カテゴリのミスが残るため集計側でも正規化する。
+const CATEGORY_ALIASES: Record<string, string> = {
+  'grammar': '文法',
+  'vocabulary': '語彙',
+  'word choice': '語彙',
+  'verb/word choice': '語彙',
+  'spelling': 'スペリング',
+  'collocation': 'コロケーション',
+  'noun/number': '文法',
+  'preposition/article': '文法',
+  '語法/名詞句の構成': '語法',
+  '語順/副詞の位置': '語順',
+};
+export function normalizeCategory(category: string): string {
+  const trimmed = category.trim();
+  return CATEGORY_ALIASES[trimmed.toLowerCase()] ?? CATEGORY_ALIASES[trimmed] ?? trimmed;
 }
 
 const SESSIONS_KEY = 'correction_sessions';
@@ -188,10 +210,10 @@ export class StorageService {
     return collection(firestore, 'apps', 'study_english', 'users', uid, 'sessions');
   }
 
-  // Firestore は undefined を受け付けないため、値が undefined の任意フィールド（evaluation / reviewItems）を
+  // Firestore は undefined を受け付けないため、値が undefined の任意フィールド（evaluation / reviewItems / levelUpItems）を
   // フィールドごと除外する。任意フィールドが増えても OPTIONAL_FIELDS に足すだけで対応できる。
   private toDocData(session: CorrectionSession): Record<string, unknown> {
-    const OPTIONAL_FIELDS: (keyof CorrectionSession)[] = ['evaluation', 'reviewItems'];
+    const OPTIONAL_FIELDS: (keyof CorrectionSession)[] = ['evaluation', 'reviewItems', 'levelUpItems'];
     const data: Record<string, unknown> = { ...session };
     for (const field of OPTIONAL_FIELDS) {
       if (data[field] === undefined) delete data[field];
@@ -279,11 +301,13 @@ export class StorageService {
   }
 
   // ── ミス統計集計（sessions signal を読むため computed() 内で依存追跡される） ─
+  // カテゴリは normalizeCategory() で正規化してから集計し、英日表記の重複を防ぐ。
   getMistakeStats(): { category: string; count: number }[] {
     const counts: Record<string, number> = {};
     for (const session of this.activeSessions()) {
       for (const m of session.mistakes) {
-        counts[m.category] = (counts[m.category] ?? 0) + 1;
+        const category = normalizeCategory(m.category);
+        counts[category] = (counts[category] ?? 0) + 1;
       }
     }
     return Object.entries(counts)
@@ -301,16 +325,16 @@ export class StorageService {
       : Math.round((totalMistakes / totalSessions) * 10) / 10;
 
     // セッションが存在する日付（ローカル時刻 YYYY-MM-DD）の集合
-    const dayKeys = new Set(sessions.map(s => this.toDayKey(s.date)));
+    const dayKeys = new Set(sessions.map(s => toDayKey(s.date)));
 
     // 連続学習日数: 今日 or 昨日を起点に、連続して遡れる日数を数える
     let currentStreak = 0;
     const cursor = new Date();
-    if (!dayKeys.has(this.toDayKey(cursor.toISOString()))) {
+    if (!dayKeys.has(toDayKey(cursor.toISOString()))) {
       // 今日まだ未学習なら昨日を起点にする（昨日があれば streak 継続中とみなす）
       cursor.setDate(cursor.getDate() - 1);
     }
-    while (dayKeys.has(this.toDayKey(cursor.toISOString()))) {
+    while (dayKeys.has(toDayKey(cursor.toISOString()))) {
       currentStreak++;
       cursor.setDate(cursor.getDate() - 1);
     }
@@ -333,7 +357,7 @@ export class StorageService {
     const byDay = new Map<string, { date: string; evaluation: WritingEvaluation }>();
     for (const s of this.activeSessions()) {
       if (!s.evaluation) continue;
-      const key = this.toDayKey(s.date);
+      const key = toDayKey(s.date);
       const existing = byDay.get(key);
       // 同一日付は date（ISO）が新しい方を採用
       if (!existing || s.date > existing.date) {
@@ -341,15 +365,6 @@ export class StorageService {
       }
     }
     return [...byDay.values()].sort((a, b) => a.date.localeCompare(b.date));
-  }
-
-  // ── 日付をローカル時刻の YYYY-MM-DD キーに正規化 ──────────────────
-  private toDayKey(iso: string): string {
-    const d = new Date(iso);
-    const y = d.getFullYear();
-    const m = String(d.getMonth() + 1).padStart(2, '0');
-    const day = String(d.getDate()).padStart(2, '0');
-    return `${y}-${m}-${day}`;
   }
 
   // 直近 RECENT_SESSION_LIMIT 件から集計する（今のレベルではもう犯していない古いミスを除外するため）。
@@ -373,5 +388,13 @@ export class StorageService {
   // ── 復習カード集計: 直近 RECENT_SESSION_LIMIT 件の reviewItems を平坦化して返す（Drill の穴埋め復習で出題） ─
   getReviewItems(): ReviewItem[] {
     return this.recentSessions().flatMap(s => s.reviewItems ?? []);
+  }
+
+  // ── レベルアップ例文を持つセッション一覧: Drill の日付選択画面で使う ─
+  // 直近 RECENT_SESSION_LIMIT 件には絞らず、全期間の levelUpItems を持つセッションを対象にする
+  // （日付単位で1セッションを選んでその中の例文を順にたどる仕様のため、古い日付も選択肢に残す）。
+  // sessions（= activeSessions）は既に新しい順にソート済みなので、追加のソートは不要。
+  getSessionsWithLevelUp(): CorrectionSession[] {
+    return this.sessions().filter(s => (s.levelUpItems?.length ?? 0) > 0);
   }
 }

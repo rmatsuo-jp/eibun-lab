@@ -1,13 +1,14 @@
 /**
  * @file Google Gemini API との通信を担うサービス。
- * correct() でプロンプトを送信し、レスポンスから添削文・mistakes JSON・定量評価(WritingEvaluation)・復習カードを分離して返す。
+ * correct() でプロンプトを送信し、レスポンスから添削文・mistakes JSON・定量評価(WritingEvaluation)・
+ * 復習カード・レベルアップ例文（LevelUpItem、構造化JSON）を分離して返す。
  * 定量評価は AI の3観点スコア＋errorDensity を受け取り、総合スコア・CEFR は evaluation.util で算出して補完する。
  * モデル優先順位配列（AppSettings.modelPriority）を先頭から順に試し、失敗したら次のモデルへフォールバックする。
  * 成功した呼び出しは DevLogService に生プロンプト・生レスポンスを記録し、開発タブ（pages/dev）で確認できるようにする。
  */
 import { Injectable, inject } from '@angular/core';
 import { GoogleGenerativeAI } from '@google/generative-ai';
-import { Mistake, ReviewItem, WritingEvaluation } from '../models/session.model';
+import { LevelUpItem, Mistake, ReviewItem, WritingEvaluation } from '../models/session.model';
 import { buildEvaluation } from '../utils/evaluation.util';
 import { DevLogService } from './dev-log.service';
 
@@ -16,6 +17,7 @@ export interface CorrectionResult {
   mistakes: Mistake[];
   evaluation?: WritingEvaluation;
   reviewItems?: ReviewItem[];
+  levelUpItems?: LevelUpItem[];
 }
 
 @Injectable({ providedIn: 'root' })
@@ -50,10 +52,12 @@ export class GeminiService {
 
     const mistakes = this.parseMistakes(text);
     const evaluation = this.parseEvaluation(text);
+    const levelUpItems = this.parseLevelUp(text);
     const reviewItems = this.parseReview(text);
     const corrected = text
       .replace(/<mistakes>[\s\S]*?<\/mistakes>/g, '')
       .replace(/<evaluation>[\s\S]*?<\/evaluation>/g, '')
+      .replace(/<levelup>[\s\S]*?<\/levelup>/g, '')
       .replace(/<review>[\s\S]*?<\/review>/g, '')
       .trim();
 
@@ -62,10 +66,10 @@ export class GeminiService {
       fullPrompt,
       userText,
       rawResponse: text,
-      parsed: { corrected, mistakes, evaluation, reviewItems },
+      parsed: { corrected, mistakes, evaluation, reviewItems, levelUpItems },
     });
 
-    return { corrected, mistakes, evaluation, reviewItems };
+    return { corrected, mistakes, evaluation, reviewItems, levelUpItems };
   }
 
   // ── レスポンス解析: <mistakes>...</mistakes> タグから JSON を抽出 ─
@@ -111,6 +115,31 @@ export class GeminiService {
         });
       }
       return undefined;
+    } catch {
+      return undefined;
+    }
+  }
+
+  // ── レスポンス解析: <levelup>...</levelup> タグからレベルアップ例文を抽出 ─
+  // 必須フィールドが揃った項目だけを採用する。keyPhrases は leveledUp 内に実在するかまでは検証せず
+  // （Drill 側の穴埋めロジックが該当フレーズを見つけられない場合はそのフレーズをスキップして防御的に扱う）、
+  // 型の妥当性のみチェックする。不正な項目は除外し、1件も残らなければ undefined を返す。
+  private parseLevelUp(text: string): LevelUpItem[] | undefined {
+    const match = text.match(/<levelup>([\s\S]*?)<\/levelup>/);
+    if (!match) return undefined;
+    try {
+      const json = JSON.parse(match[1].trim()) as { levelUpItems?: LevelUpItem[] };
+      if (!Array.isArray(json.levelUpItems)) return undefined;
+      const valid = json.levelUpItems.filter(
+        (item) =>
+          item &&
+          typeof item.original === 'string' &&
+          typeof item.leveledUp === 'string' &&
+          typeof item.translation === 'string' &&
+          Array.isArray(item.keyPhrases) &&
+          item.keyPhrases.every((p) => typeof p === 'string' && p.length > 0)
+      );
+      return valid.length > 0 ? valid : undefined;
     } catch {
       return undefined;
     }

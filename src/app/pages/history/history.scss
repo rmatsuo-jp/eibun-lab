@@ -311,6 +311,112 @@
   font-weight: 600;
 }
 
+// ── カレンダー表示（月ナビゲーション・曜日ヘッダー・日付グリッド） ──
+.calendar-nav {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 1rem;
+  margin-bottom: 1rem;
+}
+
+.calendar-month-label {
+  font-size: 1.0625rem;
+  font-weight: 700;
+  color: var(--color-text);
+  min-width: 8rem;
+  text-align: center;
+}
+
+.calendar-weekdays {
+  display: grid;
+  grid-template-columns: repeat(7, 1fr);
+  margin-bottom: 0.25rem;
+}
+
+.weekday-cell {
+  text-align: center;
+  font-size: 0.75rem;
+  font-weight: 600;
+  color: var(--color-text-muted);
+  padding: 0.25rem 0;
+}
+
+.calendar-grid {
+  display: grid;
+  grid-template-columns: repeat(7, 1fr);
+  gap: 0.25rem;
+  margin-bottom: 0.75rem;
+}
+
+.calendar-cell {
+  position: relative;
+  aspect-ratio: 3.2 / 1;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 0.15rem;
+  background: var(--color-surface);
+  border: 1px solid var(--color-border);
+  border-radius: 0.5rem;
+  color: var(--color-text);
+  font-size: 0.875rem;
+  cursor: pointer;
+  transition: background 0.2s, border-color 0.2s;
+
+  &:hover {
+    border-color: var(--color-primary);
+  }
+
+  &.other-month {
+    opacity: 0.35;
+  }
+
+  &.today {
+    border-color: var(--color-primary);
+    font-weight: 700;
+  }
+
+  &.has-session {
+    background: var(--color-primary-light, #ede9fe);
+    border-color: var(--color-primary);
+  }
+
+  &.selected {
+    background: var(--color-primary);
+    color: #fff;
+  }
+}
+
+.cell-dot {
+  width: 0.5rem;
+  height: 0.5rem;
+  border-radius: 50%;
+  background: var(--color-primary);
+  box-shadow: 0 0 0 3px rgba(124, 58, 237, 0.25);
+}
+
+.calendar-cell.selected .cell-dot {
+  background: #fff;
+  box-shadow: 0 0 0 3px rgba(255, 255, 255, 0.35);
+}
+
+.date-filter-banner {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 0.5rem;
+  background: var(--color-primary-light, #ede9fe);
+  border: 1px solid var(--color-primary);
+  color: var(--color-primary);
+  font-size: 0.875rem;
+  font-weight: 600;
+  padding: 0.5rem 0.75rem;
+  border-radius: 0.5rem;
+  margin-bottom: 1rem;
+}
+
 // ── PC レイアウト（768px 以上）────────────────────────────────────
 @media (min-width: 768px) {
   .page {
