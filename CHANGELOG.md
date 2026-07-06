@@ -1,3 +1,12 @@
+## [0.4.1](https://github.com/rmatsuo-jp/study-english/compare/v0.4.0...v0.4.1) (2026-07-06)
+
+
+### Bug Fixes
+
+* Geminiセーフティブロック応答を明確なエラーとして扱いフォールバックを中断 ([8c2f191](https://github.com/rmatsuo-jp/study-english/commit/8c2f191a0b509e362d3b3f1b1ab20d53f9c9840f))
+* Geminiレスポンスの JSON 抽出で貪欲マッチにより解析失敗するケースを修正 ([9966548](https://github.com/rmatsuo-jp/study-english/commit/9966548028f9b093e677840b365d0b5ce5548204))
+* localStorage容量超過時にセッション保存失敗を検知しユーザーへ通知 ([67c91ba](https://github.com/rmatsuo-jp/study-english/commit/67c91baf4f43adc47ffd082bbda4085edb70f994))
+
 # [0.4.0](https://github.com/rmatsuo-jp/study-english/compare/v0.3.0...v0.4.0) (2026-07-06)
 
 
