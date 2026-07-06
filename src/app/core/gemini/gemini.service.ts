@@ -5,6 +5,8 @@
  * レベルアップ全文(levelUpText)を分離して返す。
  * 定量評価は AI の3観点スコア＋errorDensity を受け取り、総合スコア・CEFR は evaluation.util で算出して補完する。
  * モデル優先順位配列（AppSettings.modelPriority）を先頭から順に試し、失敗したら次のモデルへフォールバックする。
+ * ただしセーフティフィルタによる入力ブロック（GeminiBlockedError）はモデル起因でないため、
+ * フォールバックせず即座にエラーとしてユーザーへ返す。
  * 成功した呼び出しは GEMINI_LOGGER トークン（core/logging）経由で記録する。実装は開発ビルド時のみ
  * features/dev の DevLogService が provide され、本番ビルドでは no-op（core→features の逆依存を持たない）。
  * レスポンス解析は utils/gemini-parse.util.ts に集約する。構造化JSON（<mistakes>等）は extractTaggedJson、
@@ -20,6 +22,18 @@ import { LevelUpItem, Mistake, ReviewItem, WritingEvaluation } from '@core/model
 import { buildEvaluation } from '@core/gemini/evaluation.util';
 import { extractTaggedJson, extractTaggedText, ParseFailureStage } from '@core/gemini/gemini-parse.util';
 import { GEMINI_LOGGER } from '@core/logging/gemini-log.token';
+
+// Gemini のセーフティフィルタで入力がブロックされた場合の専用エラー。
+// モデル起因の障害ではないため、correct() のモデルフォールバックを中断する判定に使う。
+export class GeminiBlockedError extends Error {
+  constructor(blockReason: string) {
+    super(
+      `入力内容が Gemini のコンテンツポリシーによりブロックされました（理由: ${blockReason}）。` +
+        '表現を変えて再度お試しください。'
+    );
+    this.name = 'GeminiBlockedError';
+  }
+}
 
 export interface CorrectionResult {
   corrected: string;
@@ -47,6 +61,9 @@ export class GeminiService {
       try {
         return await this.callApi(apiKey, model, prompt, userText);
       } catch (e) {
+        // セーフティブロックは入力起因でありモデルを替えても解消しないため、
+        // 残りのモデルへのフォールバックを中断して即座にユーザーへ伝える。
+        if (e instanceof GeminiBlockedError) throw e;
         lastError = e;
       }
     }
@@ -59,6 +76,11 @@ export class GeminiService {
 
     const fullPrompt = prompt.replace('{USER_TEXT}', userText);
     const result = await genModel.generateContent(fullPrompt);
+    // セーフティフィルタで入力がブロックされると text() が throw / 空文字を返し、
+    // 原因不明の「APIエラー」として扱われてしまうため、先に blockReason を確認して
+    // 明確な日本語メッセージの専用エラーに変換する。
+    const blockReason = result.response.promptFeedback?.blockReason;
+    if (blockReason) throw new GeminiBlockedError(String(blockReason));
     const text = result.response.text();
 
     const parseWarnings: string[] = [];
