@@ -1,16 +1,16 @@
 /**
- * @file ルートコンポーネント。アプリ起動時に StorageService から theme 設定を読み取り
+ * @file ルートコンポーネント。アプリ起動時に SettingsStoreService から theme 設定を読み取り
  * document ルートの data-theme 属性に反映する。
  * PracticeState.notice を購読し、どのタブにいても添削の処理中／完了／エラーを
  * グローバルバナーで表示する（タップで添削タブへ遷移）。
  * 初回起動時（consentAcceptedAt 未設定）は、英文がGemini APIへ送信される旨を伝える
- * 同意モーダルを表示し、「同意して続ける」で StorageService.acceptConsent() を呼ぶ。
+ * 同意モーダルを表示し、「同意して続ける」で SettingsStoreService.acceptConsent() を呼ぶ。
  */
 import { Component, inject, signal } from '@angular/core';
 import { Router, RouterOutlet, RouterLink, RouterLinkActive } from '@angular/router';
 import { environment } from '../environments/environment';
-import { StorageService } from './services/storage/storage.service';
-import { PracticeState } from './pages/practice/practice-state.service';
+import { SettingsStoreService } from '@core/settings/settings-store.service';
+import { PracticeState } from '@features/practice/practice-state.service';
 
 @Component({
   selector: 'app-root',
@@ -21,7 +21,7 @@ import { PracticeState } from './pages/practice/practice-state.service';
 export class App {
   protected practiceState = inject(PracticeState);
   private router = inject(Router);
-  private storage = inject(StorageService);
+  private settingsStore = inject(SettingsStoreService);
 
   // ── サイドバー（PCレイアウト時のみ）の格納状態。既定値 false = 表示中 ──
   protected sidebarCollapsed = signal(false);
@@ -30,15 +30,15 @@ export class App {
   protected isDev = !environment.production;
 
   // ── 初回同意モーダルの表示可否 ───────────────────────────────────
-  protected showConsent = signal(!this.storage.getSettings().consentAcceptedAt);
+  protected showConsent = signal(!this.settingsStore.getSettings().consentAcceptedAt);
 
   constructor() {
-    const theme = this.storage.getSettings().theme;
+    const theme = this.settingsStore.getSettings().theme;
     document.documentElement.dataset['theme'] = theme;
   }
 
   acceptConsent() {
-    this.storage.acceptConsent();
+    this.settingsStore.acceptConsent();
     this.showConsent.set(false);
   }
 
