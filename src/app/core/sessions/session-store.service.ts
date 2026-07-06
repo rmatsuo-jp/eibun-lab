@@ -4,6 +4,7 @@
  * このサービスの signal を読み書きすることで担当し、ここではクラウドの存在を意識しない。
  * _sessions は tombstone（deleted=true）も含む全件の源泉。localStorage / Firestore と一致する。
  * 公開の sessions は削除済みを除外したビューで、表示・集計はすべてこちらを基準にする。
+ * localStorage への書き込み失敗（容量超過等）は persist() で検知し、alert でユーザーに通知する。
  */
 import { computed, Injectable, signal } from '@angular/core';
 import { CorrectionSession } from '@core/models/session.model';
@@ -26,7 +27,14 @@ export class SessionStoreService {
   }
 
   persist(sessions: CorrectionSession[]): void {
-    writeJson(SESSIONS_KEY, sessions);
+    // 書き込み失敗（localStorage 容量超過等）はユーザーに即通知する。signal は更新するため
+    // 画面上は保存されたように見えるが、リロードで消えることを伝えてエクスポートを促す。
+    if (!writeJson(SESSIONS_KEY, sessions)) {
+      alert(
+        'ブラウザの保存容量が上限に達したため、セッションを保存できませんでした。\n' +
+          '履歴ページから古いセッションを削除するか、エクスポートでバックアップしてください。'
+      );
+    }
     this._sessions.set(sessions);
   }
 
