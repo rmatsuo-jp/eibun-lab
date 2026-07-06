@@ -7,6 +7,33 @@
 
 export type ParseFailureStage = 'no-tag' | 'json-parse' | 'validation';
 
+// ── 最初のバランスした JSON オブジェクトの切り出し ─────────────────────
+// 正規表現 /\{[\s\S]*\}/ は「最初の { から最後の } まで」を貪欲にマッチするため、
+// タグ内に説明文と複数の {...} が混在すると不正な文字列を返してしまう。
+// ここではブレース深度を数え、最初の { に対応する閉じ } までを正確に切り出す。
+// JSON 文字列リテラル内の {} や \" エスケープは深度に数えない。
+function extractFirstJsonObject(text: string): string | undefined {
+  const start = text.indexOf('{');
+  if (start === -1) return undefined;
+  let depth = 0;
+  let inString = false;
+  for (let i = start; i < text.length; i++) {
+    const ch = text[i];
+    if (inString) {
+      if (ch === '\\') i++; // エスケープ文字は次の1文字ごと読み飛ばす
+      else if (ch === '"') inString = false;
+    } else if (ch === '"') {
+      inString = true;
+    } else if (ch === '{') {
+      depth++;
+    } else if (ch === '}') {
+      depth--;
+      if (depth === 0) return text.slice(start, i + 1);
+    }
+  }
+  return undefined; // 閉じ括弧が見つからない（不完全なJSON）
+}
+
 // ── タグ抽出＋JSON検証の共通処理 ────────────────────────────────────
 export function extractTaggedJson<T>(
   text: string,
@@ -20,17 +47,17 @@ export function extractTaggedJson<T>(
     return undefined;
   }
 
-  // コードフェンス等が混じっても最初の {...} ブロックだけを取り出す（軽い正規化）
+  // コードフェンス等が混じっても最初のバランスした {...} ブロックだけを取り出す（軽い正規化）
   const cleaned = match[1].replace(/```[a-z]*/gi, '').trim();
-  const objMatch = cleaned.match(/\{[\s\S]*\}/);
-  if (!objMatch) {
+  const objText = extractFirstJsonObject(cleaned);
+  if (!objText) {
     onError?.('json-parse', `<${tag}> 内に JSON オブジェクトが見つかりません`);
     return undefined;
   }
 
   let json: unknown;
   try {
-    json = JSON.parse(objMatch[0]);
+    json = JSON.parse(objText);
   } catch (e) {
     onError?.('json-parse', e);
     return undefined;
