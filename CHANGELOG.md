@@ -1,3 +1,13 @@
+## [0.4.2](https://github.com/rmatsuo-jp/study-english/compare/v0.4.1...v0.4.2) (2026-07-07)
+
+
+### Bug Fixes
+
+* CEFRフォールバック帯域をプロンプトの採点基準と整合させる ([18301ee](https://github.com/rmatsuo-jp/study-english/commit/18301ee088bfa1fc63aa3c5b78d70ae43eb76ce5))
+* Firestore同期のundefined除外リストに correctedText/levelUpText/deleted を追加 ([2a0fae6](https://github.com/rmatsuo-jp/study-english/commit/2a0fae648a8822d0c020d38c01ec3c69a4c93e28))
+* Gemini APIキーを平文保存からWeb Crypto(AES-GCM)暗号化保存へ移行 ([e0d1eef](https://github.com/rmatsuo-jp/study-english/commit/e0d1eef3c536c124f4f34bd385d588a16d699373))
+* 別タブでのセッション変更が現タブに反映されず上書き消失し得る問題を修正 ([059457b](https://github.com/rmatsuo-jp/study-english/commit/059457b670d992461199b65530cc764e650cd88c))
+
 ## [0.4.1](https://github.com/rmatsuo-jp/study-english/compare/v0.4.0...v0.4.1) (2026-07-06)
 
 
