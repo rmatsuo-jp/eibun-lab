@@ -4,6 +4,8 @@
  * initializeAppUpdates() を APP_INITIALIZER として登録し、新バージョンの Service Worker が
  * インストールされたら自動でアクティベート＋リロードして、GitHub Pages 上での旧バージョン
  * キャッシュ残存問題を解消する。
+ * SettingsStoreService.init() も APP_INITIALIZER として登録し、暗号化保存された APIキーの復号を
+ * アプリ起動前に完了させる（getSettings() が同期APIのため）。
  * また GEMINI_LOGGER トークンに開発ビルド時のみ DevLogService を provide し、core→features の
  * 直接依存なしに Gemini 送受信ログを記録できるようにする。
  */
@@ -21,6 +23,7 @@ import { routes } from './app.routes';
 import { provideServiceWorker, SwUpdate } from '@angular/service-worker';
 import { environment } from '../environments/environment';
 import { GEMINI_LOGGER } from '@core/logging/gemini-log.token';
+import { SettingsStoreService } from '@core/settings/settings-store.service';
 import { DevLogService } from '@features/dev/dev-log.service';
 
 // ── Service Worker 更新監視: 新バージョン検知時に即座にアクティベートしてリロードする ──
@@ -52,6 +55,16 @@ export const appConfig: ApplicationConfig = {
       registrationStrategy: 'registerWhenStable:30000',
     }),
     { provide: APP_INITIALIZER, useFactory: initializeAppUpdates, multi: true },
+    // ── APIキーの復号初期化: 暗号化保存された apiKeyEnc を起動時に復号してメモリへ載せる ──
+    // getSettings() は同期APIのため、復号（非同期）をアプリ起動前に完了させておく必要がある。
+    {
+      provide: APP_INITIALIZER,
+      useFactory: () => {
+        const settings = inject(SettingsStoreService);
+        return () => settings.init();
+      },
+      multi: true,
+    },
     // ── Gemini 送受信ログ: 開発ビルドのみ DevLogService を紐付ける（本番は no-op デフォルト） ──
     // /dev ルートと同じ environment.production 分岐なので、本番バンドルからは tree-shaking で除外される。
     ...(environment.production
