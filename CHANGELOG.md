@@ -1,3 +1,10 @@
+## [0.5.1](https://github.com/rmatsuo-jp/study-english/compare/v0.5.0...v0.5.1) (2026-07-07)
+
+
+### Bug Fixes
+
+* クラウド同期を許可ユーザーのみのホワイトリスト制に変更 ([6d4cdab](https://github.com/rmatsuo-jp/study-english/commit/6d4cdab1d854cddc52e813e86473a1d184ff764e))
+
 # [0.5.0](https://github.com/rmatsuo-jp/study-english/compare/v0.4.2...v0.5.0) (2026-07-07)
 
 
