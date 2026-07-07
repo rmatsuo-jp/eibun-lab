@@ -13,11 +13,11 @@
  *               正解するたびに隠れる単語が増え、全単語が隠れた状態で正解すると習熟済みとして記録する。
  *               不正解時は単語単位の diff で「タイポ（見えている単語のミス）」か「理解度不足（隠れている単語の
  *               ミス）」かを判別し、タイポなら maskLevel 据え置き、理解度不足なら1段階引き下げる。
- *               日付ごとの進捗（各文の maskLevel/完了状態）は DrillProgressService.setLevelUpItemProgress で
- *               セッションID単位に永続化し、日付選択画面で再開・完了確認ができる。
+ *               日付ごとの進捗（各文の maskLevel/完了状態）は DrillProgressSyncService.setLevelUpItemProgress で
+ *               セッションID単位に永続化（ログイン中は Firestore にも同期）し、日付選択画面で再開・完了確認ができる。
  * 回答後に正解・解説を表示し、自動採点＋自己判定で最終スコアを集計する。
  * 出題順は完全ランダムではなく、頻度（ミスの出現回数）と習熟度（正解ストリーク）で重み付けし、
- * 頻出かつ未習熟の問題ほど手前に出やすくする。回答結果は DrillProgressService.recordDrillResult で永続化し、
+ * 頻出かつ未習熟の問題ほど手前に出やすくする。回答結果は DrillProgressSyncService.recordDrillResult で永続化し、
  * 習熟済み（DRILL_MASTERY_STREAK 以上）の問題は次回以降の出題重みを下げる。
  * 答え合わせ後（revealed→true）は #nextBtn（levelup/mistakes・cloze で共用のテンプレート参照名）へ
  * 自動フォーカスし、Enterキーだけで次の問題に進めるようにしている。
@@ -37,7 +37,8 @@ import { DatePipe } from '@angular/common';
 import { FormsModule } from '@angular/forms';
 import { SessionRepositoryService } from '@core/sessions/session-repository.service';
 import { getFrequentMistakes, getReviewItems, getSessionsWithLevelUp, normalizeDrillKey } from '@core/stats/session-stats.util';
-import { DRILL_MASTERY_STREAK, DrillProgressService } from './drill-progress.service';
+import { DRILL_MASTERY_STREAK } from './drill-progress.service';
+import { DrillProgressSyncService } from './drill-progress-sync.service';
 import { CorrectionSession, Mistake, ReviewItem } from '@core/models/session.model';
 import {
   buildClozeQuiz,
@@ -63,7 +64,7 @@ type Mode = 'mistakes' | 'cloze' | 'levelup';
 })
 export class Drill {
   private repository = inject(SessionRepositoryService);
-  private drillProgress = inject(DrillProgressService);
+  private drillProgress = inject(DrillProgressSyncService);
 
   // 答え合わせ後に表示される「次へ」ボタン（levelup/mistakes・cloze どちらか一方のみ描画される）。
   // revealed() が true になった直後に自動フォーカスし、Enterキーだけで次の問題へ進めるようにする。

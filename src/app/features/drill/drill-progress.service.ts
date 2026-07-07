@@ -4,6 +4,8 @@
  * 各問題の正誤履歴は drillProgress signal（DRILL_PROGRESS_KEY）で正解ストリークとして永続化する。
  * レベルアップ・タイピングのマスク段階進捗は levelUpProgress signal（LEVELUP_PROGRESS_KEY）で
  * セッションID単位に永続化し、日付選択画面での再開・完了表示に使う。
+ * クラウド同期は行わない（ローカル専任）。DrillProgressSyncService が allDrillProgress() /
+ * allLevelUpProgress() / persist() 経由でこのサービスを読み書きし、Firestore との同期を担う。
  */
 import { Injectable, signal } from '@angular/core';
 import { DrillProgress, LevelUpItemProgress } from '@core/models/session.model';
@@ -29,6 +31,24 @@ export class DrillProgressService {
 
   getDrillProgress(key: string): DrillProgress | undefined {
     return this.drillProgress()[normalizeDrillKey(key)];
+  }
+
+  // 現在の習熟度全件を返す（DrillProgressSyncService がクラウドへの push / マージ元として使用）。
+  allDrillProgress(): Record<string, DrillProgress> {
+    return this.drillProgress();
+  }
+
+  // 現在のレベルアップ進捗全件を返す（同上）。
+  allLevelUpProgress(): Record<string, Record<string, LevelUpItemProgress>> {
+    return this.levelUpProgress();
+  }
+
+  // クラウドとマージ済みの状態をローカルへ書き戻す（DrillProgressSyncService.syncFromCloud から使用）。
+  persist(drillProgress: Record<string, DrillProgress>, levelUpProgress: Record<string, Record<string, LevelUpItemProgress>>): void {
+    writeJson(DRILL_PROGRESS_KEY, drillProgress);
+    this.drillProgress.set(drillProgress);
+    writeJson(LEVELUP_PROGRESS_KEY, levelUpProgress);
+    this.levelUpProgress.set(levelUpProgress);
   }
 
   // 正解なら連続正解数を+1、不正解なら0にリセットして保存する。
