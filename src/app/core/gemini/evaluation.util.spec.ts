@@ -1,13 +1,16 @@
 import { scoreToCefr, computeOverallScore, buildEvaluation } from './evaluation.util';
 
 describe('scoreToCefr', () => {
-  it('各帯域の境界値を正しいCEFRに対応させる', () => {
-    expect(scoreToCefr(10)).toBe('C2');
-    expect(scoreToCefr(9.0)).toBe('C2');
-    expect(scoreToCefr(8.5)).toBe('C1');
-    expect(scoreToCefr(8.0)).toBe('C1');
-    expect(scoreToCefr(6.5)).toBe('B2');
+  it('各帯域の境界値を正しいCEFRに対応させる（プロンプトの採点基準と整合）', () => {
+    // フォールバックでは C2 を出さない（C2 は AI の実判定のみ）
+    expect(scoreToCefr(10)).toBe('C1');
+    expect(scoreToCefr(9.0)).toBe('C1');
+    expect(scoreToCefr(8.5)).toBe('B2'); // プロンプトの [8-7]=B2 に整合
+    expect(scoreToCefr(8.0)).toBe('B2');
+    expect(scoreToCefr(7.0)).toBe('B2');
+    expect(scoreToCefr(6.5)).toBe('B1'); // プロンプトの [6-5]=B1 に整合
     expect(scoreToCefr(5.0)).toBe('B1');
+    expect(scoreToCefr(4.9)).toBe('A2');
     expect(scoreToCefr(3.5)).toBe('A2');
     expect(scoreToCefr(3.0)).toBe('A1');
     expect(scoreToCefr(0)).toBe('A1');

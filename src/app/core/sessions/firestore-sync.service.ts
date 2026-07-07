@@ -16,6 +16,18 @@ import { AuthService } from '../firebase/auth.service';
 import { firestore } from '../firebase/firebase.init';
 import { SessionStoreService } from './session-store.service';
 
+// CorrectionSession の任意（optional）フィールド一覧。Firestore は undefined を受け付けないため、
+// toDocData() で undefined のフィールドを除外するのに使う。
+// ⚠ session.model.ts の CorrectionSession に optional フィールドを追加したら、必ずここにも追加すること。
+const OPTIONAL_FIELDS: (keyof CorrectionSession)[] = [
+  'correctedText',
+  'evaluation',
+  'reviewItems',
+  'levelUpItems',
+  'levelUpText',
+  'deleted',
+];
+
 @Injectable({ providedIn: 'root' })
 export class FirestoreSyncService {
   private auth = inject(AuthService);
@@ -45,10 +57,9 @@ export class FirestoreSyncService {
     return collection(firestore, 'apps', 'study_english', 'users', uid, 'sessions');
   }
 
-  // Firestore は undefined を受け付けないため、値が undefined の任意フィールド（evaluation / reviewItems / levelUpItems）を
-  // フィールドごと除外する。任意フィールドが増えても OPTIONAL_FIELDS に足すだけで対応できる。
+  // Firestore は undefined を受け付けないため、値が undefined の任意フィールドをフィールドごと除外する。
+  // 任意フィールドが増えてもモジュール先頭の OPTIONAL_FIELDS に足すだけで対応できる。
   private toDocData(session: CorrectionSession): Record<string, unknown> {
-    const OPTIONAL_FIELDS: (keyof CorrectionSession)[] = ['evaluation', 'reviewItems', 'levelUpItems'];
     const data: Record<string, unknown> = { ...session };
     for (const field of OPTIONAL_FIELDS) {
       if (data[field] === undefined) delete data[field];

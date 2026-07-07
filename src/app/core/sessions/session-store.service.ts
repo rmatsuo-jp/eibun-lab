@@ -5,6 +5,7 @@
  * _sessions は tombstone（deleted=true）も含む全件の源泉。localStorage / Firestore と一致する。
  * 公開の sessions は削除済みを除外したビューで、表示・集計はすべてこちらを基準にする。
  * localStorage への書き込み失敗（容量超過等）は persist() で検知し、alert でユーザーに通知する。
+ * 別タブによる localStorage 変更は storage イベントで検知し、_sessions を再読込して追随する。
  */
 import { computed, Injectable, signal } from '@angular/core';
 import { CorrectionSession } from '@core/models/session.model';
@@ -21,6 +22,18 @@ export class SessionStoreService {
 
   // tombstone を含む全件（Firestore同期がローカル/クラウドの突き合わせに使う）。
   readonly allSessions = this._sessions;
+
+  constructor() {
+    // 別タブが localStorage を書き換えても現タブの signal は古いままなので、
+    // storage イベント（仕様上「他タブの変更時のみ」発火する）で再読込して追随する。
+    // これをしないと、現タブの次回 persist() が別タブの保存・削除を古い配列で上書きして消してしまう。
+    // リスナー内は signal の再読込のみで、Firestore push 等の副作用は起こさない（タブ間の連鎖を防ぐ）。
+    window.addEventListener('storage', (event) => {
+      if (event.key === SESSIONS_KEY) {
+        this._sessions.set(this.loadFromStorage());
+      }
+    });
+  }
 
   private loadFromStorage(): CorrectionSession[] {
     return readJson<CorrectionSession[]>(SESSIONS_KEY, []);
