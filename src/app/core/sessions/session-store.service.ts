@@ -15,6 +15,7 @@ const SESSIONS_KEY = 'correction_sessions';
 
 @Injectable({ providedIn: 'root' })
 export class SessionStoreService {
+  // ── 状態管理（signal） ─────────────────────────────────────────
   // _sessions は tombstone（deleted=true）も含む全件の源泉。localStorage / Firestore と一致する。
   private _sessions = signal<CorrectionSession[]>(this.loadFromStorage());
   // 公開ビューは削除済みを除外。表示・集計はすべてこちらを基準にする。
@@ -35,10 +36,12 @@ export class SessionStoreService {
     });
   }
 
+  // ── 読み込み ───────────────────────────────────────────────────
   private loadFromStorage(): CorrectionSession[] {
     return readJson<CorrectionSession[]>(SESSIONS_KEY, []);
   }
 
+  // ── 書き込み系（保存・論理削除） ───────────────────────────────
   persist(sessions: CorrectionSession[]): void {
     // 書き込み失敗（localStorage 容量超過等）はユーザーに即通知する。signal は更新するため
     // 画面上は保存されたように見えるが、リロードで消えることを伝えてエクスポートを促す。
@@ -64,6 +67,7 @@ export class SessionStoreService {
     this.persist(updated);
   }
 
+  // ── インポート/エクスポート ────────────────────────────────────
   importSessions(incoming: CorrectionSession[]): CorrectionSession[] {
     const existing = this._sessions();
     const existingIds = new Set(existing.map(s => s.id));
