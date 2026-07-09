@@ -4,9 +4,11 @@
  * mistakes JSON・定量評価(WritingEvaluation)・復習カード・レベルアップ例文（LevelUpItem、構造化JSON）・
  * レベルアップ全文(levelUpText)を分離して返す。
  * 定量評価は AI の3観点スコア＋errorDensity を受け取り、総合スコア・CEFR は evaluation.util で算出して補完する。
+ * API 呼び出しは generateContentStream() によるストリーミング受信で行い、受信途中の進捗率を
+ * onProgress コールバックへ通知する（算出は stream-progress.util.ts）。解析自体は全文が揃ってから従来どおり行う。
  * モデル優先順位配列（AppSettings.modelPriority）を先頭から順に試し、失敗したら次のモデルへフォールバックする。
- * ただしセーフティフィルタによる入力ブロック（GeminiBlockedError）はモデル起因でないため、
- * フォールバックせず即座にエラーとしてユーザーへ返す。
+ * ただしセーフティフィルタによる入力ブロック（GeminiBlockedError、定義は gemini-blocked.error.ts）は
+ * モデル起因でないため、フォールバックせず即座にエラーとしてユーザーへ返す。
  * 成功した呼び出しは GEMINI_LOGGER トークン（core/logging）経由で記録する。実装は開発ビルド時のみ
  * features/dev の DevLogService が provide され、本番ビルドでは no-op（core→features の逆依存を持たない）。
  * レスポンス解析は utils/gemini-parse.util.ts に集約する。構造化JSON（<mistakes>等）は extractTaggedJson、
@@ -17,23 +19,13 @@
  * 別コンポーネントで既に表示済みで、見出しだけが添削解説に空で残るのを防ぐため。
  */
 import { Injectable, inject } from '@angular/core';
-import { GoogleGenerativeAI } from '@google/generative-ai';
+import { EnhancedGenerateContentResponse, GoogleGenerativeAI } from '@google/generative-ai';
 import { LevelUpItem, Mistake, ReviewItem, WritingEvaluation } from '@core/models/session.model';
 import { buildEvaluation } from '@core/gemini/evaluation.util';
 import { extractTaggedJson, extractTaggedText, ParseFailureStage } from '@core/gemini/gemini-parse.util';
 import { GEMINI_LOGGER } from '@core/logging/gemini-log.token';
-
-// Gemini のセーフティフィルタで入力がブロックされた場合の専用エラー。
-// モデル起因の障害ではないため、correct() のモデルフォールバックを中断する判定に使う。
-export class GeminiBlockedError extends Error {
-  constructor(blockReason: string) {
-    super(
-      `入力内容が Gemini のコンテンツポリシーによりブロックされました（理由: ${blockReason}）。` +
-        '表現を変えて再度お試しください。'
-    );
-    this.name = 'GeminiBlockedError';
-  }
-}
+import { computeProgress, getExpectedTotalChars, recordResponseLength } from '@core/gemini/stream-progress.util';
+import { GeminiBlockedError } from '@core/gemini/gemini-blocked.error';
 
 export interface CorrectionResult {
   corrected: string;
@@ -50,16 +42,19 @@ export class GeminiService {
   private logger = inject(GEMINI_LOGGER);
 
   // ── API 呼び出し（modelPriority を先頭から順に試し、失敗したら次のモデルへフォールバック） ─
+  // onProgress は受信途中の進捗率（0〜95）を随時通知する任意コールバック。
+  // モデルをフォールバックすると進捗は巻き戻るため、単調増加の担保は呼び出し側の責務とする。
   async correct(
     apiKey: string,
     modelPriority: string[],
     prompt: string,
-    userText: string
+    userText: string,
+    onProgress?: (percent: number) => void
   ): Promise<CorrectionResult> {
     let lastError: unknown;
     for (const model of modelPriority) {
       try {
-        return await this.callApi(apiKey, model, prompt, userText);
+        return await this.callApi(apiKey, model, prompt, userText, onProgress);
       } catch (e) {
         // セーフティブロックは入力起因でありモデルを替えても解消しないため、
         // 残りのモデルへのフォールバックを中断して即座にユーザーへ伝える。
@@ -70,18 +65,52 @@ export class GeminiService {
     throw lastError;
   }
 
-  private async callApi(apiKey: string, model: string, prompt: string, userText: string): Promise<CorrectionResult> {
+  private async callApi(
+    apiKey: string,
+    model: string,
+    prompt: string,
+    userText: string,
+    onProgress?: (percent: number) => void
+  ): Promise<CorrectionResult> {
     const genAI = new GoogleGenerativeAI(apiKey);
     const genModel = genAI.getGenerativeModel({ model });
 
     const fullPrompt = prompt.replace('{USER_TEXT}', userText);
-    const result = await genModel.generateContent(fullPrompt);
+    // ストリーミングで受信するのは進捗表示のためだけで、解析は従来どおり全文が揃ってから行う。
+    const result = await genModel.generateContentStream(fullPrompt);
+
+    const expectedChars = getExpectedTotalChars();
+    let text = '';
+    let streamError: unknown;
+    try {
+      for await (const chunk of result.stream) {
+        text += chunk.text();
+        onProgress?.(computeProgress(text, expectedChars));
+      }
+    } catch (e) {
+      // セーフティブロック時は chunk.text() が throw し得る。blockReason を確認するまで再送出を保留する。
+      streamError = e;
+    }
+
     // セーフティフィルタで入力がブロックされると text() が throw / 空文字を返し、
     // 原因不明の「APIエラー」として扱われてしまうため、先に blockReason を確認して
     // 明確な日本語メッセージの専用エラーに変換する。
-    const blockReason = result.response.promptFeedback?.blockReason;
+    // ブロック時は result.response の Promise 自体が reject することもあるため、
+    // 例外オブジェクトに載る promptFeedback も同様に確認する。
+    let response: EnhancedGenerateContentResponse;
+    try {
+      response = await result.response;
+    } catch (e) {
+      const reason = (e as { response?: { promptFeedback?: { blockReason?: string } } })?.response
+        ?.promptFeedback?.blockReason;
+      if (reason) throw new GeminiBlockedError(String(reason));
+      throw e;
+    }
+    const blockReason = response.promptFeedback?.blockReason;
     if (blockReason) throw new GeminiBlockedError(String(blockReason));
-    const text = result.response.text();
+    if (streamError) throw streamError;
+
+    recordResponseLength(text.length);
 
     const parseWarnings: string[] = [];
     const warn = (tag: string) => (stage: ParseFailureStage, detail: unknown) => {
