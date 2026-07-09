@@ -1,3 +1,10 @@
+## [0.5.2](https://github.com/rmatsuo-jp/study-english/compare/v0.5.1...v0.5.2) (2026-07-09)
+
+
+### Bug Fixes
+
+* SW更新監視のinject呼び出しをinjection context内へ修正 ([9831527](https://github.com/rmatsuo-jp/study-english/commit/9831527904f7dddb42b1b72c843a93e45cc96912))
+
 ## [0.5.1](https://github.com/rmatsuo-jp/study-english/compare/v0.5.0...v0.5.1) (2026-07-07)
 
 
