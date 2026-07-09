@@ -55,11 +55,14 @@ src/
     │   ├── settings/
     │   │   └── settings-store.service.ts      # APIキー・モデル優先順位・テーマ（AppSettings の正）
     │   ├── gemini/                  # Gemini API 連携（クライアント + 関連純粋関数）
-    │   │   ├── gemini.service.ts    # API 呼び出し・フォールバック・レスポンス解析
+    │   │   ├── gemini.service.ts    # API 呼び出し（ストリーミング）・フォールバック・レスポンス解析
     │   │   ├── gemini-models.constants.ts     # モデル一覧・デフォルト優先順位
     │   │   ├── prompt.util.ts       # buildPrompt() プロンプト動的生成
     │   │   ├── gemini-parse.util.ts # Geminiレスポンスのタグ抽出＋JSON検証
+    │   │   ├── stream-progress.util.ts # ストリーミング受信中の進捗率算出（純粋関数）
     │   │   └── evaluation.util.ts   # 総合スコア・CEFR算出
+    │   ├── quiz/
+    │   │   └── quiz.util.ts         # 出題ロジックの純粋関数（drill と practice の待機中クイズが共用）
     │   ├── logging/
     │   │   └── gemini-log.token.ts  # GEMINI_LOGGER InjectionToken（依存逆転。デフォルトno-op）
     │   └── stats/
@@ -72,8 +75,8 @@ src/
     │       ├── local-storage.util.ts # 型安全な localStorage 読み書き
     │       └── crypto.util.ts       # APIキー暗号化（Web Crypto AES-GCM、非抽出鍵を IndexedDB に保持）
     └── features/                    # 拡張機能（遅延ロード）。1フォルダ=1機能、専用service/utilは同居
-        ├── practice/                # 英文入力・添削（practice-state.service, bulk-import.util 同居）
-        ├── drill/                   # 弱点克服ドリル（drill-quiz.util, drill-progress.service, drill-progress-sync.service 同居）
+        ├── practice/                # 英文入力・添削（practice-state.service, bulk-import.util, waiting-quiz/ 同居）
+        ├── drill/                   # 弱点克服ドリル（drill-progress.service, drill-progress-sync.service 同居）
         ├── history/                 # 過去セッション一覧・検索・インポート/エクスポート
         ├── mistakes/                # 学習統計・ミス傾向・スコア/CEFR推移ダッシュボード
         ├── settings/                # API キー・モデル・テーマ設定（settings.guard 同居）
@@ -186,6 +189,8 @@ npm run build    # 本番ビルド（dist/ へ出力、Service Worker 有効）
 npm test         # Vitest 実行
 npm run watch    # 開発構成でビルド監視
 npm run deploy   # GitHub Pages へデプロイ
+npm run lint:text      # 用語の表記ゆれチェック（textlint + prh）
+npm run lint:text:fix  # 表記ゆれを正表記へ自動置換
 ```
 
 ---
@@ -246,3 +251,19 @@ npm run deploy   # GitHub Pages へデプロイ
 
 <!-- ── セクション名 ─────────────────────────────────────────────── -->
 ```
+
+---
+
+## 用語ルール（エージェント向け）
+
+> **日本語の用語は `docs/glossary.md` を唯一の正典とする。**
+
+- UI 文言・Gemini プロンプト・ドキュメントを追加/変更したら `npm run lint:text` を実行する。
+- **新しいドメイン用語を導入したら `docs/glossary.md` と `prh.yml` の両方に追記すること。**
+  片方だけだと、正典と機械チェックが乖離して仕組みが形骸化する。
+- チェック対象は `docs/` 配下の Markdown、`README.md`、`src/app/core/gemini/prompt.util.ts` のみ。
+  `prompt.util.ts` は Gemini の出力語彙を直接規定するため、ソースコードで唯一の対象に含めている。
+- 意図的に禁止語を書く必要がある箇所（用語集の表など）は
+  `<!-- textlint-disable -->` 〜 `<!-- textlint-enable -->` で囲む。
+- 「ミス」への統一は **UI ラベル・見出しのみ**。散文中の「誤り」「間違いやすい」「押し間違い」は
+  自然な日本語なので禁止しない（`prh.yml` にも裸の「間違い」「誤り」は登録していない）。

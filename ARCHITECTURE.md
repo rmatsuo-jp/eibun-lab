@@ -17,8 +17,8 @@ features/ ──▶ core/ ──▶ shared/
 ```mermaid
 graph TD
     subgraph Features["features/（遅延ロード。1フォルダ = 1拡張機能）"]
-        Practice["practice\n英文入力・添削\n(+ practice-state.service\n+ bulk-import.util)"]
-        Drill["drill\n弱点克服ドリル\n(+ drill-quiz.util\n+ drill-progress.service)"]
+        Practice["practice\n英文入力・添削\n(+ practice-state.service\n+ bulk-import.util\n+ waiting-quiz)"]
+        Drill["drill\n弱点克服ドリル\n(+ drill-progress.service)"]
         History["history\n履歴・検索・入出力"]
         Mistakes["mistakes\n統計ダッシュボード"]
         Settings["settings\nAPIキー・テーマ\n(+ settings.guard)"]
@@ -29,7 +29,8 @@ graph TD
         Models["models\nドメイン型定義"]
         Sessions["sessions\nSessionRepositoryService\n（ローカル+クラウド永続化）"]
         SettingsStore["settings\nSettingsStoreService"]
-        Gemini["gemini\nGeminiService\n+ prompt/parse/evaluation util"]
+        Gemini["gemini\nGeminiService\n+ prompt/parse/evaluation\n/stream-progress util"]
+        Quiz["quiz\nquiz.util（出題ロジック純粋関数。\ndrill と practice の待機中クイズが共用）"]
         Stats["stats\nsession-stats.util（純粋関数）"]
         Firebase["firebase\nAuthService / firebase.init"]
         Logging["logging\nGEMINI_LOGGER トークン"]
