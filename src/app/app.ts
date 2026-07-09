@@ -3,8 +3,9 @@
  * document ルートの data-theme 属性に反映する。
  * PracticeState.notice を購読し、どのタブにいても添削の処理中／完了／エラーを
  * グローバルバナーで表示する（タップで添削タブへ遷移）。
- * 初回起動時（consentAcceptedAt 未設定）は、英文がGemini APIへ送信される旨を伝える
- * 同意モーダルを表示し、「同意して続ける」で SettingsStoreService.acceptConsent() を呼ぶ。
+ * 初回起動時、および同意文言が改訂された場合（SettingsStoreService.needsConsent()）は、
+ * 英文がGemini APIへ送信される旨・API利用料金が利用者負担である旨を伝える同意モーダルを表示し、
+ * 「同意して続ける」で SettingsStoreService.acceptConsent() を呼ぶ。
  */
 import { Component, inject, signal } from '@angular/core';
 import { Router, RouterOutlet, RouterLink, RouterLinkActive } from '@angular/router';
@@ -29,8 +30,8 @@ export class App {
   // ── 開発用ナビ項目の表示可否（本番ビルドでは /dev ルート自体が存在しないため非表示にする） ─
   protected isDev = !environment.production;
 
-  // ── 初回同意モーダルの表示可否 ───────────────────────────────────
-  protected showConsent = signal(!this.settingsStore.getSettings().consentAcceptedAt);
+  // ── 同意モーダルの表示可否（初回起動時、または同意文言が改訂された場合に表示） ──
+  protected showConsent = signal(this.settingsStore.needsConsent());
 
   constructor() {
     const theme = this.settingsStore.getSettings().theme;

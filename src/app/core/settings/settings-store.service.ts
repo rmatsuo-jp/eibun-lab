@@ -7,13 +7,22 @@
  * provideAppInitializer が init() を await し、起動後は getSettings() が同期でメモリ内の平文を返す。
  * 旧形式の平文 apiKey が残っている場合は init() で暗号化保存に移行する。
  * Web Crypto / IndexedDB 非対応環境では従来どおり平文保存にフォールバックする。
+ * APIキーが設定済みかは hasApiKey signal で公開し、利用側（practice等）が購読して未設定時の誘導を出せるようにする。
+ * 利用同意は consentAcceptedAt（日時）と consentVersion（同意した文言の版）の対で持つ。
+ * 同意文言に実質的な変更（例: API 利用料金の負担条項の追加）を加えたら CONSENT_VERSION を上げること。
+ * 既存ユーザーにも同意モーダルが再表示され、新しい文言への同意を取り直せる（判定は app.ts）。
  */
-import { Injectable } from '@angular/core';
+import { Injectable, signal } from '@angular/core';
 import { DEFAULT_MODEL_PRIORITY } from '../gemini/gemini-models.constants';
 import { readJson, writeJson } from '@shared/utils/local-storage.util';
 import { decryptText, encryptText, getOrCreateAesKey, isCryptoSupported } from '@shared/utils/crypto.util';
 
 const SETTINGS_KEY = 'app_settings';
+
+// ── 同意文言のバージョン ──────────────────────────────────────────
+// 1: 初版（Gemini API への送信・Firebase 保存の告知のみ）
+// 2: API 利用料金の負担が利用者に帰属する旨を追記
+export const CONSENT_VERSION = 2;
 
 // ── 設定型・デフォルト値 ──────────────────────────────────────────
 export interface AppSettings {
@@ -21,6 +30,7 @@ export interface AppSettings {
   modelPriority: string[]; // API送信の試行順（先頭が最優先、失敗したら次のモデルへフォールバック）
   theme: 'light' | 'dark';
   consentAcceptedAt?: string; // プライバシーポリシー・利用規約への同意日時（ISO 8601）。未同意なら undefined。
+  consentVersion?: number;    // 同意した文言のバージョン。未設定（旧データ）は 1 とみなす。
 }
 
 // localStorage 上の保存形式。apiKey（平文・旧形式）と apiKeyEnc（暗号文・新形式）の両方を持ち得る。
@@ -37,6 +47,11 @@ export class SettingsStoreService {
   // 復号済みAPIキーのメモリ内キャッシュ。init() 完了後は常に最新（saveSettings でも更新）。
   private apiKeyCache = '';
 
+  // APIキーが設定済みか。apiKeyCache と常に同期させ、テンプレートから購読できるようにする。
+  // getSettings() は同期メソッドで signal 依存を持たないため、これが無いと
+  // 「設定ページで保存 → 添削ページの誘導が消える」という再描画が起きない。
+  readonly hasApiKey = signal(false);
+
   // アプリ起動時（provideAppInitializer）に1回だけ呼ばれる。
   // 1. 旧形式の平文 apiKey が残っていれば暗号化保存へ移行して平文を除去する。
   // 2. 暗号文 apiKeyEnc があれば復号してメモリにキャッシュする。
@@ -45,6 +60,7 @@ export class SettingsStoreService {
     const stored = readJson<StoredSettings>(SETTINGS_KEY, {});
     if (!isCryptoSupported()) {
       this.apiKeyCache = stored.apiKey ?? '';
+      this.hasApiKey.set(!!this.apiKeyCache);
       return;
     }
     try {
@@ -60,6 +76,7 @@ export class SettingsStoreService {
       console.error('[SettingsStoreService] APIキーの復号に失敗しました（再入力が必要です）:', e);
       this.apiKeyCache = '';
     }
+    this.hasApiKey.set(!!this.apiKeyCache);
   }
 
   // 旧バージョン（単一モデル文字列 `model` を持つ設定）からの移行にも対応する:
@@ -80,6 +97,7 @@ export class SettingsStoreService {
   // メモリキャッシュは即時更新するので、直後の getSettings() は新しいキーを返す。
   saveSettings(settings: AppSettings): void {
     this.apiKeyCache = settings.apiKey;
+    this.hasApiKey.set(!!this.apiKeyCache);
     this.persist(settings).catch(e =>
       console.error('[SettingsStoreService] 設定の保存に失敗しました:', e)
     );
@@ -100,8 +118,19 @@ export class SettingsStoreService {
     writeJson(SETTINGS_KEY, apiKeyEnc ? { ...rest, apiKeyEnc } : rest);
   }
 
-  // 設定ページの未保存編集（isDirty）とは独立に、同意日時だけを直接書き込む。
+  // 設定ページの未保存編集（isDirty）とは独立に、同意日時と同意した文言のバージョンを直接書き込む。
   acceptConsent(): void {
-    this.saveSettings({ ...this.getSettings(), consentAcceptedAt: new Date().toISOString() });
+    this.saveSettings({
+      ...this.getSettings(),
+      consentAcceptedAt: new Date().toISOString(),
+      consentVersion: CONSENT_VERSION,
+    });
+  }
+
+  // 同意モーダルを表示すべきか。未同意、または旧バージョンの文言にしか同意していない場合に true。
+  // 旧データは consentVersion を持たないため 1（初版）とみなす。
+  needsConsent(): boolean {
+    const { consentAcceptedAt, consentVersion } = this.getSettings();
+    return !consentAcceptedAt || (consentVersion ?? 1) < CONSENT_VERSION;
   }
 }

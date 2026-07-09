@@ -1,6 +1,11 @@
 /**
  * @file 設定ページ。アカウント（Google SSO ログイン/同期）・API キー・モデル優先順位（ドラッグ&ドロップ）・テーマ切り替えを管理する。
- * 未保存の変更は isDirty で検知し、保存ボタンの強調表示と離脱時の確認ダイアログ（settings.guard.ts）に使う。
+ * 保存粒度は2種類。テーマとモデル優先順位は操作した時点で即時保存する。API キーだけは
+ * 入力途中の値を永続化しないよう apiKeyDraft に退避し、専用の保存ボタンを押したときのみ確定する。
+ * settings signal は常に「保存済みの真値」を保持するため、即時保存が API キー草稿を巻き込むことはない。
+ * API キーは入力時に normalizeApiKey() で空白・引用符を除去する（プレフィックスによる形式検査はしない。
+ * 理由は api-key.util.ts 参照）。テンプレート側には課金が利用者負担である旨の注意を常時表示する。
+ * 未保存の API キーは isDirty で検知し、保存ボタンの強調表示と離脱時の確認ダイアログ（settings.guard.ts）に使う。
  * 選択可能なモデル一覧は gemini-models.constants.ts を共用する（settings-store.service.ts のデフォルト優先順位と同一ソース）。
  * 末尾に法的情報（プライバシーポリシー・利用規約・免責事項、pages/legal）への導線を持つ。
  */
@@ -8,6 +13,7 @@ import { Component, computed, inject, signal } from '@angular/core';
 import { FormsModule } from '@angular/forms';
 import { RouterLink } from '@angular/router';
 import { AppSettings, SettingsStoreService } from '@core/settings/settings-store.service';
+import { normalizeApiKey } from '@core/settings/api-key.util';
 import { AuthService } from '@core/firebase/auth.service';
 import { GEMINI_MODELS } from '@core/gemini/gemini-models.constants';
 import { APP_VERSION, RELEASE_DATE } from '../../../version';
@@ -55,13 +61,14 @@ export class Settings {
   readonly models = GEMINI_MODELS;
 
   // ── 状態管理（signal） ────────────────────────────────────────────
+  // settings は常に「保存済みの真値」。編集中の API キーは apiKeyDraft 側にだけ入る。
   settings = signal<AppSettings>(this.initSettings());
+  apiKeyDraft = signal(this.settings().apiKey);
   saved = signal(false);
   showKey = signal(false);
 
-  // ── 未保存変更の検知（保存済み内容とのスナップショット比較） ──────
-  private savedSnapshot = signal<AppSettings>(this.settings());
-  isDirty = computed(() => JSON.stringify(this.settings()) !== JSON.stringify(this.savedSnapshot()));
+  // ── 未保存変更の検知（API キーのみが対象。テーマ・モデル順は即時保存されるため常に保存済み） ──
+  isDirty = computed(() => this.apiKeyDraft() !== this.settings().apiKey);
 
   // ── モデル優先順位のドラッグ&ドロップ並び替え ────────────────────
   private dragIndex = signal<number | null>(null);
@@ -98,25 +105,39 @@ export class Settings {
       modelPriority.splice(index, 0, moved);
       return { ...s, modelPriority };
     });
+    this.persist();
   }
 
-  update(field: keyof AppSettings, value: string | boolean) {
-    this.settings.update(s => ({ ...s, [field]: value }));
-    if (field === 'theme') {
-      document.documentElement.dataset['theme'] = value as string;
-    }
+  // ── テーマ（即時保存。DOM への反映と永続化を同時に行う） ──────────
+  updateTheme(theme: AppSettings['theme']) {
+    document.documentElement.dataset['theme'] = theme;
+    this.settings.update(s => ({ ...s, theme }));
+    this.persist();
   }
 
-  save() {
-    this.settingsStore.saveSettings(this.settings());
-    this.savedSnapshot.set(this.settings());
+  // ── API キー（草稿のみ更新。保存は saveApiKey() でのみ行う） ───────
+  updateApiKey(value: string) {
+    // APIキーは貼り付け時に前後の空白・改行・引用符が混入しやすい。そのまま送信すると
+    // Gemini 側で原因の分かりにくい 400 になるため、入力の時点で無害化しておく。
+    this.apiKeyDraft.set(normalizeApiKey(value));
+  }
+
+  saveApiKey() {
+    this.settings.update(s => ({ ...s, apiKey: this.apiKeyDraft() }));
+    this.persist();
     this.saved.set(true);
     setTimeout(() => this.saved.set(false), 2000);
   }
 
-  // ── 他ページへの遷移時に未保存の変更を警告（settings.guard.ts から呼ばれる） ──
+  // settings() は保存済みの真値のみを持つため、テーマ・モデル順の即時保存で
+  // 未確定の apiKeyDraft が漏れて永続化されることはない。
+  private persist() {
+    this.settingsStore.saveSettings(this.settings());
+  }
+
+  // ── 他ページへの遷移時に未保存の API キーを警告（settings.guard.ts から呼ばれる） ──
   canDeactivate(): boolean {
     if (!this.isDirty()) return true;
-    return window.confirm('保存されていない変更があります。移動しますか？');
+    return window.confirm('API キーの変更が保存されていません。移動しますか？');
   }
 }
