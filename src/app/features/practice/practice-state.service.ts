@@ -20,7 +20,7 @@ import { toUserMessage } from '@core/gemini/gemini-error.util';
 import { SessionRepositoryService } from '@core/sessions/session-repository.service';
 import { SettingsStoreService } from '@core/settings/settings-store.service';
 import { buildPrompt } from '@core/gemini/prompt.util';
-import { BulkEntry } from './bulk-import.util';
+import { BulkEntry, buildBulkTemplateFromSessions } from './bulk-import.util';
 import { toDayKey } from '@shared/utils/date.util';
 import { CorrectionSession } from '@core/models/session.model';
 
@@ -158,6 +158,12 @@ export class PracticeState {
   setBulkEntries(entries: BulkEntry[]) {
     this.bulkEntries.set(entries);
     this.bulkProgress.set([]);
+  }
+
+  // 履歴の全セッションを一括添削テンプレートJSONへ変換する。SessionRepositoryService への
+  // アクセスはこのサービス内に閉じ、component からの直接inject（core→feature-componentの直接依存）を避ける。
+  buildHistoryTemplateJson(): string {
+    return buildBulkTemplateFromSessions(this.repository.sessions());
   }
 
   async submitBulk() {

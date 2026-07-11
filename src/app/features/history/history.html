@@ -5,41 +5,41 @@
 
   <!-- ── カレンダー（常設・日付クリックで下の一覧を絞り込む） ── -->
   <app-history-calendar
-    [sessions]="sessions()"
-    (dateSelected)="onDateSelected($event)"
+    [sessions]="state.sessions()"
+    (dateSelected)="state.onDateSelected($event)"
   ></app-history-calendar>
 
   <!-- ── セッション一覧（カレンダーの選択日 + キーワード検索で絞り込み） ── -->
   <div class="toolbar">
-    @if (!selectionMode()) {
+    @if (!state.selectionMode()) {
       <button class="toolbar-btn" (click)="exportJson()">{{ i18n.t('history.export') }}</button>
       <button class="toolbar-btn" (click)="triggerImport()">{{ i18n.t('history.import') }}</button>
-      <button class="toolbar-btn sort-btn" (click)="toggleSort()">
-        {{ i18n.t('history.sort') }} {{ sortOrder() === 'desc' ? '↓' : '↑' }}
+      <button class="toolbar-btn sort-btn" (click)="state.toggleSort()">
+        {{ i18n.t('history.sort') }} {{ state.sortOrder() === 'desc' ? '↓' : '↑' }}
       </button>
-      <button class="toolbar-btn select-btn" (click)="toggleSelectionMode()">
+      <button class="toolbar-btn select-btn" (click)="state.toggleSelectionMode()">
         {{ i18n.t('history.select') }}
       </button>
     } @else {
-      <button class="toolbar-btn" (click)="toggleSelectionMode()">
+      <button class="toolbar-btn" (click)="state.toggleSelectionMode()">
         {{ i18n.t('history.cancel') }}
       </button>
-      <button class="toolbar-btn" (click)="selectAll()">{{ i18n.t('history.selectAll') }}</button>
-      <button class="toolbar-btn" (click)="deselectAll()">
+      <button class="toolbar-btn" (click)="state.selectAll()">{{ i18n.t('history.selectAll') }}</button>
+      <button class="toolbar-btn" (click)="state.deselectAll()">
         {{ i18n.t('history.deselectAll') }}
       </button>
       <button
         class="toolbar-btn delete-selected-btn"
-        [disabled]="selectedIds().length === 0"
+        [disabled]="state.selectedIds().length === 0"
         (click)="deleteSelected()"
       >
         {{
           i18n.t('history.delete', {
             count:
-              selectedIds().length > 0
+              state.selectedIds().length > 0
                 ? i18n.lang() === 'en'
-                  ? ' (' + selectedIds().length + ')'
-                  : '（' + selectedIds().length + '件）'
+                  ? ' (' + state.selectedIds().length + ')'
+                  : '（' + state.selectedIds().length + '件）'
                 : '',
           })
         }}
@@ -54,38 +54,38 @@
     (change)="onFileSelected($event)"
   />
 
-  @if (sessions().length > 0) {
+  @if (state.sessions().length > 0) {
     <!-- ── キーワード検索（元文・添削文・ミス表現を横断） ── -->
     <div class="search-box">
       <input
         type="text"
         class="search-input"
         [placeholder]="i18n.t('history.searchPlaceholder')"
-        [(ngModel)]="searchQuery"
+        [(ngModel)]="state.searchQuery"
       />
-      @if (searchQuery()) {
-        <button class="search-clear" (click)="searchQuery.set('')" aria-label="×">×</button>
+      @if (state.searchQuery()) {
+        <button class="search-clear" (click)="state.searchQuery.set('')" aria-label="×">×</button>
       }
     </div>
   }
 
-  @if (sessions().length === 0) {
+  @if (state.sessions().length === 0) {
     <div class="empty">
       <p>{{ i18n.t('history.emptyAll1') }}</p>
       <p>{{ i18n.t('history.emptyAll2') }}</p>
     </div>
-  } @else if (filteredSessions().length === 0 && selectedDate()) {
+  } @else if (state.filteredSessions().length === 0 && state.selectedDate()) {
     <div class="empty">
       <p>{{ i18n.t('history.emptyDay') }}</p>
     </div>
-  } @else if (filteredSessions().length === 0) {
+  } @else if (state.filteredSessions().length === 0) {
     <div class="empty">
-      <p>{{ i18n.t('history.emptySearch', { query: searchQuery() }) }}</p>
+      <p>{{ i18n.t('history.emptySearch', { query: state.searchQuery() }) }}</p>
     </div>
   }
 
   <div class="sessions-list">
-    @for (session of filteredSessions(); track session.id) {
+    @for (session of state.filteredSessions(); track session.id) {
       <ng-container *ngTemplateOutlet="sessionCard; context: { $implicit: session }"></ng-container>
     }
   </div>
@@ -95,28 +95,30 @@
 <ng-template #sessionCard let-session>
   <div
     class="session-card"
-    [class.selected]="isSelected(session.id)"
-    [attr.tabindex]="selectionMode() ? 0 : -1"
-    [attr.role]="selectionMode() ? 'button' : null"
-    [attr.aria-pressed]="selectionMode() ? isSelected(session.id) : null"
-    (click)="selectionMode() && toggleSelect(session.id, $event)"
-    (keydown.enter)="selectionMode() && toggleSelect(session.id, $event)"
-    (keydown.space)="$event.preventDefault(); selectionMode() && toggleSelect(session.id, $event)"
+    [class.selected]="state.isSelected(session.id)"
+    [attr.tabindex]="state.selectionMode() ? 0 : -1"
+    [attr.role]="state.selectionMode() ? 'button' : null"
+    [attr.aria-pressed]="state.selectionMode() ? state.isSelected(session.id) : null"
+    (click)="state.selectionMode() && state.toggleSelect(session.id, $event)"
+    (keydown.enter)="state.selectionMode() && state.toggleSelect(session.id, $event)"
+    (keydown.space)="
+      $event.preventDefault(); state.selectionMode() && state.toggleSelect(session.id, $event)
+    "
   >
     <div
       class="session-header"
-      [attr.tabindex]="selectionMode() ? -1 : 0"
-      [attr.role]="selectionMode() ? null : 'button'"
-      [attr.aria-expanded]="selectionMode() ? null : expandedId() === session.id"
-      (click)="!selectionMode() && toggle(session.id)"
-      (keydown.enter)="!selectionMode() && toggle(session.id)"
-      (keydown.space)="$event.preventDefault(); !selectionMode() && toggle(session.id)"
+      [attr.tabindex]="state.selectionMode() ? -1 : 0"
+      [attr.role]="state.selectionMode() ? null : 'button'"
+      [attr.aria-expanded]="state.selectionMode() ? null : state.expandedId() === session.id"
+      (click)="!state.selectionMode() && state.toggle(session.id)"
+      (keydown.enter)="!state.selectionMode() && state.toggle(session.id)"
+      (keydown.space)="$event.preventDefault(); !state.selectionMode() && state.toggle(session.id)"
     >
       <div class="session-meta">
-        @if (selectionMode()) {
-          <span class="checkbox-icon">{{ isSelected(session.id) ? '☑' : '☐' }}</span>
+        @if (state.selectionMode()) {
+          <span class="checkbox-icon">{{ state.isSelected(session.id) ? '☑' : '☐' }}</span>
         }
-        <span class="session-date">{{ formatDate(session.date) }}</span>
+        <span class="session-date">{{ state.formatDate(session.date) }}</span>
         @if (session.evaluation; as ev) {
           <span class="score-badge">{{ ev.overallScore }}</span>
           <span class="score-cefr">{{ ev.overallCefr }}</span>
@@ -128,23 +130,23 @@
         }
       </div>
       <div class="session-actions">
-        @if (!selectionMode()) {
-          <span class="chevron" [class.open]="expandedId() === session.id">›</span>
+        @if (!state.selectionMode()) {
+          <span class="chevron" [class.open]="state.expandedId() === session.id">›</span>
         }
       </div>
     </div>
-    <p class="session-preview" (click)="!selectionMode() && toggle(session.id)">
+    <p class="session-preview" (click)="!state.selectionMode() && state.toggle(session.id)">
       {{ session.original }}
     </p>
 
-    @if (!selectionMode() && expandedId() === session.id) {
+    @if (!state.selectionMode() && state.expandedId() === session.id) {
       <div class="session-detail" (click)="$event.stopPropagation()">
         <h3 class="detail-title">{{ i18n.t('history.detailOriginal') }}</h3>
         <pre class="detail-text original">{{ session.original }}</pre>
 
         @if (session.model) {
           <p class="detail-model">
-            {{ i18n.t('history.detailModel') }}: {{ modelLabel(session.model) }}
+            {{ i18n.t('history.detailModel') }}: {{ state.modelLabel(session.model) }}
           </p>
         }
 
@@ -179,21 +181,21 @@
           </div>
         }
 
-        @if (proseSections(session).length > 0) {
-          @for (section of proseSections(session); track section.heading) {
+        @if (state.proseSections(session).length > 0) {
+          @for (section of state.proseSections(session); track section.heading) {
             <h3 class="detail-title">{{ section.heading }}</h3>
             <div class="detail-text markdown-body" [innerHTML]="section.html"></div>
           }
         } @else {
           <h3 class="detail-title">{{ i18n.t('history.detailExplanation') }}</h3>
-          <div class="detail-text markdown-body" [innerHTML]="toHtml(session)"></div>
+          <div class="detail-text markdown-body" [innerHTML]="state.toHtml(session)"></div>
         }
 
         @if (session.mistakes.length > 0) {
           <h3 class="detail-title">{{ i18n.t('history.detailMistakes') }}</h3>
           @for (m of session.mistakes; track m.original) {
             <div class="mini-mistake">
-              <span class="category-badge">{{ categoryText(m) }}</span>
+              <span class="category-badge">{{ state.categoryText(m) }}</span>
               <span class="mistake-original">{{ m.original }}</span>
               <span class="arrow">→</span>
               <span class="mistake-corrected">{{ m.corrected }}</span>

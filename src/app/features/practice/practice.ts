@@ -20,13 +20,8 @@ import { RouterLink } from '@angular/router';
 import { SettingsStoreService } from '@core/settings/settings-store.service';
 import { DomSanitizer, SafeHtml } from '@angular/platform-browser';
 import { renderSafeMarkdown } from '@shared/utils/markdown.util';
-import {
-  buildBulkTemplateJson,
-  buildBulkTemplateFromSessions,
-  parseBulkImportJson,
-} from './bulk-import.util';
+import { buildBulkTemplateJson, parseBulkImportJson } from './bulk-import.util';
 import { formatTimestampForFilename } from '@shared/utils/date.util';
-import { SessionRepositoryService } from '@core/sessions/session-repository.service';
 import { I18nService } from '@core/i18n/i18n.service';
 import {
   localizedCategory,
@@ -54,7 +49,6 @@ export class Practice {
   settingsStore = inject(SettingsStoreService);
   protected i18n = inject(I18nService);
   private sanitizer = inject(DomSanitizer);
-  private repository = inject(SessionRepositoryService);
 
   @ViewChild('bulkFileInput') bulkFileInput!: ElementRef<HTMLInputElement>;
 
@@ -110,7 +104,7 @@ export class Practice {
   }
 
   downloadHistoryAsTemplate() {
-    const json = buildBulkTemplateFromSessions(this.repository.sessions());
+    const json = this.state.buildHistoryTemplateJson();
     const blob = new Blob([json], { type: 'application/json' });
     const a = document.createElement('a');
     a.href = URL.createObjectURL(blob);
