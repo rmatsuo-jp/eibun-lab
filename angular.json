@@ -89,6 +89,7 @@
           "builder": "@angular/build:unit-test",
           "options": {
             "setupFiles": ["src/test-setup.ts"],
+            "isolate": true,
             "coverageThresholds": {
               "statements": 60,
               "branches": 55,
