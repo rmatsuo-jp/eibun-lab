@@ -8,6 +8,7 @@ import { SettingsStoreService } from '@core/settings/settings-store.service';
 import { AuthService } from '@core/firebase/auth.service';
 
 const OK_RESULT: CorrectionResult = {
+  model: 'gemini-3.5-flash',
   corrected: 'corrected text',
   mistakes: [{ category: '文法', original: 'a', corrected: 'b', explanation: '' }],
 };

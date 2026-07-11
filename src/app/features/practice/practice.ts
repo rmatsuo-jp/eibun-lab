@@ -12,6 +12,7 @@
  * 1項目が undefined（生成失敗）でもその項目だけを非表示にし、他の項目・他のセクション（評価・ミス一覧等）には
  * 影響しない。5項目が1つも無い旧データ（generatedAtがproseタグ導入前のセッション）のみ、
  * corrected/correctedEn を単一ブロックとして表示するフォールバックを使う（proseSections() 参照）。
+ * 添削結果には使用Geminiモデル（modelLabel()で人間可読ラベルに変換、historyタブと同じi18nキー・見た目）も表示する。
  */
 import { Component, ElementRef, ViewChild, inject } from '@angular/core';
 import { FormsModule } from '@angular/forms';
@@ -26,6 +27,7 @@ import { I18nService } from '@core/i18n/i18n.service';
 import { localizedCategory, localizedExplanation, localizedField, localizedProse } from '@core/i18n/localized-session.util';
 import { Mistake } from '@core/models/session.model';
 import { PROSE_FIELDS, ProseSource } from '@core/i18n/prose-fields.util';
+import { GEMINI_MODELS } from '@core/gemini/gemini-models.constants';
 import { PracticeState } from './practice-state.service';
 import { WaitingQuiz } from './waiting-quiz/waiting-quiz';
 
@@ -79,6 +81,12 @@ export class Practice {
 
   categoryText(m: Mistake): string {
     return localizedCategory(m, this.i18n);
+  }
+
+  // 添削に使用されたモデルの人間可読ラベルを返す。GEMINI_MODELS に見つからない場合（廃止モデル等）は
+  // 生のモデルIDへフォールバックする（history.ts の同名メソッドと同一ロジック）。
+  modelLabel(modelId: string): string {
+    return GEMINI_MODELS.find((m) => m.value === modelId)?.label ?? modelId;
   }
 
   // ── 一括添削: テンプレートダウンロード / JSONアップロード ──────────

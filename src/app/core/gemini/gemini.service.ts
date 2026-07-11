@@ -10,6 +10,7 @@
  * モデル優先順位配列（AppSettings.modelPriority）を先頭から順に試し、失敗したら次のモデルへフォールバックする。
  * ただしセーフティフィルタによる入力ブロック（GeminiBlockedError、定義は gemini-blocked.error.ts）は
  * モデル起因でないため、フォールバックせず即座にエラーとしてユーザーへ返す。
+ * 成功したモデルIDは CorrectionResult.model として返し、セッション詳細画面での表示に使われる。
  * 成功した呼び出しは GEMINI_LOGGER トークン（core/logging）経由で記録する。実装は開発ビルド時のみ
  * features/dev の DevLogService が provide され、本番ビルドでは no-op（core→features の逆依存を持たない）。
  * レスポンス解析は utils/gemini-parse.util.ts に集約する。構造化JSON（<mistakes>等）は extractTaggedJson、
@@ -30,6 +31,8 @@ import { computeProgress, getExpectedTotalChars, recordResponseLength } from '@c
 import { GeminiBlockedError } from '@core/gemini/gemini-blocked.error';
 
 export interface CorrectionResult {
+  /** 実際に成功したモデルID（modelPriorityフォールバック後の最終選択、例: 'gemini-3.5-flash'） */
+  model: string;
   corrected: string;
   correctedEn?: string;
   correctedText?: string;
@@ -168,6 +171,7 @@ export class GeminiService {
     }
 
     const correctionResult: CorrectionResult = {
+      model,
       corrected,
       correctedEn: correctedEn || undefined,
       correctedText,

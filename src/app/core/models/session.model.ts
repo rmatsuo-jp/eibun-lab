@@ -3,7 +3,7 @@
  * ReviewItem（穴埋め復習カード）・LevelUpItem（レベルアップ例文タイピング用、1文単位）・
  * DrillProgress（ドリルの習熟度）・LevelUpItemProgress（レベルアップ・タイピングのマスク段階進捗）と
  * CorrectionSession（1回の添削セッション。corrected=添削解説プローズ、correctedText=添削後の全文、
- * levelUpText=レベルアップ後の全文）を定義する。
+ * levelUpText=レベルアップ後の全文、model=添削に使用したGeminiモデルID）を定義する。
  * 日本語の説明系フィールド（Mistake.explanation, ReviewItem.hint/translation, LevelUpItem.translation,
  * CorrectionSession.corrected/grammarNotes等）は、対応する `*En` フィールドに英語版を optional で持つ。
  * 英語版が無いセッション（旧データ・生成失敗時）は表示側（core/i18n/localized-session.util.ts）が
@@ -107,4 +107,5 @@ export interface CorrectionSession {
   levelUpItems?: LevelUpItem[]; // 任意。レベルアップ例文タイピング用（1文単位、Drill専用。後方互換）
   levelUpText?: string; // 任意。レベルアップ後の全文（levelUpItemsとは別に、日記全体を通した1本の文章。後方互換）
   deleted?: boolean;       // 論理削除フラグ。true は表示・集計から除外し、クラウドにも tombstone として残す（削除の多端末同期用）
+  model?: string;          // 任意。添削に実際に使用されたGeminiモデルID（modelPriorityフォールバック後の最終選択）。旧データは欠落し得る
 }

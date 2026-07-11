@@ -9,6 +9,7 @@
  * 解説5項目は1タグずつ独立抽出されているため、1項目が欠けても他の項目は正常表示される。5項目が
  * 1つも無い旧データのみ toHtml() で corrected/correctedEn の単一ブロックにフォールバックする。
  * HTMLキャッシュは言語＋項目ごとに保持し、言語切替時に別セッション・別項目の内容が誤って再利用されないようにする。
+ * 展開時の詳細には使用Geminiモデル（session.model、modelLabel()で人間可読ラベルに変換）も表示する。旧データは欠落し得るため非表示。
  */
 import { Component, ElementRef, ViewChild, computed, inject, signal } from '@angular/core';
 import { FormsModule } from '@angular/forms';
@@ -21,6 +22,7 @@ import { CorrectionSession, Mistake, WritingEvaluation } from '@core/models/sess
 import { I18nService } from '@core/i18n/i18n.service';
 import { localizedCategory, localizedField, localizedProse } from '@core/i18n/localized-session.util';
 import { PROSE_FIELDS } from '@core/i18n/prose-fields.util';
+import { GEMINI_MODELS } from '@core/gemini/gemini-models.constants';
 
 interface CalendarCell {
   date: Date;
@@ -169,6 +171,12 @@ export class History {
 
   categoryText(m: Mistake): string {
     return localizedCategory(m, this.i18n);
+  }
+
+  // 添削に使用されたモデルの人間可読ラベルを返す。GEMINI_MODELS に見つからない場合（廃止モデル等）は
+  // 生のモデルIDへフォールバックする。
+  modelLabel(modelId: string): string {
+    return GEMINI_MODELS.find((m) => m.value === modelId)?.label ?? modelId;
   }
 
   toggle(id: string) {

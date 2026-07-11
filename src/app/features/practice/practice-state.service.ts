@@ -130,6 +130,7 @@ export class PracticeState {
       reviewItems: res.reviewItems,
       levelUpItems: res.levelUpItems,
       levelUpText: res.levelUpText,
+      model: res.model,
     };
   }
 

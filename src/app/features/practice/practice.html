@@ -1,6 +1,6 @@
 <!-- @file Practice ページテンプレート。日付選択・APIキー未設定時の設定ページ誘導バナー・
      入力エリア・エラー表示・送信ボタン・添削中の進捗バー＋自動表示の待機中クイズ（完了で自動的に結果へ切り替わる）・
-     添削結果（元の英作文 + 評価スコアパネル +
+     添削結果（元の英作文 + 使用Geminiモデル（historyタブと共通のi18nキー・見た目） + 評価スコアパネル +
      添削後の英文Markdown + レベルアップした英文Markdown + 添削解説5項目Markdown + ミスリスト）に加え、
      JSONテンプレートで複数日分の英作文をまとめてアップロード・一括添削・進捗表示する一括添削セクションを含む。
      添削解説5項目（proseSections、1項目ずつ独立表示。旧データは proseText の単一ブロックにフォールバック）・
@@ -70,6 +70,10 @@
     <div class="result-section">
       <h2 class="section-title">{{ i18n.t('practice.original') }}</h2>
       <div class="original-box">{{ state.result()!.original }}</div>
+
+      @if (state.result()!.model; as model) {
+        <p class="detail-model">{{ i18n.t('history.detailModel') }}: {{ modelLabel(model) }}</p>
+      }
 
       <!-- ── 評価スコアパネル（<evaluation> JSON 由来。本文の解説文とは分離した厳格データ表示） ── -->
       @if (state.result()!.evaluation; as ev) {

@@ -211,6 +211,12 @@
   line-height: 1.6;
 }
 
+.detail-model {
+  font-size: 0.8125rem;
+  color: var(--color-text-muted);
+  margin: 0.375rem 0 0;
+}
+
 // Markdown 本文のタイポグラフィは src/styles.scss の グローバル `.markdown-body` で一元管理。
 // （[innerHTML] 注入要素にはコンポーネントのスコープスタイルが届かないため）
 

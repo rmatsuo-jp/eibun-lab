@@ -39,6 +39,7 @@ const OPTIONAL_FIELDS: (keyof CorrectionSession)[] = [
   'levelUpItems',
   'levelUpText',
   'deleted',
+  'model',
 ];
 
 // mistakes/reviewItems/levelUpItems の配列要素が持つ optional フィールド（Mistake.explanationEn 等）を

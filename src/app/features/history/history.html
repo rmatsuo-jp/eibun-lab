@@ -143,6 +143,10 @@
         <h3 class="detail-title">{{ i18n.t('history.detailOriginal') }}</h3>
         <pre class="detail-text original">{{ session.original }}</pre>
 
+        @if (session.model) {
+          <p class="detail-model">{{ i18n.t('history.detailModel') }}: {{ modelLabel(session.model) }}</p>
+        }
+
         @if (session.evaluation; as ev) {
           <h3 class="detail-title">{{ i18n.t('history.detailEvaluation') }}</h3>
           <div class="eval-panel">
