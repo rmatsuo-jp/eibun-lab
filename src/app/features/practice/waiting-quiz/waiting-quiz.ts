@@ -4,7 +4,9 @@
  * 出題ロジックは core/quiz/quiz.util.ts の純粋関数を Drill と共用する（feature 間 import は行わない）。
  * ドリルの習熟度（DrillProgressService）には記録しない — 気晴らし用途であり、
  * 待機時間に左右される回答結果で習熟判定が歪むのを避けるため。
- * 添削が完了しても自動では閉じず、完了通知と「結果を見る」ボタンを出して遷移をユーザーに委ねる。
+ * 添削送信と同時に自動表示され、添削が完了（成功/失敗いずれも）すると PracticeState 側で
+ * 自動的に showQuiz が false になり結果/エラー表示へ切り替わる。完了時点の問題を最後とし、
+ * 次の問題への遷移は行わせない（next() は state.loading() が false の間は何もしない）。
  * 出題データ（hint/badge/translation）は生成時点の i18n.lang() で固定される（Drill と同じスナップショット方式）。
  */
 import { Component, computed, inject, signal } from '@angular/core';
@@ -51,13 +53,10 @@ export class WaitingQuiz {
   }
 
   // 出題数が尽きたら先頭へ戻って周回する（待ち時間の長さに関わらず問題が切れないようにする）。
+  // 添削が完了した後は次の問題へ進ませない（完了時点の問題を最後とする）。
   next() {
+    if (!this.state.loading()) return;
     this.selected.set(null);
     this.index.update(i => i + 1);
-  }
-
-  // 添削結果へ遷移する。practice.html は showQuiz() が false になると結果セクションを表示する。
-  showResult() {
-    this.state.showQuiz.set(false);
   }
 }

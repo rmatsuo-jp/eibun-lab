@@ -22,7 +22,7 @@ export class I18nService {
     let text = TRANSLATIONS[this.lang()][key];
     if (params) {
       for (const [name, value] of Object.entries(params)) {
-        text = text.replace(`{${name}}`, String(value));
+        text = text.replaceAll(`{${name}}`, String(value));
       }
     }
     return text;

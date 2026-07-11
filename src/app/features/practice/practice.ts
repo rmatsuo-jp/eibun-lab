@@ -2,14 +2,19 @@
  * @file 英作文入力・添削結果表示ページ。
  * 状態（入力テキスト・添削結果・ローディング）は PracticeState サービスが保持するため、
  * タブ遷移でコンポーネントが破棄されても消えない。本コンポーネントは表示と入力の橋渡しに専念する。
- * 添削中はストリーミング実測の進捗バーを表示し、「クイズで待つ」で WaitingQuiz（待機中ミニクイズ）へ切り替える。
+ * 添削中はストリーミング実測の進捗バーと WaitingQuiz（待機中ミニクイズ）を自動表示し、完了時に自動で結果表示へ切り替える。
  * 一括添削の実行前には、送信件数（＝API 呼び出し回数）と課金の可能性を confirm で確認する。
  * Gemini API キーが未設定のときは設定ページへの誘導バナーを出し、添削ボタンを無効化する
  * （SettingsStoreService.hasApiKey を購読するため、キー保存と同時に誘導が消える）。
- * 添削解説（corrected/correctedEn）・ミス説明（explanation/explanationEn）は i18n.lang() に応じて
- * core/i18n/localized-session.util.ts のヘルパーで表示言語を切り替える（英語版が無ければ日本語表示）。
+ * 添削解説5項目（grammarNotes/naturalExpressions/grammarTendency/cefrRationale/studyPlan）・
+ * ミス説明（explanation/explanationEn）は i18n.lang() に応じて core/i18n/localized-session.util.ts の
+ * ヘルパーで表示言語を切り替える（英語版が無ければ日本語表示）。5項目は各タグが独立抽出されるため、
+ * 1項目が undefined（生成失敗）でもその項目だけを非表示にし、他の項目・他のセクション（評価・ミス一覧等）には
+ * 影響しない。5項目が1つも無い旧データ（generatedAtがproseタグ導入前のセッション）のみ、
+ * corrected/correctedEn を単一ブロックとして表示するフォールバックを使う（proseSections() 参照）。
+ * 添削結果には使用Geminiモデル（modelLabel()で人間可読ラベルに変換、historyタブと同じi18nキー・見た目）も表示する。
  */
-import { Component, ElementRef, ViewChild, computed, inject } from '@angular/core';
+import { Component, ElementRef, ViewChild, inject } from '@angular/core';
 import { FormsModule } from '@angular/forms';
 import { RouterLink } from '@angular/router';
 import { SettingsStoreService } from '@core/settings/settings-store.service';
@@ -18,10 +23,11 @@ import { renderSafeMarkdown } from '@shared/utils/markdown.util';
 import { buildBulkTemplateJson, buildBulkTemplateFromSessions, parseBulkImportJson } from './bulk-import.util';
 import { formatTimestampForFilename } from '@shared/utils/date.util';
 import { SessionRepositoryService } from '@core/sessions/session-repository.service';
-import { getReviewItems } from '@core/stats/session-stats.util';
 import { I18nService } from '@core/i18n/i18n.service';
-import { localizedCategory, localizedExplanation, localizedProse } from '@core/i18n/localized-session.util';
+import { localizedCategory, localizedExplanation, localizedField, localizedProse } from '@core/i18n/localized-session.util';
 import { Mistake } from '@core/models/session.model';
+import { PROSE_FIELDS, ProseSource } from '@core/i18n/prose-fields.util';
+import { GEMINI_MODELS } from '@core/gemini/gemini-models.constants';
 import { PracticeState } from './practice-state.service';
 import { WaitingQuiz } from './waiting-quiz/waiting-quiz';
 
@@ -42,9 +48,6 @@ export class Practice {
 
   @ViewChild('bulkFileInput') bulkFileInput!: ElementRef<HTMLInputElement>;
 
-  // 復習カードが1件も無い（＝初回ユーザー）と待機中クイズは出題できないため、「クイズで待つ」ボタン自体を隠す。
-  hasReviewItems = computed(() => getReviewItems(this.repository.sessions()).length > 0);
-
   constructor() {
     // 添削タブを開いた時点で完了通知は役目を終えるので消す（ページ内に結果が見えるため）。
     if (this.state.notice()?.status === 'success') {
@@ -62,12 +65,28 @@ export class Practice {
     return localizedProse(source, this.i18n.lang());
   }
 
+  // 解説5項目を、抽出できたものだけ見出し付きで返す。1項目もタグ抽出できていない旧データのみ、
+  // 呼び出し側（テンプレート）が corrected/correctedEn の単一ブロックにフォールバックする。
+  proseSections(source: ProseSource): { heading: string; text: string }[] {
+    const lang = this.i18n.lang();
+    return PROSE_FIELDS.map((f) => ({
+      heading: this.i18n.t(f.headingKey),
+      text: localizedField(source[f.ja], source[f.en], lang),
+    })).filter((s): s is { heading: string; text: string } => !!s.text);
+  }
+
   explanationText(m: Mistake): string {
     return localizedExplanation(m, this.i18n.lang());
   }
 
   categoryText(m: Mistake): string {
     return localizedCategory(m, this.i18n);
+  }
+
+  // 添削に使用されたモデルの人間可読ラベルを返す。GEMINI_MODELS に見つからない場合（廃止モデル等）は
+  // 生のモデルIDへフォールバックする（history.ts の同名メソッドと同一ロジック）。
+  modelLabel(modelId: string): string {
+    return GEMINI_MODELS.find((m) => m.value === modelId)?.label ?? modelId;
   }
 
   // ── 一括添削: テンプレートダウンロード / JSONアップロード ──────────

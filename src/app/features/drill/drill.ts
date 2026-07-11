@@ -35,6 +35,8 @@
  * 3モードのオーケストレーションに専念する。
  * Quiz/LevelUpQuiz の hint/badge/translation は buildXxxQuiz に i18n.lang() を渡して生成した
  * 時点の言語で固定される（スナップショット方式。出題順の固定と同じ設計）。
+ * スタート画面のモード選択カードはカード全体がボタンで、達成度（levelUpAchievement/clozeAchievement、
+ * 各セッションのprogressForSession/progressForClozeSessionを合算）をバッジ表示する。
  */
 import { Component, computed, effect, ElementRef, inject, signal, viewChild } from '@angular/core';
 import { DatePipe } from '@angular/common';
@@ -81,6 +83,22 @@ export class Drill {
   clozeCount = computed(() => this.clozeDates().length);
   levelUpDates = computed(() => getSessionsWithLevelUp(this.repository.sessions()));
   levelUpCount = computed(() => this.levelUpDates().length);
+
+  // スタート画面のモード選択カードに表示する達成度（完了数/全体数の合算）。
+  levelUpAchievement = computed(() => {
+    const totals = this.levelUpDates().map(s => this.progressForSession(s));
+    return {
+      done: totals.reduce((a, t) => a + t.done, 0),
+      total: totals.reduce((a, t) => a + t.total, 0),
+    };
+  });
+  clozeAchievement = computed(() => {
+    const totals = this.clozeDates().map(s => this.progressForClozeSession(s));
+    return {
+      done: totals.reduce((a, t) => a + t.done, 0),
+      total: totals.reduce((a, t) => a + t.total, 0),
+    };
+  });
 
   // ── 進行状態（signal） ────────────────────────────────────────────
   mode = signal<Mode>('cloze');

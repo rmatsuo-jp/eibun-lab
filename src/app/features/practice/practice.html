@@ -1,12 +1,29 @@
 <!-- @file Practice ページテンプレート。日付選択・APIキー未設定時の設定ページ誘導バナー・
-     入力エリア・エラー表示・送信ボタン・添削中の進捗バー＋待機中クイズ・
-     添削結果（元の英作文 + 評価スコアパネル +
-     添削後の英文Markdown + レベルアップした英文Markdown + 添削解説Markdown + ミスリスト）に加え、
+     入力エリア・エラー表示・送信ボタン・添削中の進捗バー＋自動表示の待機中クイズ（完了で自動的に結果へ切り替わる）・
+     添削結果（元の英作文 + 使用Geminiモデル（historyタブと共通のi18nキー・見た目） + 評価スコアパネル +
+     添削後の英文Markdown + レベルアップした英文Markdown + 添削解説5項目Markdown + ミスリスト）に加え、
      JSONテンプレートで複数日分の英作文をまとめてアップロード・一括添削・進捗表示する一括添削セクションを含む。
-     添削解説（proseText）・ミス説明（explanationText）・カテゴリ（categoryText）は
-     i18n.lang() に追随して表示言語が切り替わる（practice.ts のヘルパー参照）。 -->
+     添削解説5項目（proseSections、1項目ずつ独立表示。旧データは proseText の単一ブロックにフォールバック）・
+     ミス説明（explanationText）・カテゴリ（categoryText）は
+     i18n.lang() に追随して表示言語が切り替わる（practice.ts のヘルパー参照）。
+     待機中クイズ＋進捗バーはスクロールなしで解答できるよう、日付・入力欄より上（タイトル直下）に配置する。 -->
 <div class="page">
   <h1 class="page-title">{{ i18n.t('practice.title') }}</h1>
+
+  <!-- ── 添削中の実測進捗（ストリーミング受信のマイルストーン＋文字数比）＋待機中クイズ。
+       送信開始と同時に自動表示され、添削完了時に自動で閉じる。スクロールせず解けるようタイトル直下に置く。 ── -->
+  @if (state.loading()) {
+    <div class="progress-row">
+      <div class="bar-wrap">
+        <div class="bar" [style.width.%]="state.progress()"></div>
+      </div>
+      <span class="progress-percent">{{ state.progress() }}%</span>
+    </div>
+  }
+
+  @if (state.showQuiz()) {
+    <app-waiting-quiz />
+  }
 
   <div class="date-row">
     <label class="label">{{ i18n.t('practice.date') }}</label>
@@ -49,28 +66,14 @@
     </button>
   </div>
 
-  <!-- ── 添削中の実測進捗（ストリーミング受信のマイルストーン＋文字数比） ── -->
-  @if (state.loading()) {
-    <div class="progress-row">
-      <div class="bar-wrap">
-        <div class="bar" [style.width.%]="state.progress()"></div>
-      </div>
-      <span class="progress-percent">{{ state.progress() }}%</span>
-      @if (!state.showQuiz() && hasReviewItems()) {
-        <button class="btn-secondary" (click)="state.showQuiz.set(true)">{{ i18n.t('practice.waitWithQuiz') }}</button>
-      }
-    </div>
-  }
-
-  <!-- ── 待機中クイズ。完了しても showQuiz が false になるまで開いたままにする ── -->
-  @if (state.showQuiz()) {
-    <app-waiting-quiz />
-  }
-
   @if (state.result() && !state.showQuiz()) {
     <div class="result-section">
       <h2 class="section-title">{{ i18n.t('practice.original') }}</h2>
       <div class="original-box">{{ state.result()!.original }}</div>
+
+      @if (state.result()!.model; as model) {
+        <p class="detail-model">{{ i18n.t('history.detailModel') }}: {{ modelLabel(model) }}</p>
+      }
 
       <!-- ── 評価スコアパネル（<evaluation> JSON 由来。本文の解説文とは分離した厳格データ表示） ── -->
       @if (state.result()!.evaluation; as ev) {
@@ -112,8 +115,16 @@
         <div class="result-box markdown-body" [innerHTML]="toHtml(levelUpText)"></div>
       }
 
-      <h2 class="section-title">{{ i18n.t('practice.explanation') }}</h2>
-      <div class="result-box markdown-body" [innerHTML]="toHtml(proseText(state.result()!))"></div>
+      <!-- ── 添削解説5項目。1項目ずつ独立タグから抽出されるため、1項目が欠けても他は正常表示される ── -->
+      @if (proseSections(state.result()!).length > 0) {
+        @for (section of proseSections(state.result()!); track section.heading) {
+          <h2 class="section-title">{{ section.heading }}</h2>
+          <div class="result-box markdown-body" [innerHTML]="toHtml(section.text)"></div>
+        }
+      } @else {
+        <h2 class="section-title">{{ i18n.t('practice.explanation') }}</h2>
+        <div class="result-box markdown-body" [innerHTML]="toHtml(proseText(state.result()!))"></div>
+      }
 
       @if (state.result()!.mistakes.length > 0) {
         <h2 class="section-title">{{ i18n.t('practice.mistakeList') }}</h2>

@@ -5,7 +5,7 @@
      JA/EN 言語トグルを表示し、タイトル横の sidebar-toggle ボタンで格納/展開を切り替えられる
      （app.ts の sidebarCollapsed signal に連動、格納時は言語トグルも非表示）。
      モバイルレイアウトでは bottom-nav 自体が非表示にならないタブバーのため、代わりに画面右上に固定表示する
-     lang-toggle-mobile でどのタブからも言語切り替えができるようにしている。
+     lang-toggle-mobile（単一ボタン、タップごとにJA⇔ENを交互表示・切替）でどのタブからも言語切り替えができるようにしている。
      全文言は i18n.t() 経由（core/i18n/I18nService）で、言語トグル（toggleLanguage）を押すと
      リロードなしで即座に切り替わる。
      初回起動時、および同意文言の改訂時（CONSENT_VERSION）は showConsent signal に応じて
@@ -97,9 +97,11 @@
     </div>
   </nav>
 
-  <!-- ── モバイル用言語トグル（bottom-nav は常時表示のため右上に固定表示） ── -->
-  <div class="lang-toggle-mobile" role="group" [attr.aria-label]="i18n.t('sidebar.language')">
-    <button type="button" class="lang-btn" [class.active]="i18n.lang() === 'ja'" (click)="toggleLanguage('ja')">JA</button>
-    <button type="button" class="lang-btn" [class.active]="i18n.lang() === 'en'" (click)="toggleLanguage('en')">EN</button>
-  </div>
+  <!-- ── モバイル用言語トグル（bottom-nav は常時表示のため右上に固定表示。タップ前提のため単一ボタンでJA⇔ENを交互切替） ── -->
+  <button
+    type="button"
+    class="lang-toggle-mobile"
+    [attr.aria-label]="i18n.t('sidebar.language')"
+    (click)="toggleLanguage(i18n.lang() === 'ja' ? 'en' : 'ja')"
+  >{{ i18n.lang() === 'ja' ? 'JA' : 'EN' }}</button>
 </div>

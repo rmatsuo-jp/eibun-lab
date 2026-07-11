@@ -4,9 +4,11 @@
  * 自由記述の英文・Markdown用の extractTaggedText（タグ抽出のみ、JSON化しない）、
  * および抽出済みタグを本文から取り除く stripKnownBlocks の3種類を提供する。
  * 新しいタグ付き項目を追加する場合は、対応する抽出関数を呼びつつ KNOWN_TAGS にもタグ名を足すこと。
- * stripKnownBlocks は corrected（添削解説）取得の主経路ではなく、<prose-ja> タグの抽出に
- * 失敗した場合（Gemini がタグ出力の指示に従わなかった場合）のフォールバック専用として使う
- * （gemini.service.ts 側で prose-ja 抽出成功時は stripKnownBlocks を呼ばない）。
+ * gemini.service.ts は全セクション（解説5項目 + corrected-text/levelup-text/mistakes/evaluation/
+ * levelup/review）を extractTaggedText/extractTaggedJson で個別に抽出しており、1タグの抽出失敗は
+ * そのフィールドが undefined になるだけで他タグの抽出には影響しない。stripKnownBlocks は
+ * どのタグも一切見つからない最終フォールバック（万一プレーンテキストへ生JSON等が混入した場合の
+ * 除去用）としてのみ用意する保険であり、通常の抽出経路では呼ばれない。
  */
 
 export type ParseFailureStage = 'no-tag' | 'json-parse' | 'validation';
@@ -88,16 +90,22 @@ export function extractTaggedText(
   return match[1].trim();
 }
 
-// ── 抽出済みブロックの除去（添削解説プローズの生成） ──────────────────
+// ── 抽出済みブロックの除去（最終フォールバック用） ──────────────────────
 // prompt.util.ts が Gemini に出力させるタグの全一覧。新しいタグを増やしたらここにも足す。
-// prose-ja/prose-en（解説プローズの日英タグ）は gemini.service.ts が extractTaggedText で個別抽出するが、
-// タグ抽出に失敗した場合の stripKnownBlocks フォールバック経路でも正しく除去できるよう、ここにも含める。
 const KNOWN_TAGS = [
-  'prose-ja',
-  'prose-en',
+  'grammar-notes-ja',
+  'grammar-notes-en',
+  'natural-expr-ja',
+  'natural-expr-en',
   'corrected-text',
   'mistakes',
+  'grammar-tendency-ja',
+  'grammar-tendency-en',
   'evaluation',
+  'cefr-rationale-ja',
+  'cefr-rationale-en',
+  'study-plan-ja',
+  'study-plan-en',
   'levelup',
   'levelup-text',
   'review',
@@ -106,11 +114,15 @@ const KNOWN_TAGS = [
 // 見出しから閉じタグまでを丸ごと落とすブロック。見出しと閉じタグの間には、他コンポーネントで
 // 表示済みの内容（スコアの講評など）や複数のタグが挟まるため、末尾のタグまで一括で除去する。
 const HEADING_BLOCKS: readonly (readonly [string, string])[] = [
-  // 【解説のまとめ（日英併記）】の後は <prose-ja> → <prose-en> の順で続く
-  ['解説のまとめ（日英併記）', 'prose-en'],
+  // 各見出しの後は -ja → -en の順で日英タグが続く
+  ['文法・語法のミスの指摘', 'grammar-notes-en'],
+  ['自然な表現の提案', 'natural-expr-en'],
   ['添削後の全文', 'corrected-text'],
   ['ミス一覧（JSON）', 'mistakes'],
+  ['文法のミスの傾向', 'grammar-tendency-en'],
   ['定量評価（10点満点・0.5刻み）', 'evaluation'],
+  ['CEFR評価の根拠', 'cefr-rationale-en'],
+  ['今のレベルから伸ばすための学習法', 'study-plan-en'],
   // 【レベルアップした表現の提案】の後は <levelup> → 説明文 → <levelup-text> の順で続く
   ['レベルアップした表現の提案', 'levelup-text'],
   ['復習用カードの生成', 'review'],

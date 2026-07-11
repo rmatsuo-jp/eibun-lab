@@ -3,6 +3,9 @@
   flex-direction: column;
   height: 100dvh;
   background: var(--color-bg);
+  // bottom-nav実高さの決め打ち多重管理を避けるため、ここで一元定義し
+  // .bottom-nav/.nav-item/.app-content/.global-noticeが全て参照する
+  --bottom-nav-height: 4.5rem;
 }
 
 // ── 初回同意モーダル（プライバシーポリシー・利用規約への同意） ────────
@@ -48,7 +51,7 @@
   overflow-y: auto;
   -webkit-overflow-scrolling: touch;
   overscroll-behavior-y: contain;
-  padding-bottom: calc(4rem + env(safe-area-inset-bottom));
+  padding-bottom: calc(var(--bottom-nav-height) + env(safe-area-inset-bottom));
 }
 
 .bottom-nav {
@@ -57,6 +60,7 @@
   left: 0;
   right: 0;
   display: flex;
+  min-height: var(--bottom-nav-height);
   border-top: 1px solid var(--color-border);
   background: var(--color-surface);
   padding-bottom: env(safe-area-inset-bottom);
@@ -68,7 +72,7 @@
   position: fixed;
   left: 0;
   right: 0;
-  bottom: calc(4rem + env(safe-area-inset-bottom));
+  bottom: calc(var(--bottom-nav-height) + env(safe-area-inset-bottom));
   z-index: 101; // bottom-nav(100) より前面
   display: flex;
   align-items: center;
@@ -132,6 +136,7 @@
   justify-content: center;
   gap: 0.25rem;
   padding: 0.625rem 0;
+  min-height: var(--bottom-nav-height);
   color: var(--color-text-muted);
   text-decoration: none;
   font-size: 0.6875rem;
@@ -157,17 +162,39 @@
   display: none;
 }
 
-// ── モバイル用言語トグル（画面右上に固定表示。PCではサイドバー側の .lang-toggle を使うため非表示） ──
+// ── 言語トグル共通ボタンスタイル（.theme-btn＝設定画面のライト/ダーク切替と統一） ──
+.lang-btn {
+  padding: 0.625rem 1rem;
+  border: 2px solid var(--color-border);
+  border-radius: 0.75rem;
+  background: var(--color-surface);
+  color: var(--color-text-muted);
+  font-size: 0.75rem;
+  font-weight: 700;
+  cursor: pointer;
+  transition: border-color 0.2s, color 0.2s, background 0.2s;
+
+  &.active {
+    border-color: var(--color-primary);
+    background: var(--color-primary-light);
+    color: var(--color-primary);
+  }
+}
+
+// ── モバイル用言語トグル（画面右上に固定表示、単一ボタンでJA⇔ENを交互表示・切替。PCではサイドバー側の .lang-toggle を使うため非表示） ──
 .lang-toggle-mobile {
   position: fixed;
   top: calc(0.75rem + env(safe-area-inset-top));
   right: 0.75rem;
   z-index: 102; // global-notice(101)・bottom-nav(100) より前面
-  display: flex;
-  border: 1px solid var(--color-border);
-  border-radius: 0.375rem;
-  overflow: hidden;
+  padding: 0.5rem 0.875rem;
+  border: 2px solid var(--color-border);
+  border-radius: 0.75rem;
   background: var(--color-surface);
+  color: var(--color-text);
+  font-size: 0.75rem;
+  font-weight: 700;
+  cursor: pointer;
   box-shadow: 0 2px 8px rgba(0, 0, 0, 0.12);
 }
 
@@ -175,6 +202,8 @@
 @media (min-width: 768px) {
   .app-shell {
     flex-direction: row;
+    // サイドバー化するため下部タブ用の余白確保は不要
+    --bottom-nav-height: 0rem;
   }
 
   .bottom-nav {
@@ -237,33 +266,22 @@
   .lang-toggle {
     display: flex;
     flex: 0 0 auto;
+    gap: 0.375rem;
     margin: auto 1.25rem 0.75rem;
-    border: 1px solid var(--color-border);
-    border-radius: 0.375rem;
-    overflow: hidden;
 
     .collapsed & {
       display: none;
+    }
+
+    // ── PC版はJA/ENを同幅に揃える（テキスト幅任せだとバランスが崩れるため） ──
+    .lang-btn {
+      flex: 1;
+      text-align: center;
     }
   }
 
   .lang-toggle-mobile {
     display: none;
-  }
-
-  .lang-btn {
-    padding: 0.25rem 0.5rem;
-    border: none;
-    background: none;
-    color: var(--color-text-muted);
-    font-size: 0.75rem;
-    font-weight: 700;
-    cursor: pointer;
-
-    &.active {
-      background: var(--color-primary);
-      color: #fff;
-    }
   }
 
   .sidebar-toggle {

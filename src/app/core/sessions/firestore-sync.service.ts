@@ -24,11 +24,22 @@ import { SessionStoreService } from './session-store.service';
 const OPTIONAL_FIELDS: (keyof CorrectionSession)[] = [
   'correctedText',
   'correctedEn',
+  'grammarNotes',
+  'grammarNotesEn',
+  'naturalExpressions',
+  'naturalExpressionsEn',
+  'grammarTendency',
+  'grammarTendencyEn',
+  'cefrRationale',
+  'cefrRationaleEn',
+  'studyPlan',
+  'studyPlanEn',
   'evaluation',
   'reviewItems',
   'levelUpItems',
   'levelUpText',
   'deleted',
+  'model',
 ];
 
 // mistakes/reviewItems/levelUpItems の配列要素が持つ optional フィールド（Mistake.explanationEn 等）を

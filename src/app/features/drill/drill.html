@@ -1,4 +1,5 @@
-<!-- @file Drill ページテンプレート。モード選択（レベルアップ・タイピング／穴埋め復習）→出題→答え合わせ→次へ→結果サマリーの流れ
+<!-- @file Drill ページテンプレート。モード選択カードはカード全体がボタンで達成度バッジを表示する。
+     レベルアップ・タイピング／穴埋め復習→出題→答え合わせ→次へ→結果サマリーの流れ
      （レベルアップ・タイピングのみ結果サマリーへは至らず、答え合わせ後は「次へ」で同じ文のまま／「中断」で文一覧に戻る）。
      日本語訳はどのモードでも既定非表示で、「ヒント」ボタン押下時または答え合わせ後にのみ表示する。
      穴埋め復習・レベルアップ・タイピングともに、まず日付（＝1回の添削セッション）を選ぶ画面から始まり、
@@ -19,27 +20,31 @@
     <div class="intro">
       <p>{{ i18n.t('drill.intro') }}</p>
 
-      <div class="mode-card">
+      <button class="mode-card" (click)="start('levelup')" [disabled]="levelUpCount() === 0">
         <strong>{{ i18n.t('drill.levelup.name') }}</strong>
         <p>{{ i18n.t('drill.levelup.desc') }}</p>
         <p class="intro-count">{{ i18n.t('drill.dayCount', { count: levelUpCount() }) }}</p>
         @if (levelUpCount() === 0) {
           <p class="empty-note">{{ i18n.t('drill.levelup.empty') }}</p>
-        } @else {
-          <button class="btn-primary" (click)="start('levelup')">{{ i18n.t('drill.startMode') }}</button>
+        } @else if (levelUpAchievement(); as a) {
+          <span class="achievement-badge" [class.achievement-done]="a.done === a.total && a.total > 0">
+            {{ i18n.t('drill.achievement', { done: a.done, total: a.total }) }}
+          </span>
         }
-      </div>
+      </button>
 
-      <div class="mode-card">
+      <button class="mode-card" (click)="start('cloze')" [disabled]="clozeCount() === 0">
         <strong>{{ i18n.t('drill.cloze.name') }}</strong>
         <p>{{ i18n.t('drill.cloze.desc') }}</p>
         <p class="intro-count">{{ i18n.t('drill.dayCount', { count: clozeCount() }) }}</p>
         @if (clozeCount() === 0) {
           <p class="empty-note">{{ i18n.t('drill.cloze.empty') }}</p>
-        } @else {
-          <button class="btn-primary" (click)="start('cloze')">{{ i18n.t('drill.startMode') }}</button>
+        } @else if (clozeAchievement(); as a) {
+          <span class="achievement-badge" [class.achievement-done]="a.done === a.total && a.total > 0">
+            {{ i18n.t('drill.achievement', { done: a.done, total: a.total }) }}
+          </span>
         }
-      </div>
+      </button>
     </div>
   } @else if (mode() === 'levelup' && !levelUpDateChosen()) {
     <!-- ── レベルアップ・タイピング: 日付選択画面 ── -->
