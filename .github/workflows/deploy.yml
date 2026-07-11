@@ -36,6 +36,9 @@ jobs:
       - name: Install dependencies
         run: npm ci
 
+      - name: Test
+        run: npx ng test --watch=false
+
       # コミット種別から次バージョンを判定 → package.json / src/version.ts / CHANGELOG.md を更新し
       # タグ・GitHub Release を作成して main へ push([skip ci] 付きで再帰起動しない)
       - name: Release (bump version, tag, changelog)
