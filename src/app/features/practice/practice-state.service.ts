@@ -133,9 +133,11 @@ export class PracticeState {
     };
   }
 
-  // ── 一括添削: JSONテンプレートからアップロードした複数の英作文を並列添削する ──
-  // 同時実行数を BULK_CONCURRENCY 件に制限したワーカープールで処理し、Gemini API のレート制限を超えないようにする。
-  private readonly BULK_CONCURRENCY = 3;
+  // ── 一括添削: JSONテンプレートからアップロードした複数の英作文をバッチ添削する ──
+  // Gemini API のレート制限（1分あたり5リクエスト）に合わせ、BULK_BATCH_SIZE 件ずつ並列送信し、
+  // 各バッチの開始から BULK_WINDOW_MS 経過するまで次のバッチを送らない。
+  private readonly BULK_BATCH_SIZE = 5;
+  private readonly BULK_WINDOW_MS = 60_000;
 
   bulkEntries = signal<BulkEntry[]>([]);
   bulkProgress = signal<
@@ -166,34 +168,44 @@ export class PracticeState {
     let successCount = 0;
     let errorCount = 0;
     let completedCount = 0;
-    let nextIndex = 0;
 
-    // 各ワーカーは nextIndex を同期的にインクリメントしてから await するため、
-    // インデックスの重複・取りこぼしは発生しない。
-    const worker = async () => {
-      while (nextIndex < entries.length) {
-        const i = nextIndex++;
-        const entry = entries[i];
-        this.updateBulkStatus(i, 'loading');
-        try {
-          const res = await this.gemini.correct(settings.apiKey, settings.modelPriority, buildPrompt(), entry.text);
-          const session = this.buildSession(entry.date, entry.text, res);
-          this.repository.saveSession(session);
-          this.updateBulkStatus(i, 'success');
-          successCount++;
-        } catch (e) {
-          this.updateBulkStatus(i, 'error', toUserMessage(e));
-          errorCount++;
-        } finally {
-          completedCount++;
-          this.notice.set({ status: 'loading', message: `一括添削中 (${completedCount}/${entries.length})` });
+    for (let start = 0; start < entries.length; start += this.BULK_BATCH_SIZE) {
+      const batch = entries.slice(start, start + this.BULK_BATCH_SIZE);
+      const batchStartedAt = Date.now();
+
+      await Promise.all(
+        batch.map(async (entry, offset) => {
+          const i = start + offset;
+          this.updateBulkStatus(i, 'loading');
+          try {
+            const res = await this.gemini.correct(settings.apiKey, settings.modelPriority, buildPrompt(), entry.text);
+            const session = this.buildSession(entry.date, entry.text, res);
+            this.repository.saveSession(session);
+            this.updateBulkStatus(i, 'success');
+            successCount++;
+          } catch (e) {
+            this.updateBulkStatus(i, 'error', toUserMessage(e));
+            errorCount++;
+          } finally {
+            completedCount++;
+            this.notice.set({ status: 'loading', message: `一括添削中 (${completedCount}/${entries.length})` });
+          }
+        })
+      );
+
+      const isLastBatch = start + this.BULK_BATCH_SIZE >= entries.length;
+      if (!isLastBatch) {
+        const elapsed = Date.now() - batchStartedAt;
+        const waitMs = this.BULK_WINDOW_MS - elapsed;
+        if (waitMs > 0) {
+          this.notice.set({
+            status: 'loading',
+            message: `一括添削中 (${completedCount}/${entries.length}) — レート制限のため待機中...`,
+          });
+          await new Promise(resolve => setTimeout(resolve, waitMs));
         }
       }
-    };
-
-    await Promise.all(
-      Array.from({ length: Math.min(this.BULK_CONCURRENCY, entries.length) }, () => worker())
-    );
+    }
 
     this.bulkRunning.set(false);
     this.notice.set({
