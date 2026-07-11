@@ -6,7 +6,7 @@
  */
 import { LevelUpItem, ReviewItem } from '@core/models/session.model';
 
-// ── サンプル4択穴埋め問題（5問、CEFR A2-B1相当） ─────────────────
+// ── サンプル4択穴埋め問題（15問、CEFR A2-B1相当） ────────────────
 export const SAMPLE_REVIEW_ITEMS: ReviewItem[] = [
   {
     sentence: 'I ___ to school by bus every morning.',
@@ -52,6 +52,87 @@ export const SAMPLE_REVIEW_ITEMS: ReviewItem[] = [
     translation: '夕食前に宿題を終わらせるべきです。',
     translationEn: 'You should finish your homework before dinner.',
     choices: ['should', 'may', 'could', 'need'],
+  },
+  {
+    sentence: 'This letter was written ___ my grandfather.',
+    answer: 'by',
+    hint: '受動態で動作主を示す前置詞です。',
+    hintEn: 'The preposition used to show the agent in a passive sentence.',
+    translation: 'この手紙は祖父によって書かれました。',
+    translationEn: 'This letter was written by my grandfather.',
+    choices: ['by', 'from', 'with', 'of'],
+  },
+  {
+    sentence: 'The woman ___ is standing over there is our new teacher.',
+    answer: 'who',
+    hint: '人を先行詞にとる関係代名詞です。',
+    hintEn: 'The relative pronoun used when the antecedent is a person.',
+    translation: 'あそこに立っている女性は私たちの新しい先生です。',
+    translationEn: 'The woman who is standing over there is our new teacher.',
+    choices: ['who', 'which', 'whose', 'what'],
+  },
+  {
+    sentence: 'I decided ___ a new language this year.',
+    answer: 'to learn',
+    hint: 'decideの後は不定詞（to + 動詞原形）が続きます。',
+    hintEn: 'The verb "decide" is followed by a to-infinitive.',
+    translation: '私は今年、新しい言語を学ぶことに決めました。',
+    translationEn: 'I decided to learn a new language this year.',
+    choices: ['to learn', 'learning', 'learn', 'learned'],
+  },
+  {
+    sentence: 'She enjoys ___ novels in her free time.',
+    answer: 'reading',
+    hint: 'enjoyの後は動名詞（-ing）が続きます。',
+    hintEn: 'The verb "enjoy" is followed by a gerund (-ing form).',
+    translation: '彼女は自由時間に小説を読むのを楽しんでいます。',
+    translationEn: 'She enjoys reading novels in her free time.',
+    choices: ['reading', 'to read', 'read', 'reads'],
+  },
+  {
+    sentence: 'I ___ for this company for over ten years.',
+    answer: 'have been working',
+    hint: '過去に始まり現在も続く動作は現在完了進行形で表します。',
+    hintEn: 'Use the present perfect continuous for an action that started in the past and is still continuing.',
+    translation: '私はこの会社で10年以上働いています。',
+    translationEn: 'I have been working for this company for over ten years.',
+    choices: ['have been working', 'am working', 'worked', 'work'],
+  },
+  {
+    sentence: 'Not knowing what to say, she ___ silent.',
+    answer: 'remained',
+    hint: '分詞構文の主節は過去の出来事なので過去形になります。',
+    hintEn: 'The main clause after a participial phrase describing a past situation takes the past tense.',
+    translation: '何を言えばいいかわからず、彼女は黙ったままでした。',
+    translationEn: 'Not knowing what to say, she remained silent.',
+    choices: ['remained', 'remains', 'remaining', 'has remained'],
+  },
+  {
+    sentence: '___ it was raining heavily, we decided to go for a walk.',
+    answer: 'Although',
+    hint: '前後の内容が逆接であることを示す接続詞です。',
+    hintEn: 'A conjunction used to show contrast between two clauses.',
+    translation: '雨が激しく降っていましたが、私たちは散歩に行くことにしました。',
+    translationEn: 'Although it was raining heavily, we decided to go for a walk.',
+    choices: ['Although', 'Because', 'If', 'Unless'],
+  },
+  {
+    sentence: 'By the time we arrived, the movie ___ already started.',
+    answer: 'had',
+    hint: '過去のある時点よりさらに前に完了した動作は過去完了で表します。',
+    hintEn: 'Use the past perfect for an action completed before another point in the past.',
+    translation: '私たちが到着したときには、映画はすでに始まっていました。',
+    translationEn: 'By the time we arrived, the movie had already started.',
+    choices: ['had', 'has', 'was', 'did'],
+  },
+  {
+    sentence: 'If I ___ more money, I would travel around the world.',
+    answer: 'had',
+    hint: '現実とは異なる仮定を表す仮定法過去です。',
+    hintEn: 'The past subjunctive (unreal conditional) form used for a hypothetical present situation.',
+    translation: 'もっとお金があれば、世界中を旅するのに。',
+    translationEn: 'If I had more money, I would travel around the world.',
+    choices: ['had', 'have', 'has', 'will have'],
   },
 ];
 

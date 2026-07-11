@@ -22,8 +22,7 @@
  * 答え合わせ後（revealed→true）は #nextBtn（levelup/mistakes・cloze で共用のテンプレート参照名）へ
  * 自動フォーカスし、Enterキーだけで次の問題に進めるようにしている。
  * levelup の答え合わせ後ボタンは「次へ」（同じ文を更新後の maskLevel のまま再出題、実体は retry()）と
- * 「中断」（backToSentenceList() で文一覧選択画面に戻る）の2つのみで、mistakes/cloze にある
- * 「正解にする」（markCorrect）は levelup では提供しない。
+ * 「中断」（backToSentenceList() で文一覧選択画面に戻る）の2つのみ。
  * ただし全単語マスクの状態（maskLevel === maxLevel）で正答し習熟達成した瞬間だけは、この2ボタンの代わりに
  * 「文一覧に戻る」1ボタンのみを表示する（判定・遷移先はテンプレート側の条件分岐のみで完結し、
  * ロジック側の変更は不要。習熟の記録自体は checkTyping() が既に行う）。
@@ -387,15 +386,6 @@ export class Drill {
     } else if (sessionId) {
       this.drillProgress.setLevelUpItemProgress(sessionId, cur.key, this.maskLevel(), false);
     }
-  }
-
-  // ── 自己判定: 自動採点が不一致でも正解として加点（英語は表現揺れが大きいため）。mistakes/cloze 専用 ─
-  markCorrect() {
-    const cur = this.current();
-    if (!cur || !this.revealed() || this.currentCorrect()) return;
-    this.currentCorrect.set(true);
-    this.score.update(s => s + 1);
-    if (!this.sampleMode()) this.drillProgress.recordDrillResult(cur.key, true);
   }
 
   // 同じ問題にもう一度挑戦する（mistakesの「もう一度」／levelupの「次へ」の実体。

@@ -187,7 +187,6 @@ const ja = {
   'drill.answerInputPlaceholder': '正しい表現を入力...',
   'drill.hintLabel': 'ヒント: {hint}',
   'drill.showHint': 'ヒントを見る',
-  'drill.markCorrect': '正解にする',
   'drill.seeResult': '結果を見る',
 
   // ── settings ──
@@ -408,7 +407,6 @@ const en: Record<TranslationKey, string> = {
   'drill.answerInputPlaceholder': 'Type the correct expression...',
   'drill.hintLabel': 'Hint: {hint}',
   'drill.showHint': 'Show hint',
-  'drill.markCorrect': 'Mark as Correct',
   'drill.seeResult': 'See Results',
 
   // ── settings ──
