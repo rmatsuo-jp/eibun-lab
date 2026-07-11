@@ -1,3 +1,29 @@
+# [1.0.0](https://github.com/rmatsuo-jp/eibun-lab/compare/v0.10.2...v1.0.0) (2026-07-11)
+
+
+* feat!: Firebaseプロジェクトを英文ラボ専用に作り直す ([6de6d64](https://github.com/rmatsuo-jp/eibun-lab/commit/6de6d64af46c06dc347d7117ea0ba40116c7bdfc))
+
+
+### Bug Fixes
+
+* 1.0.0前の主要CI/CDリスクを解消 ([f85ae48](https://github.com/rmatsuo-jp/eibun-lab/commit/f85ae488466247ab0335fa11cbd41b90b2cd51a6))
+* **settings:** APIキー入力欄でパスワードマネージャーの保存提案を抑止 ([1461d9d](https://github.com/rmatsuo-jp/eibun-lab/commit/1461d9de88ae99feb5f601f931e4ef9ca5a2ff50))
+
+
+### Features
+
+* 1.0.0前の懸念点を解消(テスト追加・同期失敗通知・告知) ([6fecb15](https://github.com/rmatsuo-jp/eibun-lab/commit/6fecb15c345c5fef6e687d50820e4b1a65ed55fd))
+* **logo:** ロゴを円形＋A＋添削チェックのシンプルデザインに刷新 ([434ae56](https://github.com/rmatsuo-jp/eibun-lab/commit/434ae5691ff1d633c6b12bb70e48eeb4c6bce9dd))
+* lunch-picker の Firestore ルールを追加 ([279cc8e](https://github.com/rmatsuo-jp/eibun-lab/commit/279cc8e9247addc3b1102cc1a8a47f72be36a0aa))
+
+
+### BREAKING CHANGES
+
+* Firebaseプロジェクトが変更されるため、旧プロジェクトの
+Firestoreデータ（学習セッション履歴・ドリル進捗）は引き継がれない。
+
+Co-Authored-By: Claude Sonnet 5 <noreply@anthropic.com>
+
 ## [0.10.2](https://github.com/rmatsuo-jp/study-english/compare/v0.10.1...v0.10.2) (2026-07-11)
 
 
