@@ -8,15 +8,9 @@
  * DI を持ち込まないよう、core/i18n の翻訳データ（プレーンオブジェクト）を直接参照する
  * （I18nService は注入せず、lang 引数だけで完結させて単体テスト可能な純粋関数のままにする）。
  */
-import { Mistake, ReviewItem } from '@core/models/session.model';
+import { ReviewItem } from '@core/models/session.model';
 import { Lang } from '@core/i18n/lang.model';
-import { TRANSLATIONS, TranslationKey } from '@core/i18n/translations';
-
-function categoryBadge(m: Mistake, lang: Lang): string {
-  const key = `mistake.category.${m.categoryKey}` as TranslationKey;
-  if (m.categoryKey && key in TRANSLATIONS.ja) return TRANSLATIONS[lang][key];
-  return m.category;
-}
+import { TRANSLATIONS } from '@core/i18n/translations';
 
 // 内部で扱う統一出題型。表示・採点に必要な値を両モードから正規化して持つ。
 export interface Quiz {
@@ -85,18 +79,6 @@ export function buildHideOrder(seedText: string, length: number): number[] {
 export function maskedIndices(hideOrder: number[], wordCount: number, maxLevel: number, level: number): Set<number> {
   const hiddenCount = Math.round((wordCount * level) / maxLevel);
   return new Set(hideOrder.slice(0, hiddenCount));
-}
-
-// 頻出ミス1件 → Quiz へ正規化。weight は呼び出し側で習熟度を反映して計算済みの値を渡す。
-export function buildMistakeQuiz(m: Mistake & { count: number }, key: string, weight: number, lang: Lang = 'ja'): Quiz {
-  return {
-    key,
-    prompt: m.original,
-    answer: m.corrected,
-    hint: lang === 'en' && m.explanationEn ? m.explanationEn : m.explanation,
-    badge: categoryBadge(m, lang),
-    weight,
-  };
 }
 
 // 復習カード1件 → Quiz へ正規化。weight は呼び出し側で習熟度を反映して計算済みの値を渡す。

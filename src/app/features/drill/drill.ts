@@ -1,11 +1,12 @@
 /**
  * @file 弱点克服ドリルページ。
- * 3 つの出題モードを持つ:
- *  - 'mistakes' 頻出ミス（getFrequentMistakes）: 誤った表現の訂正を入力で答える。
- *  - 'cloze'    穴埋め復習（getReviewItems）: 添削から生成したクローズカード。既定は入力、
+ * 2 つの出題モードを持つ:
+ *  - 'cloze'    穴埋め復習（getSessionsWithReviewItems）: まず日付（＝1回の添削セッション）を選び、
+ *               その日の reviewItems だけで出題する（selectClozeDate）。既定は入力、
  *               「ヒント（4択）」ボタンで類似4択に切り替えて答えられる。4択モードはキー1〜4で
  *               選択肢をハイライト（selectedChoiceIndex）し、Enterで確定して採点する
- *               （マウスクリックは従来通り即採点）。
+ *               （マウスクリックは従来通り即採点）。日付選択画面では各日付ごとに習熟済み数/全体数の
+ *               進捗バッジ（progressForClozeSession、判定基準は DRILL_MASTERY_STREAK）を表示する。
  *  - 'levelup'  レベルアップ・タイピング（getSessionsWithLevelUp）: まず日付（＝1回の添削セッション）を選び、
  *               次にその日の文一覧から取り組みたい1文を選んで出題する（セッション横断のシャッフルはしない。
  *               文の並びは Gemini が返した元の順番のまま）。
@@ -39,15 +40,14 @@ import { Component, computed, effect, ElementRef, inject, signal, viewChild } fr
 import { DatePipe } from '@angular/common';
 import { FormsModule } from '@angular/forms';
 import { SessionRepositoryService } from '@core/sessions/session-repository.service';
-import { getFrequentMistakes, getReviewItems, getSessionsWithLevelUp, normalizeDrillKey } from '@core/stats/session-stats.util';
+import { getSessionsWithLevelUp, getSessionsWithReviewItems, normalizeDrillKey } from '@core/stats/session-stats.util';
 import { DRILL_MASTERY_STREAK } from './drill-progress.service';
 import { DrillProgressSyncService } from './drill-progress-sync.service';
-import { CorrectionSession, Mistake, ReviewItem } from '@core/models/session.model';
+import { CorrectionSession, ReviewItem } from '@core/models/session.model';
 import { I18nService } from '@core/i18n/i18n.service';
 import {
   buildClozeQuiz,
   buildLevelUpQuiz,
-  buildMistakeQuiz,
   classifyMistake,
   LevelUpQuiz,
   maskedIndices,
@@ -58,7 +58,7 @@ import {
 } from '@core/quiz/quiz.util';
 
 // 出題モード。null は未選択（スタート画面）。
-type Mode = 'mistakes' | 'cloze' | 'levelup';
+type Mode = 'cloze' | 'levelup';
 
 @Component({
   selector: 'app-drill',
@@ -76,14 +76,14 @@ export class Drill {
   private nextBtn = viewChild<ElementRef<HTMLButtonElement>>('nextBtn');
 
   // ── 出題元（モードごとの件数をスタート画面で表示） ───────────────
-  mistakeCount = computed(() => getFrequentMistakes(this.repository.sessions()).length);
-  clozeCount = computed(() => getReviewItems(this.repository.sessions()).length);
-  // レベルアップ・タイピングは日付選択方式のため、件数ではなく「対象セッション一覧」を保持する。
+  // 穴埋め復習・レベルアップ・タイピングともに日付選択方式のため、件数ではなく「対象セッション一覧」を保持する。
+  clozeDates = computed(() => getSessionsWithReviewItems(this.repository.sessions()));
+  clozeCount = computed(() => this.clozeDates().length);
   levelUpDates = computed(() => getSessionsWithLevelUp(this.repository.sessions()));
   levelUpCount = computed(() => this.levelUpDates().length);
 
   // ── 進行状態（signal） ────────────────────────────────────────────
-  mode = signal<Mode>('mistakes');
+  mode = signal<Mode>('cloze');
   started = signal(false);
   finished = signal(false);
   quiz = signal<Quiz[]>([]);          // 出題順を固定したスナップショット（mistakes/cloze用）
@@ -107,6 +107,9 @@ export class Drill {
   levelUpDateChosen = signal(false);
   levelUpSentenceChosen = signal(false);
   currentSessionId = signal<string | null>(null); // 選択中セッションID（進捗保存キー）
+
+  // 穴埋め復習も「日付（＝1回の添削セッション）を選ぶ→その日のカードで出題」の2段階。
+  clozeDateChosen = signal(false);
 
   current = computed(() => this.quiz()[this.index()] ?? null);
   currentLevelUp = computed(() => this.levelUpQuiz()[this.index()] ?? null);
@@ -143,13 +146,46 @@ export class Drill {
     this.levelUpSentenceChosen.set(false);
     this.levelUpQuiz.set([]);
     this.currentSessionId.set(null);
+    this.clozeDateChosen.set(false);
 
-    if (mode !== 'levelup') {
-      const source = mode === 'cloze' ? this.buildClozeQuizzes() : this.buildMistakeQuizzes();
-      this.quiz.set(shuffleByWeight(source));
-    }
-    // levelup は日付選択後に selectLevelUpDate() が levelUpQuiz を構築するため、ここでは何も積まない。
+    // cloze/levelup ともに日付選択後に selectClozeDate()/selectLevelUpDate() が quiz を構築するため、
+    // ここでは何も積まない。
     this.started.set(true);
+  }
+
+  // ── 日付選択（穴埋め復習）: 選んだセッションの reviewItems だけを重み付きシャッフルして出題する ─
+  selectClozeDate(session: CorrectionSession) {
+    this.quiz.set(shuffleByWeight(this.buildClozeQuizzes(session.reviewItems ?? [])));
+    this.currentSessionId.set(session.id);
+    this.index.set(0);
+    this.score.set(0);
+    this.finished.set(false);
+    this.userAnswer.set('');
+    this.revealed.set(false);
+    this.currentCorrect.set(false);
+    this.choiceMode.set(true);
+    this.selectedChoiceIndex.set(null);
+    this.hintShown.set(false);
+    this.clozeDateChosen.set(true);
+  }
+
+  // 選択中セッションの進捗サマリー（習熟済み数/全体数）。穴埋め復習の日付選択画面のバッジ表示に使う。
+  progressForClozeSession(session: CorrectionSession): { done: number; total: number } {
+    const items = session.reviewItems ?? [];
+    const done = items.filter(r => {
+      const key = normalizeDrillKey(`${r.sentence}${r.answer}`);
+      return (this.drillProgress.getDrillProgress(key)?.correctStreak ?? 0) >= DRILL_MASTERY_STREAK;
+    }).length;
+    return { done, total: items.length };
+  }
+
+  // 日付選択画面に戻る（cloze/levelup 共通。出題中に日付を選び直したい場合）
+  backToDateSelect() {
+    this.levelUpDateChosen.set(false);
+    this.levelUpSentenceChosen.set(false);
+    this.levelUpQuiz.set([]);
+    this.clozeDateChosen.set(false);
+    this.currentSessionId.set(null);
   }
 
   // ── 日付選択: 選んだセッションの levelUpItems を Gemini が返した元の順番のまま並べ、文一覧選択画面へ進む ─
@@ -190,14 +226,6 @@ export class Drill {
     this.levelUpSentenceChosen.set(false);
   }
 
-  // 日付選択画面に戻る（出題中に日付を選び直したい場合）
-  backToDateSelect() {
-    this.levelUpDateChosen.set(false);
-    this.levelUpSentenceChosen.set(false);
-    this.levelUpQuiz.set([]);
-    this.currentSessionId.set(null);
-  }
-
   // 選択中セッションの進捗サマリー（完了数/全体数）。日付選択画面のバッジ表示に使う。
   progressForSession(session: CorrectionSession): { done: number; total: number } {
     const items = session.levelUpItems ?? [];
@@ -213,17 +241,9 @@ export class Drill {
     return { maskLevel: saved?.maskLevel ?? 0, completed: saved?.completed ?? false };
   }
 
-  // 頻出ミス → Quiz へ正規化。重みは出現回数を基準に、習熟済み（連続正解が一定数以上）なら減衰させる。
-  private buildMistakeQuizzes(): Quiz[] {
-    return getFrequentMistakes(this.repository.sessions()).map((m: Mistake & { count: number }) => {
-      const key = normalizeDrillKey(m.original);
-      return buildMistakeQuiz(m, key, this.weightFor(key, m.count), this.i18n.lang());
-    });
-  }
-
-  // 復習カード → Quiz へ正規化。基準重みは一律1とし、頻出ミスと同じロジックで習熟度による減衰をかける。
-  private buildClozeQuizzes(): Quiz[] {
-    return getReviewItems(this.repository.sessions()).map((r: ReviewItem) => {
+  // 復習カード → Quiz へ正規化。基準重みは一律1とし、習熟度による減衰をかける。
+  private buildClozeQuizzes(reviewItems: ReviewItem[]): Quiz[] {
+    return reviewItems.map((r: ReviewItem) => {
       const key = normalizeDrillKey(`${r.sentence}${r.answer}`);
       return buildClozeQuiz(r, key, this.weightFor(key, 1), this.i18n.lang());
     });
@@ -393,6 +413,7 @@ export class Drill {
     this.levelUpSentenceChosen.set(false);
     this.levelUpQuiz.set([]);
     this.currentSessionId.set(null);
+    this.clozeDateChosen.set(false);
     this.hintShown.set(false);
   }
 }

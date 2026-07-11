@@ -1,29 +1,10 @@
 import {
   buildClozeQuiz,
   buildLevelUpQuiz,
-  buildMistakeQuiz,
   classifyMistake,
   maskedIndices,
   normalizeAnswer,
 } from './quiz.util';
-
-describe('buildMistakeQuiz', () => {
-  it('頻出ミスをQuizへ正規化する', () => {
-    const quiz = buildMistakeQuiz(
-      { category: '文法', original: 'I go', corrected: 'I went', explanation: '過去形', count: 3 },
-      'key1',
-      2.4,
-    );
-    expect(quiz).toEqual({
-      key: 'key1',
-      prompt: 'I go',
-      answer: 'I went',
-      hint: '過去形',
-      badge: '文法',
-      weight: 2.4,
-    });
-  });
-});
 
 describe('buildClozeQuiz', () => {
   it('復習カードをQuizへ正規化する', () => {

@@ -1,7 +1,9 @@
-<!-- @file Drill ページテンプレート。モード選択（頻出ミス／穴埋め復習／レベルアップ・タイピング）→出題→答え合わせ→次へ→結果サマリーの流れ
+<!-- @file Drill ページテンプレート。モード選択（レベルアップ・タイピング／穴埋め復習）→出題→答え合わせ→次へ→結果サマリーの流れ
      （レベルアップ・タイピングのみ結果サマリーへは至らず、答え合わせ後は「次へ」で同じ文のまま／「中断」で文一覧に戻る）。
      日本語訳はどのモードでも既定非表示で、「ヒント」ボタン押下時または答え合わせ後にのみ表示する。
-     レベルアップ・タイピングは 日付選択 → 文一覧選択 → 出題 の3段階。日付を選ぶとその日の文一覧（進捗バッジ付き）が
+     穴埋め復習・レベルアップ・タイピングともに、まず日付（＝1回の添削セッション）を選ぶ画面から始まり、
+     各日付には進捗バッジ（穴埋め復習は習熟済み数/全体数、レベルアップ・タイピングは完了数/全体数）を表示する。
+     レベルアップ・タイピングはさらに 日付選択 → 文一覧選択 → 出題 の3段階。日付を選ぶとその日の文一覧（進捗バッジ付き）が
      表示され、任意の文を選んで出題画面に進む（途中再開可）。
      各文は maskLevel（0=全文表示〜maxLevel=全単語マスク）の一本道で進行し、正解のたびに隠れる単語が増える。
      不正解時はタイポ（見えている単語のミス）なら据え置き、理解度不足（隠れている単語のミス）なら1段階戻る。
@@ -18,28 +20,6 @@
       <p>{{ i18n.t('drill.intro') }}</p>
 
       <div class="mode-card">
-        <strong>{{ i18n.t('drill.mistakes.name') }}</strong>
-        <p>{{ i18n.t('drill.mistakes.desc') }}</p>
-        <p class="intro-count">{{ i18n.t('drill.questionCount', { count: mistakeCount() }) }}</p>
-        @if (mistakeCount() === 0) {
-          <p class="empty-note">{{ i18n.t('drill.mistakes.empty') }}</p>
-        } @else {
-          <button class="btn-primary" (click)="start('mistakes')">{{ i18n.t('drill.startMode') }}</button>
-        }
-      </div>
-
-      <div class="mode-card">
-        <strong>{{ i18n.t('drill.cloze.name') }}</strong>
-        <p>{{ i18n.t('drill.cloze.desc') }}</p>
-        <p class="intro-count">{{ i18n.t('drill.questionCount', { count: clozeCount() }) }}</p>
-        @if (clozeCount() === 0) {
-          <p class="empty-note">{{ i18n.t('drill.cloze.empty') }}</p>
-        } @else {
-          <button class="btn-primary" (click)="start('cloze')">{{ i18n.t('drill.startMode') }}</button>
-        }
-      </div>
-
-      <div class="mode-card">
         <strong>{{ i18n.t('drill.levelup.name') }}</strong>
         <p>{{ i18n.t('drill.levelup.desc') }}</p>
         <p class="intro-count">{{ i18n.t('drill.dayCount', { count: levelUpCount() }) }}</p>
@@ -47,6 +27,17 @@
           <p class="empty-note">{{ i18n.t('drill.levelup.empty') }}</p>
         } @else {
           <button class="btn-primary" (click)="start('levelup')">{{ i18n.t('drill.startMode') }}</button>
+        }
+      </div>
+
+      <div class="mode-card">
+        <strong>{{ i18n.t('drill.cloze.name') }}</strong>
+        <p>{{ i18n.t('drill.cloze.desc') }}</p>
+        <p class="intro-count">{{ i18n.t('drill.dayCount', { count: clozeCount() }) }}</p>
+        @if (clozeCount() === 0) {
+          <p class="empty-note">{{ i18n.t('drill.cloze.empty') }}</p>
+        } @else {
+          <button class="btn-primary" (click)="start('cloze')">{{ i18n.t('drill.startMode') }}</button>
         }
       </div>
     </div>
@@ -67,6 +58,27 @@
         }
         @if (levelUpDates().length === 0) {
           <p class="empty-note">{{ i18n.t('drill.noLevelUpSessions') }}</p>
+        }
+      </div>
+      <button class="btn-secondary" (click)="restart()">{{ i18n.t('drill.backToModeSelect') }}</button>
+    </div>
+  } @else if (mode() === 'cloze' && !clozeDateChosen()) {
+    <!-- ── 穴埋め復習: 日付選択画面 ── -->
+    <div class="intro">
+      <p>{{ i18n.t('drill.chooseDateCloze') }}</p>
+      <div class="date-select">
+        @for (s of clozeDates(); track s.id) {
+          <button class="date-card" (click)="selectClozeDate(s)">
+            <span class="date-card-date">{{ s.date | date:'yyyy/MM/dd' }}</span>
+            @if (progressForClozeSession(s); as p) {
+              <span class="date-card-count" [class.date-card-done]="p.done === p.total && p.total > 0">
+                {{ p.done === p.total && p.total > 0 ? i18n.t('drill.cleared') : i18n.t('drill.progressCount', { done: p.done, total: p.total }) }}
+              </span>
+            }
+          </button>
+        }
+        @if (clozeDates().length === 0) {
+          <p class="empty-note">{{ i18n.t('drill.noClozeSessions') }}</p>
         }
       </div>
       <button class="btn-secondary" (click)="restart()">{{ i18n.t('drill.backToModeSelect') }}</button>
@@ -157,14 +169,17 @@
       </div>
     }
   } @else {
-    <!-- ── 出題中 ── -->
-    <div class="progress">{{ index() + 1 }} / {{ total() }}</div>
+    <!-- ── 出題中（穴埋め復習） ── -->
+    <div class="progress">
+      {{ index() + 1 }} / {{ total() }}
+      <button class="link-button" (click)="backToDateSelect()">{{ i18n.t('drill.backToDateSelect') }}</button>
+    </div>
 
     @if (current(); as q) {
       <div class="quiz-card">
         <span class="category-badge">{{ q.badge }}</span>
         <p class="quiz-prompt">
-          {{ mode() === 'cloze' ? i18n.t('drill.promptCloze') : i18n.t('drill.promptMistake') }}
+          {{ i18n.t('drill.promptCloze') }}
         </p>
         <p class="quiz-original">{{ q.prompt }}</p>
         @if (q.translation) {

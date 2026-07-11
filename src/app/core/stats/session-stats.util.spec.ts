@@ -1,5 +1,5 @@
 import { CorrectionSession, WritingEvaluation } from '@core/models/session.model';
-import { cefrToNumber, getEvaluationHistory, getStudyStats } from './session-stats.util';
+import { cefrToNumber, getEvaluationHistory, getSessionsWithReviewItems, getStudyStats } from './session-stats.util';
 
 // テスト用セッション生成ヘルパ
 function makeSession(partial: Partial<CorrectionSession>): CorrectionSession {
@@ -10,6 +10,7 @@ function makeSession(partial: Partial<CorrectionSession>): CorrectionSession {
     corrected: partial.corrected ?? '',
     mistakes: partial.mistakes ?? [],
     evaluation: partial.evaluation,
+    reviewItems: partial.reviewItems,
   };
 }
 
@@ -92,5 +93,18 @@ describe('getEvaluationHistory', () => {
     expect(hist.length).toBe(2);
     expect(hist[0].evaluation.grammarScore).toBe(4); // 古い方が先頭
     expect(hist[1].evaluation.grammarScore).toBe(7);
+  });
+});
+
+describe('getSessionsWithReviewItems', () => {
+  it('reviewItems を持つセッションのみ返す', () => {
+    const reviewItem = { sentence: 'a', answer: 'b', hint: '', translation: '', choices: ['b'] };
+    const sessions = [
+      makeSession({ id: '1', reviewItems: [reviewItem] }),
+      makeSession({ id: '2', reviewItems: [] }),
+      makeSession({ id: '3' }), // reviewItems なし
+    ];
+    const result = getSessionsWithReviewItems(sessions);
+    expect(result.map(s => s.id)).toEqual(['1']);
   });
 });
