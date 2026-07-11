@@ -247,9 +247,6 @@
             <p class="quiz-hint">{{ i18n.t('drill.hintLabel', { hint: q.hint }) }}</p>
           }
           <div class="post-actions">
-            @if (!currentCorrect()) {
-              <button class="btn-secondary" (click)="markCorrect()">{{ i18n.t('drill.markCorrect') }}</button>
-            }
             <button class="btn-primary" #nextBtn (click)="next()">
               {{ index() + 1 >= total() ? i18n.t('drill.seeResult') : i18n.t('drill.next') }}
             </button>

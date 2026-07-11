@@ -11,6 +11,10 @@
  * ボトムナビ（#bottomNav）は ResizeObserver で実高さを監視し、--bottom-nav-height に反映する
  * （ナビ項目のラベル折り返し等で高さが app.scss の固定値を超えても .app-content の
  * padding-bottom が追従し、最下部コンテンツがタブバーに隠れないようにするため）。
+ * ResizeObserver は #bottomNav 自身のボックスサイズ変化にしか反応しないため、PWAスタンドアロン
+ * 起動時に env(safe-area-inset-bottom) の確定が初回レイアウトより遅れるケース（iOS Safari standalone
+ * で知られる挙動）に備え、window resize・visualViewport resize・起動直後の遅延再チェックでも
+ * applyHeight() を呼び直す。
  * --bottom-nav-height は .app-content/.global-notice の余白計算にのみ使い、
  * bottom-nav/nav-item自身のmin-heightには使わない（自己参照によるResizeObserverの
  * 増殖ループ－高さが際限なく増え続ける不具合－を避けるため）。
@@ -79,11 +83,17 @@ export class App {
     const observer = new ResizeObserver(applyHeight);
     observer.observe(el);
     this.desktopMedia.addEventListener('change', applyHeight);
+    window.addEventListener('resize', applyHeight);
+    window.visualViewport?.addEventListener('resize', applyHeight);
+    const deferredCheck = window.setTimeout(applyHeight, 300);
     applyHeight();
 
     this.destroyRef.onDestroy(() => {
       observer.disconnect();
       this.desktopMedia.removeEventListener('change', applyHeight);
+      window.removeEventListener('resize', applyHeight);
+      window.visualViewport?.removeEventListener('resize', applyHeight);
+      window.clearTimeout(deferredCheck);
     });
   }
 

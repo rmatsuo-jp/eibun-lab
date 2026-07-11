@@ -7,15 +7,16 @@ Gemini AI を使った英語添削 PWA アプリです。Angular で構築され
 - **練習 (Practice)** — 英文を入力し、Gemini AI によるリアルタイム添削を受ける
 - **履歴 (History)** — 過去の添削セッションを一覧で確認する
 - **ミス一覧 (Mistakes)** — 蓄積されたミスをカテゴリ別に振り返る
+- **ドリル (Drill)** — 過去のミスをもとにした穴埋め・4択問題で復習する
 - **設定 (Settings)** — Gemini API キー・モデル・添削プロンプトを設定する
 
 ## 技術スタック
 
 | 項目 | 内容 |
 |------|------|
-| フレームワーク | Angular 22 |
+| フレームワーク | Angular 22（Standalone, PWA） |
 | AI | Google Gemini API (`@google/generative-ai`) |
-| ストレージ | LocalStorage（`StorageService`） |
+| ストレージ | LocalStorage + Firestore 同期 |
 | スタイル | SCSS |
 | テスト | Vitest |
 
@@ -51,7 +52,7 @@ npm start
 ## ビルド
 
 ```bash
-ng build
+npm run build
 ```
 
 ビルド成果物は `dist/` に出力されます。
@@ -59,7 +60,7 @@ ng build
 ## テスト
 
 ```bash
-ng test
+npm test
 ```
 
 ## セキュリティ
@@ -81,18 +82,13 @@ ng test
 
 ## プロジェクト構成
 
+依存方向は `features → core → shared` の一方向。
+
 ```
 src/app/
-├── models/
-│   └── session.model.ts      # CorrectionSession / Mistake の型定義
-├── services/
-│   ├── gemini.service.ts     # Gemini API 呼び出し・ミス解析
-│   └── storage.service.ts    # LocalStorage の読み書き
-└── pages/
-    ├── practice/             # 添削入力ページ
-    ├── history/              # 履歴ページ
-    ├── mistakes/             # ミス一覧ページ
-    └── settings/             # 設定ページ
+├── core/         # モデル定義・Gemini/Firebase連携・永続化サービスなど
+├── shared/       # 共通UIコンポーネント・ユーティリティ
+└── features/     # practice / history / mistakes / drill / settings / legal
 ```
 
 ## ライセンス・免責

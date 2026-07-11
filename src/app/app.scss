@@ -1,6 +1,7 @@
 .app-shell {
   display: flex;
   flex-direction: column;
+  height: 100vh; // dvh非対応環境向けフォールバック
   height: 100dvh;
   background: var(--color-bg);
   // bottom-nav自身の高さ決定には使わない（自己参照によるResizeObserver増殖ループを避けるため）。
