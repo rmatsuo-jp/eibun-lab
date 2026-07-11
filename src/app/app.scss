@@ -4,7 +4,9 @@
   height: 100dvh;
   background: var(--color-bg);
   // bottom-nav実高さの決め打ち多重管理を避けるため、ここで一元定義し
-  // .bottom-nav/.nav-item/.app-content/.global-noticeが全て参照する
+  // .bottom-nav/.nav-item/.app-content/.global-noticeが全て参照する。
+  // この値はJS実行前の初期値・フォールバックに過ぎず、app.tsのResizeObserverが
+  // #bottomNavの実高さ（ラベル折り返し等で変動しうる）で同じ要素に上書きする。
   --bottom-nav-height: 4.5rem;
 }
 
