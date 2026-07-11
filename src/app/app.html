@@ -1,8 +1,11 @@
 <!-- @file アプリシェル。router-outlet（メインコンテンツ）・グローバル添削通知バナー・ボトムナビ（6タブ）を配置する。
      各ナビ項目は routerLinkActive を #rlaN で参照して aria-current="page" を付与し、通知バナーは
      tabindex/role/keydown.enter でキーボードからも開けるようにしている。
-     PCレイアウト（サイドバー表示時）では nav 先頭にアプリタイトル（sidebar-title）と JA/EN 言語トグルを表示し、
-     続く sidebar-toggle ボタンで格納/展開を切り替えられる（app.ts の sidebarCollapsed signal に連動）。
+     PCレイアウト（サイドバー表示時）では nav 先頭にアプリタイトル（sidebar-title）、末尾（ナビ項目の下）に
+     JA/EN 言語トグルを表示し、タイトル横の sidebar-toggle ボタンで格納/展開を切り替えられる
+     （app.ts の sidebarCollapsed signal に連動、格納時は言語トグルも非表示）。
+     モバイルレイアウトでは bottom-nav 自体が非表示にならないタブバーのため、代わりに画面右上に固定表示する
+     lang-toggle-mobile でどのタブからも言語切り替えができるようにしている。
      全文言は i18n.t() 経由（core/i18n/I18nService）で、言語トグル（toggleLanguage）を押すと
      リロードなしで即座に切り替わる。
      初回起動時、および同意文言の改訂時（CONSENT_VERSION）は showConsent signal に応じて
@@ -44,10 +47,6 @@
   <nav class="bottom-nav" [class.collapsed]="sidebarCollapsed()">
     <div class="sidebar-header">
       <a routerLink="/practice" class="sidebar-title"><span>{{ i18n.t('app.title') }}</span></a>
-      <div class="lang-toggle" role="group" [attr.aria-label]="i18n.t('sidebar.language')">
-        <button type="button" class="lang-btn" [class.active]="i18n.lang() === 'ja'" (click)="toggleLanguage('ja')">JA</button>
-        <button type="button" class="lang-btn" [class.active]="i18n.lang() === 'en'" (click)="toggleLanguage('en')">EN</button>
-      </div>
       <button type="button" class="sidebar-toggle" (click)="toggleSidebar()" [attr.aria-label]="sidebarCollapsed() ? i18n.t('sidebar.expand') : i18n.t('sidebar.collapse')">
         <svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
           <polyline points="15 18 9 12 15 6"/>
@@ -92,5 +91,15 @@
         <span>{{ i18n.t('nav.dev') }}</span>
       </a>
     }
+    <div class="lang-toggle" role="group" [attr.aria-label]="i18n.t('sidebar.language')">
+      <button type="button" class="lang-btn" [class.active]="i18n.lang() === 'ja'" (click)="toggleLanguage('ja')">JA</button>
+      <button type="button" class="lang-btn" [class.active]="i18n.lang() === 'en'" (click)="toggleLanguage('en')">EN</button>
+    </div>
   </nav>
+
+  <!-- ── モバイル用言語トグル（bottom-nav は常時表示のため右上に固定表示） ── -->
+  <div class="lang-toggle-mobile" role="group" [attr.aria-label]="i18n.t('sidebar.language')">
+    <button type="button" class="lang-btn" [class.active]="i18n.lang() === 'ja'" (click)="toggleLanguage('ja')">JA</button>
+    <button type="button" class="lang-btn" [class.active]="i18n.lang() === 'en'" (click)="toggleLanguage('en')">EN</button>
+  </div>
 </div>

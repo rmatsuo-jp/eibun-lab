@@ -152,6 +152,25 @@
   display: none;
 }
 
+// ── 言語トグル（JA/EN、サイドバー最下部）。モバイルでは lang-toggle-mobile を使うので既定は非表示 ──
+.lang-toggle {
+  display: none;
+}
+
+// ── モバイル用言語トグル（画面右上に固定表示。PCではサイドバー側の .lang-toggle を使うため非表示） ──
+.lang-toggle-mobile {
+  position: fixed;
+  top: calc(0.75rem + env(safe-area-inset-top));
+  right: 0.75rem;
+  z-index: 102; // global-notice(101)・bottom-nav(100) より前面
+  display: flex;
+  border: 1px solid var(--color-border);
+  border-radius: 0.375rem;
+  overflow: hidden;
+  background: var(--color-surface);
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.12);
+}
+
 // ── PC レイアウト（768px 以上）────────────────────────────────────
 @media (min-width: 768px) {
   .app-shell {
@@ -214,10 +233,11 @@
     }
   }
 
-  // ── 言語トグル（JA/EN）。格納時（.collapsed）は幅を圧迫しないよう非表示にする ──
+  // ── 言語トグル（JA/EN、ナビ項目の下＝サイドバー最下部）。格納時（.collapsed）は幅を圧迫しないよう非表示にする ──
   .lang-toggle {
     display: flex;
     flex: 0 0 auto;
+    margin: auto 1.25rem 0.75rem;
     border: 1px solid var(--color-border);
     border-radius: 0.375rem;
     overflow: hidden;
@@ -225,6 +245,10 @@
     .collapsed & {
       display: none;
     }
+  }
+
+  .lang-toggle-mobile {
+    display: none;
   }
 
   .lang-btn {
