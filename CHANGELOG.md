@@ -1,3 +1,25 @@
+# [0.8.0](https://github.com/rmatsuo-jp/study-english/compare/v0.7.0...v0.8.0) (2026-07-11)
+
+
+### Bug Fixes
+
+* **app:** 下部タブバーの高さをCSS変数で一元化しPWAでの重なりを解消 ([9884f72](https://github.com/rmatsuo-jp/study-english/commit/9884f72a2288272bf17b926ecec273863dac8e85))
+* **ci:** actions/checkout・setup-nodeをv5に更新しNode.js 20非推奨警告を解消 ([ddae3cb](https://github.com/rmatsuo-jp/study-english/commit/ddae3cbe7c7244471ce131790dcffb22e233b685))
+* **drill:** モード選択カードをタップ可能にし達成度を表示 ([f47216f](https://github.com/rmatsuo-jp/study-english/commit/f47216fcb7839a1258dfbfe6d95f817f9d556787))
+* **gemini:** Gemini 3 Flashの不正なモデルIDを修正 ([4592d7f](https://github.com/rmatsuo-jp/study-english/commit/4592d7f3956afc617fd6b86536e531e13c0dfc5d))
+* **gemini:** 添削解説を項目ごとに独立タグ化し表示崩れを解消 ([6c2df35](https://github.com/rmatsuo-jp/study-english/commit/6c2df35c04c8169029a9602a2d6aef075cfd179a))
+* **i18n:** プレースホルダーが複数回出現する翻訳文で置換漏れが起きる不具合を修正 ([a27a9e5](https://github.com/rmatsuo-jp/study-english/commit/a27a9e518dbb3c2277363928725f26615ba245aa))
+* **practice:** 一括添削をGemini APIのレート制限(5件/分)に合わせたバッチ処理に変更 ([ca461de](https://github.com/rmatsuo-jp/study-english/commit/ca461de3eb2fe1602c7b65718e366a83ed81e92b))
+* **practice:** 待機中クイズと進捗バーをタイトル直下へ移動 ([beac5ac](https://github.com/rmatsuo-jp/study-english/commit/beac5ac554be55a2a7a78f8a4b83c0fce5e77a3f))
+* **practice:** 待機中クイズを自動表示・添削完了時に自動終了 ([222ab24](https://github.com/rmatsuo-jp/study-english/commit/222ab243ebb52bff0d2e295b4f97f2d2c3d05bdb))
+* **settings:** APIキーヒントの「Google AI Studio」重複表記を解消 ([209080e](https://github.com/rmatsuo-jp/study-english/commit/209080ee586217eb10a2a22ed5699315d7738578))
+* **ui:** 言語切り替えボタンのスタイル統一とレイアウト修正 ([cbb768d](https://github.com/rmatsuo-jp/study-english/commit/cbb768dbf655f87f8de64a2ba5091b128f30b749))
+
+
+### Features
+
+* **session:** 添削に使用したGeminiモデルを記録し添削/履歴タブに表示 ([cd09199](https://github.com/rmatsuo-jp/study-english/commit/cd091997ce614fcc773fe3a60c6139a7b0776a24))
+
 # [0.7.0](https://github.com/rmatsuo-jp/study-english/compare/v0.6.0...v0.7.0) (2026-07-11)
 
 
