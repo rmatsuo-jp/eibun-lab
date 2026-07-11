@@ -20,29 +20,37 @@
     <div class="intro">
       <p>{{ i18n.t('drill.intro') }}</p>
 
-      <button class="mode-card" (click)="start('levelup')" [disabled]="levelUpCount() === 0">
+      <button class="mode-card" (click)="start('levelup')" [disabled]="levelUpCount() === 0 && !isNewUser()">
         <strong>{{ i18n.t('drill.levelup.name') }}</strong>
         <p>{{ i18n.t('drill.levelup.desc') }}</p>
-        <p class="intro-count">{{ i18n.t('drill.dayCount', { count: levelUpCount() }) }}</p>
-        @if (levelUpCount() === 0) {
-          <p class="empty-note">{{ i18n.t('drill.levelup.empty') }}</p>
-        } @else if (levelUpAchievement(); as a) {
-          <span class="achievement-badge" [class.achievement-done]="a.done === a.total && a.total > 0">
-            {{ i18n.t('drill.achievement', { done: a.done, total: a.total }) }}
-          </span>
+        @if (levelUpCount() === 0 && isNewUser()) {
+          <p class="empty-note">{{ i18n.t('drill.levelup.sampleNote') }}</p>
+        } @else {
+          <p class="intro-count">{{ i18n.t('drill.dayCount', { count: levelUpCount() }) }}</p>
+          @if (levelUpCount() === 0) {
+            <p class="empty-note">{{ i18n.t('drill.levelup.empty') }}</p>
+          } @else if (levelUpAchievement(); as a) {
+            <span class="achievement-badge" [class.achievement-done]="a.done === a.total && a.total > 0">
+              {{ i18n.t('drill.achievement', { done: a.done, total: a.total }) }}
+            </span>
+          }
         }
       </button>
 
-      <button class="mode-card" (click)="start('cloze')" [disabled]="clozeCount() === 0">
+      <button class="mode-card" (click)="start('cloze')" [disabled]="clozeCount() === 0 && !isNewUser()">
         <strong>{{ i18n.t('drill.cloze.name') }}</strong>
         <p>{{ i18n.t('drill.cloze.desc') }}</p>
-        <p class="intro-count">{{ i18n.t('drill.dayCount', { count: clozeCount() }) }}</p>
-        @if (clozeCount() === 0) {
-          <p class="empty-note">{{ i18n.t('drill.cloze.empty') }}</p>
-        } @else if (clozeAchievement(); as a) {
-          <span class="achievement-badge" [class.achievement-done]="a.done === a.total && a.total > 0">
-            {{ i18n.t('drill.achievement', { done: a.done, total: a.total }) }}
-          </span>
+        @if (clozeCount() === 0 && isNewUser()) {
+          <p class="empty-note">{{ i18n.t('drill.cloze.sampleNote') }}</p>
+        } @else {
+          <p class="intro-count">{{ i18n.t('drill.dayCount', { count: clozeCount() }) }}</p>
+          @if (clozeCount() === 0) {
+            <p class="empty-note">{{ i18n.t('drill.cloze.empty') }}</p>
+          } @else if (clozeAchievement(); as a) {
+            <span class="achievement-badge" [class.achievement-done]="a.done === a.total && a.total > 0">
+              {{ i18n.t('drill.achievement', { done: a.done, total: a.total }) }}
+            </span>
+          }
         }
       </button>
     </div>
@@ -109,6 +117,9 @@
   } @else if (finished()) {
     <!-- ── 結果サマリー ── -->
     <div class="result-summary">
+      @if (sampleMode()) {
+        <p class="empty-note">{{ i18n.t(mode() === 'levelup' ? 'drill.levelup.sampleNote' : 'drill.cloze.sampleNote') }}</p>
+      }
       @if (mode() === 'levelup') {
         <p class="result-score">{{ i18n.t('drill.resultLevelUp', { mastered: masteredCount(), total: total() }) }}</p>
       } @else {
@@ -127,6 +138,9 @@
 
     @if (currentLevelUp(); as item) {
       <div class="quiz-card">
+        @if (sampleMode()) {
+          <span class="achievement-badge">{{ i18n.t('drill.sampleBadge') }}</span>
+        }
         <div class="mask-progress">{{ i18n.t('drill.maskProgress', { level: maskLevel(), max: item.maxLevel }) }}</div>
 
         <p class="quiz-prompt">
@@ -183,6 +197,9 @@
     @if (current(); as q) {
       <div class="quiz-card">
         <span class="category-badge">{{ q.badge }}</span>
+        @if (sampleMode()) {
+          <span class="achievement-badge">{{ i18n.t('drill.sampleBadge') }}</span>
+        }
         <p class="quiz-prompt">
           {{ i18n.t('drill.promptCloze') }}
         </p>

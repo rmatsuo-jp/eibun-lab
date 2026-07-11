@@ -44,6 +44,11 @@ rules:
       - 間違い一覧
       - エラー一覧
 
+  - expected: サンプル問題
+    patterns:
+      - 例題
+      - 体験版問題
+
   # ── 固有名詞・略語（半角固定）────────────────────
   - expected: Gemini
     patterns:

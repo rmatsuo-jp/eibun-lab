@@ -1,6 +1,8 @@
 /**
  * @file 添削の API 送受信を待つ間に表示するミニクイズ。過去セッションの復習カード（ReviewItem）から
  * 4択の穴埋め問題をランダムに出題し、待ち時間を学習時間に変える。
+ * これまで添削したことがない新規ユーザー（セッション0件）は復習カードを持たないため、
+ * core/quiz/sample-data.ts の静的サンプル問題（isSample=true）を代わりに出題する。
  * 出題ロジックは core/quiz/quiz.util.ts の純粋関数を Drill と共用する（feature 間 import は行わない）。
  * ドリルの習熟度（DrillProgressService）には記録しない — 気晴らし用途であり、
  * 待機時間に左右される回答結果で習熟判定が歪むのを避けるため。
@@ -13,6 +15,7 @@ import { Component, computed, inject, signal } from '@angular/core';
 import { SessionRepositoryService } from '@core/sessions/session-repository.service';
 import { getReviewItems, normalizeDrillKey } from '@core/stats/session-stats.util';
 import { buildClozeQuiz, normalizeAnswer, shuffleByWeight } from '@core/quiz/quiz.util';
+import { SAMPLE_REVIEW_ITEMS } from '@core/quiz/sample-data';
 import { I18nService } from '@core/i18n/i18n.service';
 import { PracticeState } from '../practice-state.service';
 
@@ -27,11 +30,16 @@ export class WaitingQuiz {
   state = inject(PracticeState);
   protected i18n = inject(I18nService);
 
+  // これまで添削したことがない新規ユーザー（セッション0件）かどうか。
+  // 新規ユーザーには復習カードが存在しないため、静的サンプル問題を代わりに出題する。
+  isSample = this.repository.sessions().length === 0;
+
   // ── 出題リスト（コンポーネント生成時に一度だけ確定させる） ──────────
   // 添削中に新しいセッションが保存されて出題が入れ替わることを避けるため、signal ではなく固定配列で持つ。
   // weight は一律 1（習熟度を参照しないため）で、shuffleByWeight は純粋なランダム並べ替えとして働く。
   private readonly quizzes = shuffleByWeight(
-    getReviewItems(this.repository.sessions()).map(r => buildClozeQuiz(r, normalizeDrillKey(r.sentence), 1, this.i18n.lang()))
+    (this.isSample ? SAMPLE_REVIEW_ITEMS : getReviewItems(this.repository.sessions()))
+      .map(r => buildClozeQuiz(r, normalizeDrillKey(r.sentence), 1, this.i18n.lang()))
   );
 
   hasQuiz = this.quizzes.length > 0;

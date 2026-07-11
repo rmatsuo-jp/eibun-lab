@@ -36,6 +36,10 @@
  * 時点の言語で固定される（スナップショット方式。出題順の固定と同じ設計）。
  * スタート画面のモード選択カードはカード全体がボタンで、達成度（levelUpAchievement/clozeAchievement、
  * 各セッションのprogressForSession/progressForClozeSessionを合算）をバッジ表示する。
+ * これまで添削したことがない新規ユーザー（isNewUser、セッション0件）は日付選択をスキップし、
+ * core/quiz/sample-data.ts の静的サンプル問題（cloze5問/levelup3文）を直接出題する（sampleMode=true）。
+ * サンプル出題中は DrillProgressSyncService への進捗永続化（recordDrillResult/setLevelUpItemProgress）を
+ * 行わない（levelupはcurrentSessionId=nullで自動的にスキップされ、clozeはsampleMode()で明示的にガードする）。
  */
 import { Component, computed, effect, ElementRef, inject, signal, viewChild } from '@angular/core';
 import { DatePipe } from '@angular/common';
@@ -45,6 +49,7 @@ import { getSessionsWithLevelUp, getSessionsWithReviewItems, normalizeDrillKey }
 import { DRILL_MASTERY_STREAK } from './drill-progress.service';
 import { DrillProgressSyncService } from './drill-progress-sync.service';
 import { CorrectionSession, ReviewItem } from '@core/models/session.model';
+import { SAMPLE_LEVELUP_ITEMS, SAMPLE_REVIEW_ITEMS } from '@core/quiz/sample-data';
 import { I18nService } from '@core/i18n/i18n.service';
 import {
   buildClozeQuiz,
@@ -82,6 +87,10 @@ export class Drill {
   clozeCount = computed(() => this.clozeDates().length);
   levelUpDates = computed(() => getSessionsWithLevelUp(this.repository.sessions()));
   levelUpCount = computed(() => this.levelUpDates().length);
+
+  // これまで添削したことがない新規ユーザー（セッション0件）かどうか。
+  // 新規ユーザーには復習カード・レベルアップ例文が存在しないため、静的サンプル問題で体験させる。
+  isNewUser = computed(() => this.repository.sessions().length === 0);
 
   // スタート画面のモード選択カードに表示する達成度（完了数/全体数の合算）。
   levelUpAchievement = computed(() => {
@@ -127,6 +136,10 @@ export class Drill {
   // 穴埋め復習も「日付（＝1回の添削セッション）を選ぶ→その日のカードで出題」の2段階。
   clozeDateChosen = signal(false);
 
+  // 新規ユーザー向け静的サンプル問題で出題中かどうか。true の間は DrillProgressSyncService への
+  // 進捗永続化を行わない（実データを汚さないため）。
+  sampleMode = signal(false);
+
   current = computed(() => this.quiz()[this.index()] ?? null);
   currentLevelUp = computed(() => this.levelUpQuiz()[this.index()] ?? null);
   total = computed(() => this.mode() === 'levelup' ? this.levelUpQuiz().length : this.quiz().length);
@@ -163,7 +176,21 @@ export class Drill {
     this.currentSessionId.set(null);
     this.clozeDateChosen.set(false);
 
-    // cloze/levelup ともに日付選択後に selectClozeDate()/selectLevelUpDate() が quiz を構築するため、
+    // 新規ユーザー（セッション0件）は日付選択をスキップし、静的サンプル問題を直接出題する。
+    this.sampleMode.set(this.isNewUser());
+    if (this.isNewUser()) {
+      if (mode === 'cloze') {
+        this.quiz.set(shuffleByWeight(this.buildClozeQuizzes(SAMPLE_REVIEW_ITEMS)));
+        this.clozeDateChosen.set(true);
+      } else {
+        this.levelUpQuiz.set(
+          SAMPLE_LEVELUP_ITEMS.map(item => buildLevelUpQuiz(item, normalizeDrillKey(item.leveledUp), this.i18n.lang()))
+        );
+        this.levelUpDateChosen.set(true);
+      }
+    }
+
+    // 通常ユーザーは日付選択後に selectClozeDate()/selectLevelUpDate() が quiz を構築するため、
     // ここでは何も積まない。
     this.started.set(true);
   }
@@ -310,7 +337,7 @@ export class Drill {
     this.currentCorrect.set(correct);
     if (correct) this.score.update(s => s + 1);
     this.revealed.set(true);
-    this.drillProgress.recordDrillResult(cur.key, correct);
+    if (!this.sampleMode()) this.drillProgress.recordDrillResult(cur.key, correct);
   }
 
   // ── レベルアップ・タイピングの回答チェック ─────────────────────
@@ -360,7 +387,7 @@ export class Drill {
     if (!cur || !this.revealed() || this.currentCorrect()) return;
     this.currentCorrect.set(true);
     this.score.update(s => s + 1);
-    this.drillProgress.recordDrillResult(cur.key, true);
+    if (!this.sampleMode()) this.drillProgress.recordDrillResult(cur.key, true);
   }
 
   // 同じ問題にもう一度挑戦する（mistakesの「もう一度」／levelupの「次へ」の実体。
@@ -402,5 +429,6 @@ export class Drill {
     this.currentSessionId.set(null);
     this.clozeDateChosen.set(false);
     this.hintShown.set(false);
+    this.sampleMode.set(false);
   }
 }
