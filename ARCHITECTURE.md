@@ -11,16 +11,16 @@ features/ ──▶ core/ ──▶ shared/
 ```
 
 - **features/** … 遅延ロードされるページ単位の拡張機能。ページ専用の service / util / guard は同じフォルダに同居する。feature 間の依存は禁止。
-- **core/** … 全 feature が共有する基盤（ドメイン型・永続化・Gemini クライアント・Firebase・統計）。feature を import してはならない。
+- **core/** … 全 feature が共有する基盤（ドメイン型・永続化・Gemini クライアント・Firebase・統計・多言語表示）。feature を import してはならない。
 - **shared/** … アプリのドメインに依存しない汎用ユーティリティ（Markdown・日付・クリップボード等）。
 
 ```mermaid
 graph TD
     subgraph Features["features/（遅延ロード。1フォルダ = 1拡張機能）"]
         Practice["practice\n英文入力・添削\n(+ practice-state.service\n+ bulk-import.util\n+ waiting-quiz)"]
-        Drill["drill\n弱点克服ドリル\n(+ drill-progress.service)"]
-        History["history\n履歴・検索・入出力"]
-        Mistakes["mistakes\n統計ダッシュボード"]
+        Drill["drill\n弱点克服ドリル\n(+ drill-state.service\n+ drill-progress.service\n+ drill-progress-sync.service\n+ sentence-list)"]
+        History["history\n履歴・検索・入出力\n(+ history-calendar)"]
+        Mistakes["mistakes\n統計ダッシュボード\n(+ mistakes-state.service)"]
         Settings["settings\nAPIキー・テーマ\n(+ settings.guard)"]
         Dev["dev（本番非搭載）\nGeminiログ閲覧\n(+ dev-log.service)"]
     end
@@ -32,6 +32,7 @@ graph TD
         Gemini["gemini\nGeminiService\n+ prompt/parse/evaluation\n/stream-progress util"]
         Quiz["quiz\nquiz.util（出題ロジック純粋関数。\ndrill と practice の待機中クイズが共用）"]
         Stats["stats\nsession-stats.util（純粋関数）"]
+        I18n["i18n\nI18nService（lang signal）\n+ translations\n+ localized-session.util\n+ prose-fields.util"]
         Firebase["firebase\nAuthService / firebase.init"]
         Logging["logging\nGEMINI_LOGGER トークン"]
     end
@@ -51,11 +52,25 @@ graph TD
 | feature  | 使用する core                                                                               |
 | -------- | ------------------------------------------------------------------------------------------- |
 | practice | GeminiService / SessionRepositoryService / SettingsStoreService                             |
-| drill    | SessionRepositoryService / stats（+ feature 内 DrillProgressService）                       |
-| history  | SessionRepositoryService                                                                    |
-| mistakes | SessionRepositoryService / stats                                                            |
+| drill    | SessionRepositoryService / stats / I18nService（+ feature 内 DrillState / DrillProgressService / DrillProgressSyncService） |
+| history  | SessionRepositoryService / I18nService（+ feature 内 HistoryCalendar）                      |
+| mistakes | SessionRepositoryService / stats / I18nService（+ feature 内 MistakesState）                |
 | settings | SettingsStoreService / AuthService / gemini-models.constants                                |
 | dev      | SessionRepositoryService / SettingsStoreService / prompt.util（+ feature 内 DevLogService） |
+
+### 状態分離パターン（drill / mistakes）
+
+`drill` と `mistakes` は「状態・ロジックは feature 内の `{feature}-state.service.ts` に集約し、
+コンポーネント（`drill.ts` / `mistakes.ts`）はテンプレートとの橋渡し・DOM操作のみに専念する」という
+パターンを採る。`DrillState` / `MistakesState` はいずれも `providedIn: 'root'` の singleton で、
+`SessionRepositoryService` と純粋関数（`core/quiz/quiz.util.ts` / `core/stats/session-stats.util.ts`）を
+組み合わせて `computed()` で状態を導出する。**今後 feature に複雑な状態管理が必要になった場合は、
+このパターンに倣い `{feature}-state.service.ts` を新設すること。**
+
+### 変更検知
+
+全コンポーネントは `ChangeDetectionStrategy.OnPush` を採用する（リポジトリ全体の規約）。
+状態は signal ベースで保持され、`OnPush` と組み合わせて変更検知範囲を最小化する。
 
 ---
 
@@ -183,34 +198,45 @@ sequenceDiagram
 ## 5. ドリル機能のデータフロー
 
 `Drill`（features/drill）は「頻出ミス出題」「穴埋め復習」「レベルアップ・タイピング」の3モードを持つ。
-出題元データは core の `SessionRepositoryService.sessions` を `session-stats.util`（core/stats）の
-純粋関数で集計し、習熟度は feature 内の `DrillProgressService` が管理する。
+状態とロジックは `DrillState`（features/drill、singleton）に集約されており、出題元データは core の
+`SessionRepositoryService.sessions` を `session-stats.util`（core/stats）と `quiz.util`（core/quiz）の
+純粋関数で集計・整形し、習熟度は同じく feature 内の `DrillProgressService` が管理する。`drill.ts` 自体は
+`DrillState` を inject するだけの薄いコンポーネントで、フォーカス制御など DOM 操作のみを行う。
+出題画面は `sentence-list`（レベルアップの文一覧選択）などのサブコンポーネントに分割されている。
 
 ```mermaid
 flowchart TD
     Sessions[("SessionRepository.sessions\n(過去のCorrectionSession[])")]
 
-    subgraph Stats["core/stats: session-stats.util（純粋関数）"]
+    subgraph Stats["core/stats + core/quiz（純粋関数）"]
         FreqMistakes["getFrequentMistakes()"]
         ReviewItems["getReviewItems()"]
         LevelUpSessions["getSessionsWithLevelUp()"]
+        QuizUtil["quiz.util\n(出題整形・正誤判定)"]
     end
 
-    subgraph Progress["features/drill: DrillProgressService"]
+    subgraph Progress["features/drill: DrillState + DrillProgressService"]
+        DrillState["DrillState\n(状態集約・computed)"]
         DrillKey["正規化キー（normalizeDrillKey）ごとの\ncorrectStreak管理"]
         LevelUpProg["セッション単位のmaskLevel/completed管理"]
+        Sync["DrillProgressSyncService\n(クラウド同期)"]
     end
 
     Sessions --> FreqMistakes --> Weighting
     Sessions --> ReviewItems --> Weighting
     Sessions --> LevelUpSessions --> LevelUpProg
+    QuizUtil --> DrillState
 
     DrillKey --> Weighting["出題重み付け\n(correctStreak高いほど出現率を下げる)"]
-    Weighting --> Quiz["Drill コンポーネント出題"]
-    LevelUpProg --> Quiz
+    Weighting --> DrillState
+    LevelUpProg --> DrillState
+    DrillState --> Quiz["Drill / SentenceList コンポーネント出題"]
 
-    Quiz -->|正誤を記録| DrillKey
-    Quiz -->|段階進捗を記録| LevelUpProg
+    Quiz -->|正誤を記録| DrillState
+    DrillState -->|正誤を記録| DrillKey
+    DrillState -->|段階進捗を記録| LevelUpProg
+    DrillKey --- Sync
+    LevelUpProg --- Sync
 ```
 
 習熟度は問題ごとの正規化キー（`normalizeDrillKey`）単位で管理され、連続正解数（`correctStreak`）が
@@ -328,17 +354,25 @@ flowchart TD
 
 ---
 
-## 9. 課題点（シンプルさ・合理性の観点）
+## 9. i18n（多言語表示）
 
-1. **二重の永続化層と手動マージの複雑さ**
-   LocalStorageとFirestoreを両方「正」として扱い、[firestore-sync.service.ts](src/app/core/sessions/firestore-sync.service.ts)
-   がidベースの手動マージ（`deleted`のOR結合）を自前実装している。Firestore SDK標準のオフライン永続化
-   （IndexedDBキャッシュ + `onSnapshot`）に委ねれば、この同期ロジック自体を書かずに済み、リアルタイム反映や
-   複数タブ間の一貫性も自然に得られる可能性がある。
+`I18nService`（core/i18n）が `lang` signal（`'ja' | 'en'`）を保持し、UI文言は `translations.ts` の
+`TRANSLATIONS` 辞書から `t()` で引く。`mistakes`/`drill`/`history` の state service はいずれもこの
+`I18nService` を inject し、表示言語に応じたラベル・軸ラベルなどを `computed()` で導出する。
 
-2. **fire-and-forgetなFirestore push**
-   保存/削除/インポートのたびに即座にpushしているが、失敗時は`console.error`のみでリトライがない。
-   オフライン時やエラー時にローカルとクラウドが乖離したまま気づかれないリスクがある。
+```mermaid
+flowchart LR
+    Gemini["GeminiService (core)\nプロンプト生成・解析は\nlangを一切参照しない"] -->|ja/en両方の\nフィールドを1回のAPI呼び出しで生成| Session["CorrectionSession\n(ja本文 + *Enフィールド)"]
+    Session --> Localized["localized-session.util\n(core/i18n)\nlangに応じてja/en出し分け\n（en欠損時はjaへフォールバック）"]
+    I18nService["I18nService.lang()"] --> Localized
+    Localized --> UI["practice / history / drill / mistakes\nの各state service・コンポーネント"]
+```
 
-**総評**: features → core → shared の一方向依存により、ページ（feature）の追加・削除が他へ波及しない
-構造になった。残る複雑さはクラウド同期まわり（1〜2）に集約されており、見直すならここが最優先。
+- `buildPrompt()`（core/gemini/prompt.util.ts）と `GeminiService` は `lang` を一切参照しない。
+  Gemini は常に日本語本文と対応する `*En` フィールド（例: `correctedEn`）を同一APIレスポンスで生成し、
+  `session.model.ts` のセッションデータ構造自体もこの2言語の並行フィールド保持を前提としており、
+  i18n導入による**モデル変更・プロンプト変更はない**。
+- `localized-session.util.ts` は「表示直前」にja/enどちらを出すかを選ぶ純粋関数群
+  （`localizedCategory` 等）で、en側フィールドが未設定の場合はjaへフォールバックする。
+- `prose-fields.util.ts` は添削本文系フィールド（corrected/levelUpTextなど）のja/enキー対応表を
+  一元管理し、practice・historyの表示ロジックで共有する。

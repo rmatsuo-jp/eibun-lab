@@ -7,6 +7,8 @@
  * 持つため、トップレベルだけでなく配列要素内の undefined キーも stripUndefinedDeep() で除去する。
  * 同期失敗は syncError signal（読み取り専用）にメッセージを流し、app.ts がグローバルバナーで
  * ユーザーに知らせる（次回の同期成功時に自動でクリアされる）。
+ * push に失敗したセッションは pendingPush に保持し、オンライン復帰（window の online イベント）時に
+ * 自動で再送する。
  */
 import { effect, Injectable, inject, signal } from '@angular/core';
 import { collection, doc, getDocs, setDoc } from 'firebase/firestore';
@@ -58,6 +60,9 @@ export class FirestoreSyncService {
   private _syncError = signal<string | null>(null);
   readonly syncError = this._syncError.asReadonly();
 
+  // push に失敗したセッションID。オンライン復帰時にこの分だけ再送する。
+  private pendingPushIds = new Set<string>();
+
   constructor() {
     // ログイン状態を監視し、ログインした瞬間にクラウドと双方向同期する。
     // ログアウト時（user が null）はローカルキャッシュをそのまま残す。
@@ -74,6 +79,19 @@ export class FirestoreSyncService {
           });
       }
     });
+
+    // オフライン中に失敗した push は、オンライン復帰時に自動で再送する。
+    window.addEventListener('online', () => this.retryPendingPush());
+  }
+
+  // pendingPushIds に溜まっているセッションを、ローカルの最新状態で再送する。
+  private retryPendingPush(): void {
+    if (this.pendingPushIds.size === 0) return;
+    const ids = this.pendingPushIds;
+    const sessions = this.sessionStore
+      .allSessions()
+      .filter((s) => ids.has(s.id));
+    if (sessions.length > 0) this.pushSessions(sessions);
   }
 
   // apps/eibun_lab/users/{uid}/sessions/{sessionId} のドキュメント参照を返す。
@@ -113,9 +131,13 @@ export class FirestoreSyncService {
     const uid = this.auth.user()?.uid;
     if (!uid || sessions.length === 0) return;
     Promise.all(sessions.map((s) => setDoc(this.sessionDoc(uid, s.id), this.toDocData(s))))
-      .then(() => this._syncError.set(null))
+      .then(() => {
+        for (const s of sessions) this.pendingPushIds.delete(s.id);
+        this._syncError.set(null);
+      })
       .catch((err) => {
         console.error('[FirestoreSyncService] 一括同期に失敗:', err);
+        for (const s of sessions) this.pendingPushIds.add(s.id);
         this._syncError.set('学習履歴のクラウド同期に失敗しました。ローカルには保存されています。');
       });
   }
