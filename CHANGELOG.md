@@ -1,3 +1,12 @@
+## [1.0.2](https://github.com/rmatsuo-jp/eibun-lab/compare/v1.0.1...v1.0.2) (2026-07-11)
+
+
+### Bug Fixes
+
+* CIのみauth.service.spec.tsが失敗するテスト分離バグを修正 ([de60d27](https://github.com/rmatsuo-jp/eibun-lab/commit/de60d27593f5a8c0233863bb90a66f3eecf959e0))
+* Firestore push失敗時にオンライン復帰で自動リトライ ([94af053](https://github.com/rmatsuo-jp/eibun-lab/commit/94af053ca4af8fe99137d12719b0c5ba5c0be4a8))
+* optionalフィールドの型導出によりOPTIONAL_FIELDSの追加漏れをコンパイルエラー化 ([6ee6cc8](https://github.com/rmatsuo-jp/eibun-lab/commit/6ee6cc85d0c484aa28f5887233b20cab84248bdc))
+
 ## [1.0.1](https://github.com/rmatsuo-jp/eibun-lab/compare/v1.0.0...v1.0.1) (2026-07-11)
 
 
