@@ -117,11 +117,13 @@ export class SettingsStoreService {
     );
   }
 
-  // apiKey を暗号文（apiKeyEnc）に変換して書き込む。平文 apiKey は保存形式から除外する。
+  // apiKey を暗号文（apiKeyEnc）に変換して書き込む。平文 apiKey は保存形式から常に除外する。
+  // Web Crypto / IndexedDB 非対応環境では永続化せず、メモリ内キャッシュ（apiKeyCache）のみで
+  // 保持する（ページ再読み込みで消える。localStorage への平文保存はセキュリティ上行わない）。
   private async persist(settings: AppSettings): Promise<void> {
     const { apiKey, ...rest } = settings;
     if (!isCryptoSupported()) {
-      writeJson(SETTINGS_KEY, { ...rest, apiKey }); // 非対応環境では従来どおり平文保存
+      writeJson(SETTINGS_KEY, rest);
       return;
     }
     let apiKeyEnc: string | undefined;
