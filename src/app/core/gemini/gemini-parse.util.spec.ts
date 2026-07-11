@@ -83,7 +83,7 @@ describe('stripKnownBlocks', () => {
 
   it('見出しが欠落しタグだけでも JSON が本文に残らない', () => {
     const text = [
-      '【CEFR評価の根拠】',
+      '前置き。',
       '語彙は A2 相当です。',
       '',
       '<levelup>{"levelUpItems":[{"original":"a","leveledUp":"b"}]}</levelup>',
@@ -91,7 +91,7 @@ describe('stripKnownBlocks', () => {
     ].join('\n');
 
     const out = stripKnownBlocks(text);
-    expect(out).toBe('【CEFR評価の根拠】\n語彙は A2 相当です。');
+    expect(out).toBe('前置き。\n語彙は A2 相当です。');
     expect(out).not.toContain('levelUpItems');
     expect(out).not.toContain('Leveled up prose.');
   });
@@ -105,8 +105,8 @@ describe('stripKnownBlocks', () => {
     ].join('\n');
 
     const out = stripKnownBlocks(text);
-    expect(out).toBe('【今のレベルから伸ばすための学習法】\n冠詞のドリルを1日30分。');
     expect(out).not.toContain('levelUpItems');
+    expect(out).toContain('冠詞のドリルを1日30分。');
   });
 
   it('閉じタグが欠落し次の開始タグが続く場合はそこで除去が止まる', () => {
@@ -115,7 +115,7 @@ describe('stripKnownBlocks', () => {
   });
 
   it('既知タグが無ければ入力をそのまま返す', () => {
-    const text = '【文法・語法のミスの指摘】\n特にミスはありません。';
+    const text = '前置きのみで、既知タグも見出しも含まない本文です。';
     expect(stripKnownBlocks(text)).toBe(text);
   });
 
@@ -124,47 +124,40 @@ describe('stripKnownBlocks', () => {
     expect(stripKnownBlocks(text)).toBe('前書き\n\n後書き');
   });
 
-  // ── prose-ja/prose-en（日英併記の添削解説プローズ）関連 ──────────────
-  it('見出し【解説のまとめ（日英併記）】〜</prose-en> がひとまとまりで除去される', () => {
+  // ── 解説5項目（-ja/-en 個別タグ）関連 ──────────────────────────────
+  it('見出し【文法のミスの傾向】〜</grammar-tendency-en> がひとまとまりで除去される', () => {
     const text = [
-      '【文法・語法のミスの指摘】',
-      '三単現の s が抜けています。',
-      '',
-      '【解説のまとめ（日英併記）】',
-      '<prose-ja>三単現の s が抜けています。</prose-ja>',
-      '<prose-en>The third-person singular -s is missing.</prose-en>',
+      '【文法のミスの傾向】',
+      '<grammar-tendency-ja>三単現の s が抜けやすい傾向。</grammar-tendency-ja>',
+      '<grammar-tendency-en>Tends to drop the third-person singular -s.</grammar-tendency-en>',
       '',
       '【添削後の全文】',
       '<corrected-text>He goes to school.</corrected-text>',
     ].join('\n');
 
     const out = stripKnownBlocks(text);
-    expect(out).toContain('三単現の s が抜けています。');
-    expect(out).not.toContain('prose-ja');
-    expect(out).not.toContain('prose-en');
-    expect(out).not.toContain('The third-person singular');
-    expect(out).not.toContain('【解説のまとめ（日英併記）】');
+    expect(out).not.toContain('grammar-tendency-ja');
+    expect(out).not.toContain('grammar-tendency-en');
+    expect(out).not.toContain('三単現の s が抜けやすい傾向。');
+    expect(out).not.toContain('【文法のミスの傾向】');
   });
 
-  it('extractTaggedText で <prose-ja>/<prose-en> をそれぞれ独立して抽出できる', () => {
-    const text = '<prose-ja>日本語の解説</prose-ja><prose-en>English explanation</prose-en>';
-    expect(extractTaggedText(text, 'prose-ja')).toBe('日本語の解説');
-    expect(extractTaggedText(text, 'prose-en')).toBe('English explanation');
+  it('extractTaggedText で解説タグの -ja/-en をそれぞれ独立して抽出できる', () => {
+    const text = '<grammar-notes-ja>日本語の解説</grammar-notes-ja><grammar-notes-en>English explanation</grammar-notes-en>';
+    expect(extractTaggedText(text, 'grammar-notes-ja')).toBe('日本語の解説');
+    expect(extractTaggedText(text, 'grammar-notes-en')).toBe('English explanation');
   });
 
-  it('<prose-ja> の抽出に失敗した場合は stripKnownBlocks が従来どおりのフォールバックとして働く', () => {
-    // Gemini がタグ指示に従わなかった場合を想定: prose-ja/prose-en が無いレスポンス
+  it('1つのタグが欠落しても他のタグは独立して抽出できる（部分崩れが全体に波及しない）', () => {
+    // grammar-notes-en の閉じタグが欠落したケースを想定
     const text = [
-      '【文法・語法のミスの指摘】',
-      '三単現の s が抜けています。',
-      '',
-      '【添削後の全文】',
-      '<corrected-text>He goes to school.</corrected-text>',
+      '<grammar-notes-ja>三単現の s が抜けています。</grammar-notes-ja>',
+      '<grammar-notes-en>The third-person singular -s is missing.',
+      '<cefr-rationale-ja>語彙は A2 相当です。</cefr-rationale-ja>',
     ].join('\n');
 
-    expect(extractTaggedText(text, 'prose-ja')).toBeUndefined();
-    const fallback = stripKnownBlocks(text);
-    expect(fallback).toContain('三単現の s が抜けています。');
-    expect(fallback).not.toContain('corrected-text');
+    expect(extractTaggedText(text, 'grammar-notes-ja')).toBe('三単現の s が抜けています。');
+    expect(extractTaggedText(text, 'grammar-notes-en')).toBeUndefined();
+    expect(extractTaggedText(text, 'cefr-rationale-ja')).toBe('語彙は A2 相当です。');
   });
 });

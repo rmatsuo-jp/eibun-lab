@@ -22,7 +22,7 @@ import { SettingsStoreService } from '@core/settings/settings-store.service';
 import { buildPrompt } from '@core/gemini/prompt.util';
 import { BulkEntry } from './bulk-import.util';
 import { toDayKey } from '@shared/utils/date.util';
-import { CorrectionSession, LevelUpItem, Mistake, ReviewItem, WritingEvaluation } from '@core/models/session.model';
+import { CorrectionSession } from '@core/models/session.model';
 
 @Injectable({ providedIn: 'root' })
 export class PracticeState {
@@ -40,7 +40,7 @@ export class PracticeState {
   // 待機中クイズを表示中か。「クイズで待つ」で true、「結果を見る」で false。添削開始時にリセットする。
   showQuiz = signal(false);
   error = signal('');
-  result = signal<{ original: string; corrected: string; correctedText?: string; mistakes: Mistake[]; evaluation?: WritingEvaluation; reviewItems?: ReviewItem[]; levelUpItems?: LevelUpItem[]; levelUpText?: string } | null>(null);
+  result = signal<({ original: string } & CorrectionResult) | null>(null);
 
   // ── グローバル通知（ルートのバナーが購読） ────────────────────────
   // null = 非表示。完了/エラーはユーザーが閉じるか添削タブ遷移で消す。
@@ -111,7 +111,18 @@ export class PracticeState {
       date: sessionDate.toISOString(),
       original: text,
       corrected: res.corrected,
+      correctedEn: res.correctedEn,
       correctedText: res.correctedText,
+      grammarNotes: res.grammarNotes,
+      grammarNotesEn: res.grammarNotesEn,
+      naturalExpressions: res.naturalExpressions,
+      naturalExpressionsEn: res.naturalExpressionsEn,
+      grammarTendency: res.grammarTendency,
+      grammarTendencyEn: res.grammarTendencyEn,
+      cefrRationale: res.cefrRationale,
+      cefrRationaleEn: res.cefrRationaleEn,
+      studyPlan: res.studyPlan,
+      studyPlanEn: res.studyPlanEn,
       mistakes: res.mistakes,
       evaluation: res.evaluation,
       reviewItems: res.reviewItems,

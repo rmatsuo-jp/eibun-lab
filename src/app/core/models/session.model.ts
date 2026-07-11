@@ -5,9 +5,14 @@
  * CorrectionSession（1回の添削セッション。corrected=添削解説プローズ、correctedText=添削後の全文、
  * levelUpText=レベルアップ後の全文）を定義する。
  * 日本語の説明系フィールド（Mistake.explanation, ReviewItem.hint/translation, LevelUpItem.translation,
- * CorrectionSession.corrected）は、対応する `*En` フィールドに英語版を optional で持つ。
+ * CorrectionSession.corrected/grammarNotes等）は、対応する `*En` フィールドに英語版を optional で持つ。
  * 英語版が無いセッション（旧データ・生成失敗時）は表示側（core/i18n/localized-session.util.ts）が
  * 自動で日本語にフォールバックする。Mistake.categoryKey は category（日本語固定文字列）の翻訳キー版。
+ * CorrectionSession.corrected/correctedEn（添削解説プローズ）は、grammarNotes/naturalExpressions/
+ * grammarTendency/cefrRationale/studyPlan の5項目（各 Gemini レスポンスの専用タグから独立抽出）を
+ * 結合して合成した後方互換フィールド。1項目のタグ抽出が失敗しても他の4項目には影響しない
+ * （gemini.service.ts 参照）。新しいUIはこの5項目を個別ブロックとして表示し、5項目が1つも
+ * 無い旧データのみ corrected/correctedEn を単一ブロックとして表示する。
  */
 
 // ── Mistake: Gemini が返す1件のミス情報 ─────────────────────────
@@ -83,9 +88,19 @@ export interface CorrectionSession {
   id: string;
   date: string;
   original: string;
-  corrected: string; // 添削解説プローズ（文法解説・自然な表現の提案・傾向・CEFR根拠・学習法など）
+  corrected: string; // 添削解説プローズ（grammarNotes等5項目を結合した後方互換フィールド。後述）
   correctedEn?: string; // 任意。corrected の英語版
   correctedText?: string; // 任意。添削後の完成版の全文（corrected＝解説文とは別に、修正後の英文そのもの。後方互換）
+  grammarNotes?: string; // 任意。文法・語法のミスの指摘（独立タグから抽出、1項目単位で表示・欠落判定するための本体フィールド）
+  grammarNotesEn?: string; // 任意。grammarNotes の英語版
+  naturalExpressions?: string; // 任意。自然な表現の提案
+  naturalExpressionsEn?: string; // 任意。naturalExpressions の英語版
+  grammarTendency?: string; // 任意。文法のミスの傾向
+  grammarTendencyEn?: string; // 任意。grammarTendency の英語版
+  cefrRationale?: string; // 任意。CEFR評価の根拠
+  cefrRationaleEn?: string; // 任意。cefrRationale の英語版
+  studyPlan?: string; // 任意。今のレベルから伸ばすための学習法
+  studyPlanEn?: string; // 任意。studyPlan の英語版
   mistakes: Mistake[];
   evaluation?: WritingEvaluation; // 任意。定量評価が有効なセッションのみ持つ
   reviewItems?: ReviewItem[]; // 任意。復習カード生成が有効なセッションのみ持つ（後方互換）

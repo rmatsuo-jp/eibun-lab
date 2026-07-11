@@ -4,9 +4,11 @@
  * カレンダーで日付を選ぶと一覧がその日だけに絞り込まれ（キーワード検索と併用可）、複数選択削除・展開表示・日付ソート・JSON インポート/エクスポートも提供する。
  * セッションカードは折りたたみ状態でも総合スコア/CEFRバッジを表示する。
  * SessionRepositoryService の sessions signal を直接参照し、データ変更を自動反映する。
- * 添削解説（toHtml）・ミスのカテゴリ（categoryText）は i18n.lang() に追随して表示言語が切り替わる
+ * 添削解説5項目（proseSections）・ミスのカテゴリ（categoryText）は i18n.lang() に追随して表示言語が切り替わる
  * （英語版が無い旧セッションは core/i18n/localized-session.util.ts のフォールバックで日本語表示のまま）。
- * toHtml のキャッシュは言語ごとに保持し、言語切替時に別セッションの内容が誤って再利用されないようにする。
+ * 解説5項目は1タグずつ独立抽出されているため、1項目が欠けても他の項目は正常表示される。5項目が
+ * 1つも無い旧データのみ toHtml() で corrected/correctedEn の単一ブロックにフォールバックする。
+ * HTMLキャッシュは言語＋項目ごとに保持し、言語切替時に別セッション・別項目の内容が誤って再利用されないようにする。
  */
 import { Component, ElementRef, ViewChild, computed, inject, signal } from '@angular/core';
 import { FormsModule } from '@angular/forms';
@@ -17,7 +19,8 @@ import { formatTimestampForFilename, toDayKey } from '@shared/utils/date.util';
 import { SessionRepositoryService } from '@core/sessions/session-repository.service';
 import { CorrectionSession, Mistake, WritingEvaluation } from '@core/models/session.model';
 import { I18nService } from '@core/i18n/i18n.service';
-import { localizedCategory, localizedProse } from '@core/i18n/localized-session.util';
+import { localizedCategory, localizedField, localizedProse } from '@core/i18n/localized-session.util';
+import { PROSE_FIELDS } from '@core/i18n/prose-fields.util';
 
 interface CalendarCell {
   date: Date;
@@ -139,11 +142,26 @@ export class History {
   private htmlCache = new Map<string, SafeHtml>();
 
   toHtml(session: CorrectionSession): SafeHtml {
-    const cacheKey = `${session.id}:${this.i18n.lang()}`;
+    return this.cachedHtml(`legacy:${session.id}:${this.i18n.lang()}`, localizedProse(session, this.i18n.lang()));
+  }
+
+  // 解説5項目を、抽出できたものだけ見出し付きで返す。1項目もタグ抽出できていない旧データの場合は
+  // 空配列を返すので、テンプレート側で toHtml() の単一ブロックにフォールバックする。
+  proseSections(session: CorrectionSession): { heading: string; html: SafeHtml }[] {
+    const lang = this.i18n.lang();
+    return PROSE_FIELDS.map((f) => {
+      const text = localizedField(session[f.ja], session[f.en], lang);
+      return text
+        ? { heading: this.i18n.t(f.headingKey), html: this.cachedHtml(`${session.id}:${lang}:${f.ja}`, text) }
+        : undefined;
+    }).filter((s): s is { heading: string; html: SafeHtml } => !!s);
+  }
+
+  private cachedHtml(cacheKey: string, markdown: string): SafeHtml {
     let html = this.htmlCache.get(cacheKey);
     if (!html) {
       // marked → DOMPurify でサニタイズした HTML のみ信頼済みとして渡す。
-      html = this.sanitizer.bypassSecurityTrustHtml(renderSafeMarkdown(localizedProse(session, this.i18n.lang())));
+      html = this.sanitizer.bypassSecurityTrustHtml(renderSafeMarkdown(markdown));
       this.htmlCache.set(cacheKey, html);
     }
     return html;

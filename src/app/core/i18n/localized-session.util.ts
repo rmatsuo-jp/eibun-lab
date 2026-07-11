@@ -13,8 +13,17 @@ import { TRANSLATIONS, TranslationKey } from './translations';
 
 // CorrectionSession（保存済みセッション）・CorrectionResult（添削直後の結果）どちらも
 // corrected/correctedEn の形を共有するため、構造的部分型で受ける。
+// corrected は grammarNotes 等5項目を結合した後方互換フィールド（新データも旧データも必ず持つ）。
 export function localizedProse(source: { corrected: string; correctedEn?: string }, lang: Lang): string {
   return lang === 'en' && source.correctedEn ? source.correctedEn : source.corrected;
+}
+
+// 解説5項目（grammarNotes/naturalExpressions/grammarTendency/cefrRationale/studyPlan）のような
+// 「ja本体 + en任意」ペアを表示言語に応じて切り替える汎用ヘルパー。ja が無ければ（そのタグの抽出に
+// 失敗していれば）undefined を返し、呼び出し側でそのブロックごと非表示にできる。
+export function localizedField(ja: string | undefined, en: string | undefined, lang: Lang): string | undefined {
+  if (!ja) return undefined;
+  return lang === 'en' && en ? en : ja;
 }
 
 export function localizedExplanation(mistake: Mistake, lang: Lang): string {

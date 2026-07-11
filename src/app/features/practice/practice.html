@@ -1,9 +1,10 @@
 <!-- @file Practice ページテンプレート。日付選択・APIキー未設定時の設定ページ誘導バナー・
      入力エリア・エラー表示・送信ボタン・添削中の進捗バー＋待機中クイズ・
      添削結果（元の英作文 + 評価スコアパネル +
-     添削後の英文Markdown + レベルアップした英文Markdown + 添削解説Markdown + ミスリスト）に加え、
+     添削後の英文Markdown + レベルアップした英文Markdown + 添削解説5項目Markdown + ミスリスト）に加え、
      JSONテンプレートで複数日分の英作文をまとめてアップロード・一括添削・進捗表示する一括添削セクションを含む。
-     添削解説（proseText）・ミス説明（explanationText）・カテゴリ（categoryText）は
+     添削解説5項目（proseSections、1項目ずつ独立表示。旧データは proseText の単一ブロックにフォールバック）・
+     ミス説明（explanationText）・カテゴリ（categoryText）は
      i18n.lang() に追随して表示言語が切り替わる（practice.ts のヘルパー参照）。 -->
 <div class="page">
   <h1 class="page-title">{{ i18n.t('practice.title') }}</h1>
@@ -112,8 +113,16 @@
         <div class="result-box markdown-body" [innerHTML]="toHtml(levelUpText)"></div>
       }
 
-      <h2 class="section-title">{{ i18n.t('practice.explanation') }}</h2>
-      <div class="result-box markdown-body" [innerHTML]="toHtml(proseText(state.result()!))"></div>
+      <!-- ── 添削解説5項目。1項目ずつ独立タグから抽出されるため、1項目が欠けても他は正常表示される ── -->
+      @if (proseSections(state.result()!).length > 0) {
+        @for (section of proseSections(state.result()!); track section.heading) {
+          <h2 class="section-title">{{ section.heading }}</h2>
+          <div class="result-box markdown-body" [innerHTML]="toHtml(section.text)"></div>
+        }
+      } @else {
+        <h2 class="section-title">{{ i18n.t('practice.explanation') }}</h2>
+        <div class="result-box markdown-body" [innerHTML]="toHtml(proseText(state.result()!))"></div>
+      }
 
       @if (state.result()!.mistakes.length > 0) {
         <h2 class="section-title">{{ i18n.t('practice.mistakeList') }}</h2>

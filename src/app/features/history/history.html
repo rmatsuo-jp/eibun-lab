@@ -172,8 +172,15 @@
           </div>
         }
 
-        <h3 class="detail-title">{{ i18n.t('history.detailExplanation') }}</h3>
-        <div class="detail-text markdown-body" [innerHTML]="toHtml(session)"></div>
+        @if (proseSections(session).length > 0) {
+          @for (section of proseSections(session); track section.heading) {
+            <h3 class="detail-title">{{ section.heading }}</h3>
+            <div class="detail-text markdown-body" [innerHTML]="section.html"></div>
+          }
+        } @else {
+          <h3 class="detail-title">{{ i18n.t('history.detailExplanation') }}</h3>
+          <div class="detail-text markdown-body" [innerHTML]="toHtml(session)"></div>
+        }
 
         @if (session.mistakes.length > 0) {
           <h3 class="detail-title">{{ i18n.t('history.detailMistakes') }}</h3>
