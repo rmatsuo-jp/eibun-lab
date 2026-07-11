@@ -1,17 +1,6 @@
 /**
- * @file Angular グローバル設定。グローバルエラーリスナー、ルーター、HttpClient（法的文書のfetchに使用）、
- * Service Worker（本番のみ有効）を提供する。
- * SW更新監視の APP_INITIALIZER を登録し、新バージョンの Service Worker が
- * インストールされたら自動でアクティベート＋リロードして、GitHub Pages 上での旧バージョン
- * キャッシュ残存問題を解消する。inject(SwUpdate) は factory 本体（injection context 内）で
- * 解決してからクロージャへキャプチャする（戻り値の関数は context 外で実行されるため）。
- * SW登録は registerImmediately とし起動直後にチェックを開始、
- * さらにタブ復帰時（visibilitychange）にも再チェックすることで、登録遅延中の離脱による
- * 更新未検知や長時間タブを開いたままのケースにも対応する。
- * SettingsStoreService.init() も APP_INITIALIZER として登録し、暗号化保存された APIキーの復号を
- * アプリ起動前に完了させる（getSettings() が同期APIのため）。
- * また GEMINI_LOGGER トークンに開発ビルド時のみ DevLogService を provide し、core→features の
- * 直接依存なしに Gemini 送受信ログを記録できるようにする。
+ * @file Angular グローバル設定。ルーター・HttpClient・Service Worker（本番のみ）を提供し、
+ * SW更新監視とAPIキー復号を APP_INITIALIZER で起動前に完了させる。
  */
 import {
   ApplicationConfig,

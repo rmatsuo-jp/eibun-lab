@@ -1,29 +1,6 @@
 /**
- * @file ルートコンポーネント。アプリ起動時に SettingsStoreService から theme・language 設定を読み取り、
- * それぞれ document ルートの data-theme 属性・I18nService（lang signal + document.lang）に反映する。
- * PracticeState.notice を購読し、どのタブにいても添削の処理中／完了／エラーを
- * グローバルバナーで表示する（タップで添削タブへ遷移）。
- * 初回起動時、および同意文言が改訂された場合（SettingsStoreService.needsConsent()）は、
- * 英文がGemini APIへ送信される旨・API利用料金が利用者負担である旨を伝える同意モーダルを表示し、
- * 「同意して続ける」で SettingsStoreService.acceptConsent() を呼ぶ。
- * サイドバーの JA/EN トグル（toggleLanguage）は setLang() による即時反映と saveSettings() による
- * 即時永続化を同時に行う（settings.ts の updateTheme() と同じ即時保存パターン）。
- * ボトムナビ（#bottomNav）は ResizeObserver で実高さを監視し、--bottom-nav-height に反映する
- * （ナビ項目のラベル折り返し等で高さが app.scss の固定値を超えても .app-content の
- * padding-bottom が追従し、最下部コンテンツがタブバーに隠れないようにするため）。
- * ResizeObserver は #bottomNav 自身のボックスサイズ変化にしか反応しないため、PWAスタンドアロン
- * 起動時に env(safe-area-inset-bottom) の確定が初回レイアウトより遅れるケース（iOS Safari standalone
- * で知られる挙動）に備え、window resize・visualViewport resize・起動直後の遅延再チェックでも
- * applyHeight() を呼び直す。
- * --bottom-nav-height は .app-content/.global-notice の余白計算にのみ使い、
- * bottom-nav/nav-item自身のmin-heightには使わない（自己参照によるResizeObserverの
- * 増殖ループ－高さが際限なく増え続ける不具合－を避けるため）。
- * PC レイアウト（768px 以上、サイドバー化）では app.scss 側で --bottom-nav-height を 0rem に
- * 固定しているため、実測反映は行わない。
- * feedbackFormUrl は全画面右上固定のフィードバックボタン（app.html）が遷移する外部Googleフォームの
- * URL。ユーザーからの機能要望・不具合報告・感想を受け付ける目的で、フォーム自体は自作せず外部リンクのみ提供する。
- * syncError は FirestoreSyncService/DrillProgressSyncService のクラウド同期失敗を、practiceState.notice と
- * 同じグローバルバナー（.global-notice）で表示する（練習の添削通知が無い時のみ、優先度を下げて表示）。
+ * @file ルートコンポーネント。起動時に theme/language・同意モーダルを初期化し、添削通知や同期エラーの
+ * グローバルバナー表示、ボトムナビ実高さの --bottom-nav-height への反映を担う。
  */
 import {
   ChangeDetectionStrategy,
@@ -122,6 +99,7 @@ export class App {
     this.desktopMedia.addEventListener('change', applyHeight);
     window.addEventListener('resize', applyHeight);
     window.visualViewport?.addEventListener('resize', applyHeight);
+    // PWAスタンドアロン起動時は safe-area-inset-bottom の確定が初回レイアウトより遅れることがある（iOS Safari standalone特有）ため、遅延再チェックで補う
     const deferredCheck = window.setTimeout(applyHeight, 300);
     applyHeight();
 

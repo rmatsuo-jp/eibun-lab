@@ -71,6 +71,7 @@ export async function encryptText(key: CryptoKey, plain: string): Promise<string
   const combined = new Uint8Array(IV_LENGTH + cipher.byteLength);
   combined.set(iv);
   combined.set(new Uint8Array(cipher), IV_LENGTH);
+  // spread はセッション1件分の文字列長では安全だが、超巨大なバイト列では引数上限に注意
   return btoa(String.fromCharCode(...combined));
 }
 

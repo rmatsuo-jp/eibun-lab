@@ -80,6 +80,7 @@ export class HistoryCalendar {
         inMonth: cursor.getMonth() === monthIndex,
         hasSession: byDay.has(dayKey),
         isToday: dayKey === todayKey,
+        // 同日に複数セッションがある場合は末尾（＝最後に保存された）1件の評価をそのままバッジに使う。
         evaluation: daySessions?.at(-1)?.evaluation,
       });
       cursor.setDate(cursor.getDate() + 1);
