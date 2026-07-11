@@ -40,6 +40,8 @@
  * core/quiz/sample-data.ts の静的サンプル問題（cloze5問/levelup3文）を直接出題する（sampleMode=true）。
  * サンプル出題中は DrillProgressSyncService への進捗永続化（recordDrillResult/setLevelUpItemProgress）を
  * 行わない（levelupはcurrentSessionId=nullで自動的にスキップされ、clozeはsampleMode()で明示的にガードする）。
+ * サンプル出題中は実セッションが存在せず日付選択画面が空になるため、backToDateSelect() は
+ * sampleMode() を見てモード選択画面（restart()）へ戻す特別扱いをする。
  */
 import { Component, computed, effect, ElementRef, inject, signal, viewChild } from '@angular/core';
 import { DatePipe } from '@angular/common';
@@ -220,8 +222,14 @@ export class Drill {
     return { done, total: items.length };
   }
 
-  // 日付選択画面に戻る（cloze/levelup 共通。出題中に日付を選び直したい場合）
+  // 日付選択画面に戻る（cloze/levelup 共通。出題中に日付を選び直したい場合）。
+  // サンプル出題中（sampleMode）は実セッションが1件もなく日付選択画面が空のデッドエンドになるため、
+  // restart() でモード選択画面まで戻す。
   backToDateSelect() {
+    if (this.sampleMode()) {
+      this.restart();
+      return;
+    }
     this.levelUpDateChosen.set(false);
     this.levelUpSentenceChosen.set(false);
     this.levelUpQuiz.set([]);
