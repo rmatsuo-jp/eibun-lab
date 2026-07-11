@@ -3,8 +3,8 @@
   flex-direction: column;
   height: 100dvh;
   background: var(--color-bg);
-  // bottom-nav実高さの決め打ち多重管理を避けるため、ここで一元定義し
-  // .bottom-nav/.nav-item/.app-content/.global-noticeが全て参照する。
+  // bottom-nav自身の高さ決定には使わない（自己参照によるResizeObserver増殖ループを避けるため）。
+  // .app-content/.global-noticeがbottom-nav分の余白を確保するためだけに参照する。
   // この値はJS実行前の初期値・フォールバックに過ぎず、app.tsのResizeObserverが
   // #bottomNavの実高さ（ラベル折り返し等で変動しうる）で同じ要素に上書きする。
   --bottom-nav-height: 4.5rem;
@@ -62,7 +62,6 @@
   left: 0;
   right: 0;
   display: flex;
-  min-height: var(--bottom-nav-height);
   border-top: 1px solid var(--color-border);
   background: var(--color-surface);
   padding-bottom: env(safe-area-inset-bottom);
@@ -138,7 +137,6 @@
   justify-content: center;
   gap: 0.25rem;
   padding: 0.625rem 0;
-  min-height: var(--bottom-nav-height);
   color: var(--color-text-muted);
   text-decoration: none;
   font-size: 0.6875rem;

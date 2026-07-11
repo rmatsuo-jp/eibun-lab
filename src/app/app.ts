@@ -11,6 +11,9 @@
  * ボトムナビ（#bottomNav）は ResizeObserver で実高さを監視し、--bottom-nav-height に反映する
  * （ナビ項目のラベル折り返し等で高さが app.scss の固定値を超えても .app-content の
  * padding-bottom が追従し、最下部コンテンツがタブバーに隠れないようにするため）。
+ * --bottom-nav-height は .app-content/.global-notice の余白計算にのみ使い、
+ * bottom-nav/nav-item自身のmin-heightには使わない（自己参照によるResizeObserverの
+ * 増殖ループ－高さが際限なく増え続ける不具合－を避けるため）。
  * PC レイアウト（768px 以上、サイドバー化）では app.scss 側で --bottom-nav-height を 0rem に
  * 固定しているため、実測反映は行わない。
  */
@@ -63,9 +66,14 @@ export class App {
 
     // app-shell自身が--bottom-nav-heightを宣言しているため、documentElement等の
     // 祖先要素にセットしても継承で上書きできない。同じ要素に直接設定する。
+    // 値が変化した時のみ書き込む（同値の再設定によるResizeObserverの無駄な再発火を避けるため）。
+    let lastHeight = -1;
     const applyHeight = () => {
       if (this.desktopMedia.matches) return;
-      shell.style.setProperty('--bottom-nav-height', `${el.offsetHeight}px`);
+      const height = el.offsetHeight;
+      if (height === lastHeight) return;
+      lastHeight = height;
+      shell.style.setProperty('--bottom-nav-height', `${height}px`);
     };
 
     const observer = new ResizeObserver(applyHeight);
