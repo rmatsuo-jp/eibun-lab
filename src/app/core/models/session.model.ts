@@ -82,8 +82,10 @@ export interface WritingEvaluation {
 }
 
 // ── CorrectionSession: 1回の添削セッション（LocalStorage に保存される単位） ─
-// ⚠ optional フィールド（?付き）を追加したら firestore-sync.service.ts の OPTIONAL_FIELDS にも必ず追加すること。
+// ⚠ optional フィールド（?付き）を追加したら firestore-sync.service.ts の OPTIONAL_FIELDS_MAP にも必ず追加すること。
 //   Firestore は undefined を受け付けないため、同期時に undefined のフィールドを除外する必要がある。
+//   追加を忘れると OPTIONAL_FIELDS_MAP の型（Record<OptionalKeys<CorrectionSession>, true>）が
+//   合わなくなり tsc がコンパイルエラーにするため、実際には検知漏れしない。
 export interface CorrectionSession {
   id: string;
   date: string;

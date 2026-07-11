@@ -19,27 +19,31 @@ import { SessionStoreService } from './session-store.service';
 
 // CorrectionSession の任意（optional）フィールド一覧。Firestore は undefined を受け付けないため、
 // toDocData() で undefined のフィールドを除外するのに使う。
-// ⚠ session.model.ts の CorrectionSession に optional フィールドを追加したら、必ずここにも追加すること。
-const OPTIONAL_FIELDS: (keyof CorrectionSession)[] = [
-  'correctedText',
-  'correctedEn',
-  'grammarNotes',
-  'grammarNotesEn',
-  'naturalExpressions',
-  'naturalExpressionsEn',
-  'grammarTendency',
-  'grammarTendencyEn',
-  'cefrRationale',
-  'cefrRationaleEn',
-  'studyPlan',
-  'studyPlanEn',
-  'evaluation',
-  'reviewItems',
-  'levelUpItems',
-  'levelUpText',
-  'deleted',
-  'model',
-];
+// OptionalKeys<CorrectionSession> は model 側の optional フィールド集合を型レベルで導出したもの。
+// OPTIONAL_FIELDS_MAP のキーがこれと過不足あると tsc がコンパイルエラーにするため、
+// session.model.ts への optional フィールド追加/削除を「ここへの追加忘れ」ごとビルドで検知できる。
+type OptionalKeys<T> = { [K in keyof T]-?: undefined extends T[K] ? K : never }[keyof T];
+const OPTIONAL_FIELDS_MAP: Record<OptionalKeys<CorrectionSession>, true> = {
+  correctedText: true,
+  correctedEn: true,
+  grammarNotes: true,
+  grammarNotesEn: true,
+  naturalExpressions: true,
+  naturalExpressionsEn: true,
+  grammarTendency: true,
+  grammarTendencyEn: true,
+  cefrRationale: true,
+  cefrRationaleEn: true,
+  studyPlan: true,
+  studyPlanEn: true,
+  evaluation: true,
+  reviewItems: true,
+  levelUpItems: true,
+  levelUpText: true,
+  deleted: true,
+  model: true,
+};
+const OPTIONAL_FIELDS = Object.keys(OPTIONAL_FIELDS_MAP) as (keyof CorrectionSession)[];
 
 // mistakes/reviewItems/levelUpItems の配列要素が持つ optional フィールド（Mistake.explanationEn 等）を
 // Firestore へ渡す前に取り除く。値が undefined のキーだけを削除する（浅い1階層のみで十分）。
@@ -106,8 +110,9 @@ export class FirestoreSyncService {
   }
 
   // Firestore は undefined を受け付けないため、値が undefined の任意フィールドをフィールドごと除外する。
-  // 任意フィールドが増えてもモジュール先頭の OPTIONAL_FIELDS に足すだけで対応できる。
-  private toDocData(session: CorrectionSession): Record<string, unknown> {
+  // 任意フィールドが増えてもモジュール先頭の OPTIONAL_FIELDS_MAP に足すだけで対応できる（型で強制）。
+  // spec からの直接検証用に internal 公開（外部からの呼び出しは想定しない）。
+  toDocData(session: CorrectionSession): Record<string, unknown> {
     const data: Record<string, unknown> = { ...session };
     for (const field of OPTIONAL_FIELDS) {
       if (data[field] === undefined) delete data[field];

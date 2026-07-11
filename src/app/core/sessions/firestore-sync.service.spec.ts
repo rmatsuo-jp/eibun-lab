@@ -116,4 +116,81 @@ describe('FirestoreSyncService', () => {
     const sentData = setDocMock.mock.calls[0][1];
     expect('evaluation' in sentData).toBe(false);
   });
+
+  it('toDocData()は全optionalフィールドを埋めたセッションからundefinedを一切残さない（配列要素内も含む）', () => {
+    service = TestBed.inject(FirestoreSyncService);
+    const full = makeSession({
+      id: 'full',
+      correctedText: 'text',
+      correctedEn: 'en',
+      grammarNotes: 'notes',
+      grammarNotesEn: 'notesEn',
+      naturalExpressions: 'natural',
+      naturalExpressionsEn: 'naturalEn',
+      grammarTendency: 'tendency',
+      grammarTendencyEn: 'tendencyEn',
+      cefrRationale: 'rationale',
+      cefrRationaleEn: 'rationaleEn',
+      studyPlan: 'plan',
+      studyPlanEn: 'planEn',
+      evaluation: {
+        grammarScore: 8,
+        vocabularyScore: 8,
+        contentScore: 8,
+        overallScore: 8,
+        errorDensity: 1,
+        grammarCefr: 'B2',
+        vocabularyCefr: 'B2',
+        contentCefr: 'B2',
+        overallCefr: 'B2',
+      },
+      mistakes: [
+        {
+          category: 'grammar',
+          categoryKey: 'grammar',
+          original: 'a',
+          corrected: 'b',
+          explanation: 'exp',
+          explanationEn: 'expEn',
+        },
+      ],
+      reviewItems: [
+        {
+          sentence: '___',
+          answer: 'a',
+          hint: 'h',
+          hintEn: 'hEn',
+          translation: 't',
+          translationEn: 'tEn',
+          choices: ['a', 'b', 'c', 'd'],
+        },
+      ],
+      levelUpItems: [
+        {
+          original: 'o',
+          leveledUp: 'l',
+          keyPhrases: ['l'],
+          translation: 't',
+          translationEn: 'tEn',
+        },
+      ],
+      levelUpText: 'levelUpText',
+      deleted: false,
+      model: 'gemini-x',
+    });
+
+    const data = service.toDocData(full);
+
+    const hasUndefinedDeep = (value: unknown): boolean => {
+      if (Array.isArray(value)) return value.some(hasUndefinedDeep);
+      if (value && typeof value === 'object') {
+        return Object.values(value as Record<string, unknown>).some(
+          (v) => v === undefined || hasUndefinedDeep(v),
+        );
+      }
+      return false;
+    };
+
+    expect(hasUndefinedDeep(data)).toBe(false);
+  });
 });
