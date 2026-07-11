@@ -18,8 +18,6 @@
   @if (!started()) {
     <!-- ── モード選択（スタート画面） ── -->
     <div class="intro">
-      <p>{{ i18n.t('drill.intro') }}</p>
-
       <button class="mode-card" (click)="start('cloze')" [disabled]="clozeCount() === 0 && !isNewUser()">
         <strong>{{ i18n.t('drill.cloze.name') }}</strong>
         <p>{{ i18n.t('drill.cloze.desc') }}</p>

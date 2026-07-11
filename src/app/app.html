@@ -5,9 +5,10 @@
      日/EN 言語トグルを表示し、タイトル横の sidebar-toggle ボタンで格納/展開を切り替えられる
      （app.ts の sidebarCollapsed signal に連動、格納時は2ボタンの lang-toggle の代わりに
      単一ボタンの lang-toggle-collapsed（タップごとに日⇔ENを交互表示・切替）を表示する）。
-     モバイルレイアウトでは bottom-nav 自体が非表示にならないタブバーのため、代わりに画面右上に固定表示する
-     lang-toggle-mobile（単一ボタン、タップごとに日⇔ENを交互表示・切替）でどのタブからも言語切り替えができるようにしている。
-     フィードバックボタン（Googleフォームへの外部リンク）は app-content 先頭の content-topbar 内に
+     モバイルレイアウトでは bottom-nav 自体が非表示にならないタブバーのため、代わりに lang-toggle-mobile
+     （単一ボタン、タップごとに日⇔ENを交互表示・切替）を app-content 先頭の content-topbar 内・
+     フィードバックボタンの左側に並べて表示し、どのタブからも言語切り替えができるようにしている。
+     フィードバックボタン（Googleフォームへの外部リンク）も同じ content-topbar 内に
      配置し、各ページ本体の .page コンテナ（max-width 640px/768px以上で960px、margin:0 auto、
      padding 1rem/2rem）と同じ幅・パディング・中央寄せを content-topbar にも適用することで、
      ページ内のボタン列（例: 添削するボタン）と右端を、.page-title（タイトル）と高さを揃えている
@@ -38,8 +39,15 @@
   }
 
   <main class="app-content">
-    <!-- ── フィードバックボタン行（各ページの .page と同じ max-width/中央寄せに合わせ、右端をページ本体のボタン列と揃える） ── -->
+    <!-- ── フィードバックボタン行（各ページの .page と同じ max-width/中央寄せに合わせ、右端をページ本体のボタン列と揃える）。
+         モバイル用言語トグル（lang-toggle-mobile）もこの行内・フィードバックボタンの左側に並べて表示する ── -->
     <div class="content-topbar">
+      <button
+        type="button"
+        class="lang-toggle-mobile"
+        [attr.aria-label]="i18n.t('sidebar.language')"
+        (click)="toggleLanguage(i18n.lang() === 'ja' ? 'en' : 'ja')"
+      >{{ i18n.lang() === 'ja' ? '日' : 'EN' }}</button>
       <a
         class="feedback-button"
         [href]="feedbackFormUrl"
@@ -126,11 +134,4 @@
     }
   </nav>
 
-  <!-- ── モバイル用言語トグル（bottom-nav は常時表示のため右上に固定表示。タップ前提のため単一ボタンで日⇔ENを交互切替） ── -->
-  <button
-    type="button"
-    class="lang-toggle-mobile"
-    [attr.aria-label]="i18n.t('sidebar.language')"
-    (click)="toggleLanguage(i18n.lang() === 'ja' ? 'en' : 'ja')"
-  >{{ i18n.lang() === 'ja' ? '日' : 'EN' }}</button>
 </div>

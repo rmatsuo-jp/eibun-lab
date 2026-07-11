@@ -63,6 +63,7 @@
 //    ボタン列（添削するボタン等）と揃うようにする。position:absoluteでレイアウト上の高さを持たせず、
 //    .page-title（font-size:1.5rem, padding-top 1rem/2rem）と同じ行の高さに重ねて表示することで、
 //    タイトルとボタンの高さを揃える（.app-content をスクロールすると .page-title と一緒に流れる）。
+//    モバイル用言語トグル（.lang-toggle-mobile）もこの行内・フィードバックボタンの左側に並べて表示する。
 .content-topbar {
   position: absolute;
   top: 1rem;
@@ -72,6 +73,7 @@
   display: flex;
   justify-content: flex-end;
   align-items: center;
+  gap: 0.5rem;
   min-height: 1.8rem; // .page-title（font-size:1.5rem）の行の高さに合わせる
   max-width: 640px;
   margin: 0 auto;
@@ -225,12 +227,8 @@
   }
 }
 
-// ── モバイル用言語トグル（画面右上に固定表示、単一ボタンでJA⇔ENを交互表示・切替。PCではサイドバー側の .lang-toggle を使うため非表示） ──
+// ── モバイル用言語トグル（content-topbar内・フィードバックボタンの左側に表示、単一ボタンでJA⇔ENを交互表示・切替。PCではサイドバー側の .lang-toggle を使うため非表示） ──
 .lang-toggle-mobile {
-  position: fixed;
-  top: calc(0.75rem + env(safe-area-inset-top));
-  right: 0.75rem;
-  z-index: 102; // global-notice(101)・bottom-nav(100) より前面
   padding: 0.5rem 0.875rem;
   border: 2px solid var(--color-border);
   border-radius: 0.75rem;

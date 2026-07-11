@@ -65,9 +65,9 @@ const ja = {
   'practice.bulk.title': '一括添削（複数の英文をまとめて送信）',
   'practice.bulk.hint':
     '日付と英文をまとめたJSONファイルをアップロードすると、1件ずつ順番に添削して自動保存します。送信件数がそのまま Gemini API の呼び出し回数になるため、無料枠を超えた分は課金対象となる場合があります。',
-  'practice.bulk.downloadTemplate': 'テンプレートをダウンロード',
-  'practice.bulk.downloadFromHistory': '履歴からテンプレートを作成してダウンロード',
-  'practice.bulk.selectFile': 'JSONファイルを選択',
+  'practice.bulk.downloadTemplate': 'テンプレート取得',
+  'practice.bulk.downloadFromHistory': '履歴からテンプレート作成',
+  'practice.bulk.selectFile': 'JSONを選択',
   'practice.bulk.preview': 'アップロード内容（{count}件）',
   'practice.bulk.run': '一括添削を実行',
   'practice.bulk.running': '一括添削中...',
@@ -143,7 +143,6 @@ const ja = {
 
   // ── drill ──
   'drill.title': 'ドリル',
-  'drill.intro': '復習モードを選んで弱点を克服しましょう。',
   'drill.cloze.name': '穴埋め復習',
   'drill.cloze.desc': '添削から作った穴埋めカードで復習します。',
   'drill.cloze.empty': '「復習カードの自動生成」を有効にして添削すると出題されます。',
@@ -288,9 +287,9 @@ const en: Record<TranslationKey, string> = {
   'practice.bulk.title': 'Bulk Correction (submit multiple entries at once)',
   'practice.bulk.hint':
     'Upload a JSON file with dates and texts to correct and save them one by one automatically. The number of entries equals the number of Gemini API calls, so usage beyond the free tier may incur charges.',
-  'practice.bulk.downloadTemplate': 'Download Template',
-  'practice.bulk.downloadFromHistory': 'Create Template from History',
-  'practice.bulk.selectFile': 'Select JSON File',
+  'practice.bulk.downloadTemplate': 'Get Template',
+  'practice.bulk.downloadFromHistory': 'From History',
+  'practice.bulk.selectFile': 'Select JSON',
   'practice.bulk.preview': 'Uploaded Content ({count} entries)',
   'practice.bulk.run': 'Run Bulk Correction',
   'practice.bulk.running': 'Running...',
@@ -366,7 +365,6 @@ const en: Record<TranslationKey, string> = {
 
   // ── drill ──
   'drill.title': 'Drill',
-  'drill.intro': 'Choose a review mode to work on your weak points.',
   'drill.cloze.name': 'Cloze Review',
   'drill.cloze.desc': 'Review with cloze cards generated from your corrections.',
   'drill.cloze.empty': 'Enable "auto-generate review cards" when correcting to get questions here.',
