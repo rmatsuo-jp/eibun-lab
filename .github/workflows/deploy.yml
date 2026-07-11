@@ -22,7 +22,7 @@ jobs:
     runs-on: ubuntu-latest
 
     steps:
-      - uses: actions/checkout@v5
+      - uses: actions/checkout@v7
         with:
           # semantic-release は全コミット履歴とタグを参照して次バージョンを判定するため全取得する
           fetch-depth: 0
