@@ -107,6 +107,7 @@ src/
         │   ├── drill-progress-sync.service.ts # ドリル進捗のクラウド同期
         │   └── sentence-list/                # レベルアップの文一覧選択サブコンポーネント
         ├── history/                 # 過去セッション一覧・カレンダー・検索・インポート/エクスポート
+        │   ├── history-state.service.ts       # 状態・インポート/エクスポートの集約（history.tsはDOM制御のみ）
         │   └── history-calendar/    # カレンダー表示サブコンポーネント
         ├── mistakes/                # 学習統計・ミス傾向・スコア/CEFR推移ダッシュボード
         │   └── mistakes-state.service.ts     # 集計状態の集約（mistakes.tsはテンプレート橋渡しのみ）
@@ -117,8 +118,12 @@ src/
             └── dev-log.service.ts   # 開発用の送受信ログ記録
 ```
 
-`drill` と `mistakes` は状態・ロジックを feature 内の `{feature}-state.service.ts` に集約し、
-コンポーネントはテンプレート橋渡し・DOM制御に専念するパターンを採る（新規 feature 追加時もこれに倣う）。
+`practice` / `drill` / `history` / `mistakes` は状態・ロジックを feature 内の
+`{feature}-state.service.ts` に集約し、コンポーネントはテンプレート橋渡し・DOM制御に専念する
+パターンを採る（新規 feature 追加時もこれに倣う）。`core` サービスへの参照は
+`{feature}-state.service.ts` 内に閉じ、component が直接 inject することはない。
+`features → core → shared` の一方向依存とこのパターンからの逸脱（feature間import等）は
+`eslint-plugin-boundaries`（`eslint.config.js`）により `npm run lint` で機械的に検知される。
 全コンポーネントは `ChangeDetectionStrategy.OnPush` を採用する。
 
 ---

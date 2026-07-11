@@ -10,8 +10,11 @@ UI言語: 日本語。
 - 依存方向は `features → core → shared` の一方向のみ。feature間import・core→features importは禁止
   （例外: 開発ビルドの app.config.ts が GEMINI_LOGGER に DevLogService を provide する箇所のみ）。
   層跨ぎは `@core/*` / `@shared/*` / `@features/*`（tsconfig.json）、同一フォルダ内は相対import。
+  この一方向依存は `eslint-plugin-boundaries`（`eslint.config.js`）により `npm run lint` で機械検知される。
 - 型定義の正は `src/app/core/models/session.model.ts`。`CorrectionSession` に optional フィールドを
-  追加したら `firestore-sync.service.ts` の `OPTIONAL_FIELDS` にも必ず追加（Firestoreはundefined不可）。
+  追加したら `firestore-sync.service.ts` の `OPTIONAL_FIELDS_MAP` にも必ず追加（Firestoreはundefined不可）。
+  追加漏れは `OPTIONAL_FIELDS_MAP` の型（`Record<OptionalKeys<CorrectionSession>, true>`）と
+  一致しなくなり `tsc`/`ng build`/`ng lint` がコンパイルエラーにするため、実際には検知漏れしない。
 - リアクティブは `signal()`（`BehaviorSubject`不使用）。コンポーネントはStandalone。
 - 永続化はコンポーネントから直接localStorageを触らず `SessionRepositoryService` /
   `SettingsStoreService` / `DrillProgressService` 経由。API呼び出しは `GeminiService` 経由。

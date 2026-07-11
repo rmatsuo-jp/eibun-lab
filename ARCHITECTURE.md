@@ -51,21 +51,32 @@ graph TD
 
 | feature  | 使用する core                                                                               |
 | -------- | ------------------------------------------------------------------------------------------- |
-| practice | GeminiService / SessionRepositoryService / SettingsStoreService                             |
+| practice | GeminiService / SessionRepositoryService / SettingsStoreService（+ feature 内 PracticeState）|
 | drill    | SessionRepositoryService / stats / I18nService（+ feature 内 DrillState / DrillProgressService / DrillProgressSyncService） |
-| history  | SessionRepositoryService / I18nService（+ feature 内 HistoryCalendar）                      |
+| history  | SessionRepositoryService / I18nService（+ feature 内 HistoryState / HistoryCalendar）       |
 | mistakes | SessionRepositoryService / stats / I18nService（+ feature 内 MistakesState）                |
 | settings | SettingsStoreService / AuthService / gemini-models.constants                                |
 | dev      | SessionRepositoryService / SettingsStoreService / prompt.util（+ feature 内 DevLogService） |
 
-### 状態分離パターン（drill / mistakes）
+### 状態分離パターン（practice / drill / history / mistakes 共通）
 
-`drill` と `mistakes` は「状態・ロジックは feature 内の `{feature}-state.service.ts` に集約し、
-コンポーネント（`drill.ts` / `mistakes.ts`）はテンプレートとの橋渡し・DOM操作のみに専念する」という
-パターンを採る。`DrillState` / `MistakesState` はいずれも `providedIn: 'root'` の singleton で、
+`practice` / `drill` / `history` / `mistakes` はいずれも「状態・ロジックは feature 内の
+`{feature}-state.service.ts` に集約し、コンポーネント（`practice.ts` / `drill.ts` / `history.ts` /
+`mistakes.ts`）はテンプレートとの橋渡し・DOM操作（ファイル選択トリガー、confirm/alertダイアログ、
+Blobダウンロード等）のみに専念する」というパターンを採る。`PracticeState` / `DrillState` /
+`HistoryState` / `MistakesState` はいずれも `providedIn: 'root'` の singleton で、
 `SessionRepositoryService` と純粋関数（`core/quiz/quiz.util.ts` / `core/stats/session-stats.util.ts`）を
-組み合わせて `computed()` で状態を導出する。**今後 feature に複雑な状態管理が必要になった場合は、
-このパターンに倣い `{feature}-state.service.ts` を新設すること。**
+組み合わせて `computed()` で状態を導出する。`SessionRepositoryService` 等の `core` サービスは
+必ず `{feature}-state.service.ts` 内でのみ inject し、component が直接 inject することはない。
+**今後 feature に複雑な状態管理が必要になった場合は、このパターンに倣い
+`{feature}-state.service.ts` を新設すること。**
+
+### レイヤ境界の機械強制
+
+`features → core → shared` の一方向依存および feature 間 import 禁止は、`eslint-plugin-boundaries`
+（`eslint.config.js`）により `npm run lint` 時に機械的に検証される。パスエイリアス（`@core/*` /
+`@shared/*` / `@features/*`）の解決には `eslint-import-resolver-typescript` を使う。違反があれば
+`boundaries/dependencies` ルールがエラーを出すため、規約からの逸脱がコードレビュー前に検知できる。
 
 ### 変更検知
 
@@ -307,6 +318,10 @@ erDiagram
 
 Firestore側は `apps/eibun_lab/users/{uid}/sessions/{sessionId}` のパスに `CorrectionSession` を
 そのまま保存する（任意フィールドが `undefined` の場合はFirestoreの制約によりフィールドごと除外）。
+除外対象の一覧（`firestore-sync.service.ts` の `OPTIONAL_FIELDS_MAP`）は `CorrectionSession` から
+型レベルで導出した `Record<OptionalKeys<CorrectionSession>, true>` で定義しており、
+`CorrectionSession` に optional フィールドを追加/削除してこちらの更新を忘れるとコンパイルエラーになる
+（型による機械的な同期保証。CLAUDE.md 参照）。
 
 そのほか LocalStorage には、ドリル進捗（`DrillProgressService`）・Gemini 送受信ログ
 （`DevLogService`、開発ビルドのみ）が独立キーで保存される。
