@@ -1,3 +1,17 @@
+# [0.7.0](https://github.com/rmatsuo-jp/study-english/compare/v0.6.0...v0.7.0) (2026-07-11)
+
+
+### Bug Fixes
+
+* **gemini:** 添削解説にタグJSONが残留するのを閉じタグ欠落時も防ぐ ([091ae58](https://github.com/rmatsuo-jp/study-english/commit/091ae58cf8bdf19cd02ad8afabf73b2c5b12bd74))
+* **layout:** JA/EN言語トグルをモバイルでも表示・PCはサイドバー最下部に移動 ([a951f24](https://github.com/rmatsuo-jp/study-english/commit/a951f2415e283ce0c3f74038a7fac423e737a23b))
+
+
+### Features
+
+* **drill:** 穴埋め復習に日付選択と進捗バッジを追加 ([f12663e](https://github.com/rmatsuo-jp/study-english/commit/f12663e783d1b3c34de776022180b13ba624c2c1))
+* **i18n:** UI表示言語のJA/EN切り替え機能を追加 ([890b2f7](https://github.com/rmatsuo-jp/study-english/commit/890b2f7389862062f26b26843c3088ac6f84d9d6))
+
 # [0.6.0](https://github.com/rmatsuo-jp/study-english/compare/v0.5.2...v0.6.0) (2026-07-11)
 
 
