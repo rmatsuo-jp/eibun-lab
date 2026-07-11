@@ -1,0 +1,4 @@
+CHANGELOG.md
+package-lock.json
+src/version.ts
+public/manifest.webmanifest
