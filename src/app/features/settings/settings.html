@@ -50,9 +50,9 @@
   <div class="form-group">
     <label class="label">{{ i18n.t('settings.language') }}</label>
     <div class="theme-toggle">
-      <button class="theme-btn" [class.active]="settings().language === 'ja'"
+      <button class="theme-btn" [class.active]="i18n.lang() === 'ja'"
               (click)="updateLanguage('ja')" type="button">{{ i18n.t('settings.languageJa') }}</button>
-      <button class="theme-btn" [class.active]="settings().language === 'en'"
+      <button class="theme-btn" [class.active]="i18n.lang() === 'en'"
               (click)="updateLanguage('en')" type="button">{{ i18n.t('settings.languageEn') }}</button>
     </div>
   </div>

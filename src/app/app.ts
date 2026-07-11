@@ -8,8 +8,13 @@
  * 「同意して続ける」で SettingsStoreService.acceptConsent() を呼ぶ。
  * サイドバーの JA/EN トグル（toggleLanguage）は setLang() による即時反映と saveSettings() による
  * 即時永続化を同時に行う（settings.ts の updateTheme() と同じ即時保存パターン）。
+ * ボトムナビ（#bottomNav）は ResizeObserver で実高さを監視し、--bottom-nav-height に反映する
+ * （ナビ項目のラベル折り返し等で高さが app.scss の固定値を超えても .app-content の
+ * padding-bottom が追従し、最下部コンテンツがタブバーに隠れないようにするため）。
+ * PC レイアウト（768px 以上、サイドバー化）では app.scss 側で --bottom-nav-height を 0rem に
+ * 固定しているため、実測反映は行わない。
  */
-import { Component, inject, signal } from '@angular/core';
+import { Component, ElementRef, inject, signal, viewChild, afterNextRender, DestroyRef } from '@angular/core';
 import { Router, RouterOutlet, RouterLink, RouterLinkActive } from '@angular/router';
 import { environment } from '../environments/environment';
 import { SettingsStoreService } from '@core/settings/settings-store.service';
@@ -27,7 +32,11 @@ export class App {
   protected practiceState = inject(PracticeState);
   private router = inject(Router);
   private settingsStore = inject(SettingsStoreService);
+  private destroyRef = inject(DestroyRef);
   protected i18n = inject(I18nService);
+
+  private bottomNav = viewChild<ElementRef<HTMLElement>>('bottomNav');
+  private readonly desktopMedia = window.matchMedia('(min-width: 768px)');
 
   // ── サイドバー（PCレイアウト時のみ）の格納状態。既定値 false = 表示中 ──
   protected sidebarCollapsed = signal(false);
@@ -42,6 +51,32 @@ export class App {
     const settings = this.settingsStore.getSettings();
     document.documentElement.dataset['theme'] = settings.theme;
     this.i18n.setLang(settings.language);
+
+    afterNextRender(() => this.observeBottomNavHeight());
+  }
+
+  // ── bottom-nav の実高さを監視し、--bottom-nav-height に反映（PCサイドバー時は対象外） ──
+  private observeBottomNavHeight() {
+    const el = this.bottomNav()?.nativeElement;
+    const shell = el?.closest<HTMLElement>('.app-shell');
+    if (!el || !shell) return;
+
+    // app-shell自身が--bottom-nav-heightを宣言しているため、documentElement等の
+    // 祖先要素にセットしても継承で上書きできない。同じ要素に直接設定する。
+    const applyHeight = () => {
+      if (this.desktopMedia.matches) return;
+      shell.style.setProperty('--bottom-nav-height', `${el.offsetHeight}px`);
+    };
+
+    const observer = new ResizeObserver(applyHeight);
+    observer.observe(el);
+    this.desktopMedia.addEventListener('change', applyHeight);
+    applyHeight();
+
+    this.destroyRef.onDestroy(() => {
+      observer.disconnect();
+      this.desktopMedia.removeEventListener('change', applyHeight);
+    });
   }
 
   // ── 表示言語のトグル: signal 反映と同時に即時永続化する ──────────

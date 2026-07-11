@@ -209,15 +209,11 @@
             </div>
           }
         } @else {
-          <!-- 4択モード（クローズのみ）。キー1〜4で選択肢をハイライトし、Enterで確定して採点する
-               （tabindex="0" + (keydown) でキーボード操作を受け付ける。マウスクリックは従来通り即採点）。 -->
+          <!-- 4択モード（クローズのみ）。クリック/タップで即採点する。 -->
           <p class="quiz-hint">{{ i18n.t('drill.choiceHint', { hint: q.hint }) }}</p>
-          <div class="choice-list" tabindex="0" (keydown)="onChoiceKeydown($event)">
-            @for (c of q.choices; track c; let i = $index) {
-              <button class="choice-btn" [class.selected]="selectedChoiceIndex() === i"
-                      [disabled]="revealed()" (click)="choose(c)">
-                <span class="choice-key">{{ i + 1 }}</span>{{ c }}
-              </button>
+          <div class="choice-list">
+            @for (c of q.choices; track c) {
+              <button class="choice-btn" [disabled]="revealed()" (click)="choose(c)">{{ c }}</button>
             }
           </div>
         }

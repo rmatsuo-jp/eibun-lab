@@ -11,10 +11,10 @@
     <p class="quiz-prompt">{{ current().prompt }}</p>
     <p class="quiz-hint">{{ current().hint }}</p>
 
-    <div class="quiz-choices">
+    <div class="choice-list">
       @for (c of current().choices; track c) {
         <button
-          class="quiz-choice"
+          class="choice-btn"
           [class.selected]="selected() === c"
           [class.correct]="selected() !== null && c === current().answer"
           [disabled]="selected() !== null"
@@ -29,7 +29,9 @@
       </div>
       <p class="quiz-translation">{{ current().translation }}</p>
       @if (state.loading()) {
-        <button class="btn-secondary" (click)="next()">{{ i18n.t('quiz.waiting.next') }}</button>
+        <div class="post-actions">
+          <button class="btn-secondary" (click)="next()">{{ i18n.t('quiz.waiting.next') }}</button>
+        </div>
       }
     }
   </div>
