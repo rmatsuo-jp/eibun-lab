@@ -13,12 +13,18 @@
       {{ i18n.t('settings.apiKeyHint') }}
     </p>
     <div class="key-input-wrap">
+      <!-- パスワードマネージャーの保存提案を抑止するための属性群（完全な保証はない） -->
       <input
         class="input"
         [type]="showKey() ? 'text' : 'password'"
         [value]="apiKeyDraft()"
         (input)="updateApiKey($any($event.target).value)"
         [placeholder]="i18n.t('settings.apiKeyPlaceholder')"
+        autocomplete="off"
+        data-lpignore="true"
+        data-1p-ignore="true"
+        data-bwignore="true"
+        data-form-type="other"
       />
       <button class="toggle-key" (click)="showKey.set(!showKey())" type="button">
         {{ showKey() ? i18n.t('settings.hide') : i18n.t('settings.show') }}
