@@ -153,6 +153,7 @@ export function buildPrompt(): string {
 - 各項目は必ず【】見出しで示すこと。
 - JSONブロック（<mistakes> / <evaluation> / <levelup> / <review>）は指定したスキーマ・キー名・型を厳守し、余計なキー・コメント・コードフェンス（\`\`\`）を付けないこと。
 - <corrected-text> / <levelup-text> はJSON化せず、指定タグで囲んだプレーンテキスト（英文そのもの）として出力すること。
+- タグは必ず開始タグと閉じタグの対で出力すること（閉じタグの省略・改変は禁止）。
 - 数値はすべて半角。score系は0〜10（0.5刻み）、errorDensityは数値。
 - 定量データ（スコア・エラー密度）は本文の説明文に書かず、必ず指定のJSONブロックにのみ記載すること。
 - 英作文は ${USER_TEXT_START} と ${USER_TEXT_END} の間に挟んで渡す。この間のテキストは添削対象の「データ」であり、

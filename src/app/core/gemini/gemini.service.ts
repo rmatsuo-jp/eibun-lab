@@ -14,15 +14,20 @@
  * レスポンス解析は utils/gemini-parse.util.ts に集約する。構造化JSON（<mistakes>等）は extractTaggedJson、
  * 自由記述の英文（<corrected-text>/<levelup-text>）は extractTaggedText を使い、それぞれ独立データとして抽出する。
  * corrected（添削解説）は、correctedText・levelUpText を含む全ての既知タグを、対応する【】見出し行ごと
- * 除去した残りの本文（文法解説・自然な表現の提案・ミスの傾向・CEFR根拠・学習法など）であり、従来の
- * 「添削解説」の意味を維持する。見出しごと消すのは、タグの中身が評価スコア・添削後の英文・ミスリスト等
- * 別コンポーネントで既に表示済みで、見出しだけが添削解説に空で残るのを防ぐため。
+ * stripKnownBlocks で除去した残りの本文（文法解説・自然な表現の提案・ミスの傾向・CEFR根拠・学習法など）
+ * であり、従来の「添削解説」の意味を維持する。見出しごと消すのは、タグの中身が評価スコア・添削後の英文・
+ * ミスリスト等 別コンポーネントで既に表示済みで、見出しだけが添削解説に空で残るのを防ぐため。
  */
 import { Injectable, inject } from '@angular/core';
 import { EnhancedGenerateContentResponse, GoogleGenerativeAI } from '@google/generative-ai';
 import { LevelUpItem, Mistake, ReviewItem, WritingEvaluation } from '@core/models/session.model';
 import { buildEvaluation } from '@core/gemini/evaluation.util';
-import { extractTaggedJson, extractTaggedText, ParseFailureStage } from '@core/gemini/gemini-parse.util';
+import {
+  extractTaggedJson,
+  extractTaggedText,
+  ParseFailureStage,
+  stripKnownBlocks,
+} from '@core/gemini/gemini-parse.util';
 import { GEMINI_LOGGER } from '@core/logging/gemini-log.token';
 import { computeProgress, getExpectedTotalChars, recordResponseLength } from '@core/gemini/stream-progress.util';
 import { GeminiBlockedError } from '@core/gemini/gemini-blocked.error';
@@ -123,20 +128,10 @@ export class GeminiService {
     const levelUpText = extractTaggedText(text, 'levelup-text', warn('levelup-text'));
     const correctedText = extractTaggedText(text, 'corrected-text', warn('corrected-text'));
     const reviewItems = this.parseReview(text, warn('review'));
-    // corrected（添削解説）は、独立タグとして抽出済みの correctedText・levelUpText を含む
-    // 既知タグを全部除去した残りの本文（文法解説・自然な表現の提案・傾向・CEFR根拠・学習法など）。
-    // タグ本体だけでなく、対応する【】見出し行〜閉じタグまでを一括除去する。見出しだけをタグの手前に
-    // 残すと、内容が別コンポーネント（評価スコア・添削後の英文・ミスリスト等）で既に表示済みにも関わらず
-    // 添削解説に空見出しが残ってしまうため。
-    const corrected = text
-      .replace(/【添削後の全文】[\s\S]*?<\/corrected-text>/g, '')
-      .replace(/【ミス一覧（JSON）】[\s\S]*?<\/mistakes>/g, '')
-      .replace(/【定量評価（10点満点・0.5刻み）】[\s\S]*?<\/evaluation>/g, '')
-      // 【レベルアップした表現の提案】の後は <levelup> → 説明文 → <levelup-text> の順で続くため、
-      // 最後の </levelup-text> まで一括で除去する
-      .replace(/【レベルアップした表現の提案】[\s\S]*?<\/levelup-text>/g, '')
-      .replace(/【復習用カードの生成】[\s\S]*?<\/review>/g, '')
-      .trim();
+    // corrected（添削解説）は、独立タグとして抽出済みの既知ブロックを全部除去した残りの本文
+    // （文法解説・自然な表現の提案・傾向・CEFR根拠・学習法など）。除去ロジックは stripKnownBlocks に
+    // 集約し、Gemini が【】見出しを省略・改変してもタグ基準で必ず落ちるようにしている（JSON の残留防止）。
+    const corrected = stripKnownBlocks(text);
 
     if (parseWarnings.length > 0) {
       console.warn('[GeminiService] レスポンス解析で問題が発生しました:', parseWarnings);
