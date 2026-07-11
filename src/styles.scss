@@ -159,3 +159,103 @@ html, body {
   opacity: 0.7;
   font-size: 0.9em;
 }
+
+// ── ドリル系（drill / waiting-quiz）共通ボタン ─────────────────────
+// 主操作（答え合わせ・次へ・結果を見る）用。行内で常に1つ、右端に置く。
+.btn-primary {
+  background: var(--color-primary);
+  color: #fff;
+  border: none;
+  border-radius: 0.75rem;
+  padding: 0.75rem 1.5rem;
+  font-size: 1rem;
+  font-weight: 600;
+  cursor: pointer;
+  transition: opacity 0.2s;
+
+  &:disabled {
+    opacity: 0.5;
+    cursor: not-allowed;
+  }
+}
+
+// 補助操作（ヒント表示・正解にする・中断）用。primaryと並ぶ場合は左側に置く。
+.btn-secondary {
+  background: var(--color-surface);
+  color: var(--color-text);
+  border: 2px solid var(--color-border);
+  border-radius: 0.75rem;
+  padding: 0.75rem 1rem;
+  font-size: 1rem;
+  cursor: pointer;
+  transition: background 0.2s;
+}
+
+// ナビゲーション専用（文一覧に戻る／日付選択に戻る／モード選択に戻る）。
+.link-button {
+  background: none;
+  border: none;
+  color: var(--color-primary);
+  font-size: 0.8125rem;
+  font-weight: 600;
+  cursor: pointer;
+  padding: 0;
+  margin-left: 0.75rem;
+  text-decoration: underline;
+}
+
+// 答え合わせ前のアクション行（ヒント／答え合わせボタン等）。
+.quiz-actions {
+  display: flex;
+  gap: 0.5rem;
+  flex-wrap: wrap;
+}
+
+// 答え合わせ後のアクション行（正解にする／次へ等）。常に右寄せ。
+.post-actions {
+  display: flex;
+  gap: 0.5rem;
+  justify-content: flex-end;
+}
+
+// 4択の選択肢（クリック/タップのみで選択する）。
+.choice-list {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 0.5rem;
+  margin-bottom: 1rem;
+}
+
+.choice-btn {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  background: var(--color-bg);
+  color: var(--color-text);
+  border: 2px solid var(--color-border);
+  border-radius: 0.5rem;
+  padding: 0.625rem 0.875rem;
+  font-size: 1rem;
+  cursor: pointer;
+  transition: border-color 0.2s, background 0.2s;
+
+  &:hover:not(:disabled) {
+    border-color: var(--color-primary);
+  }
+
+  &:disabled {
+    opacity: 0.6;
+    cursor: not-allowed;
+  }
+
+  &.selected {
+    border-color: var(--color-primary);
+    background: color-mix(in srgb, var(--color-primary) 12%, var(--color-bg));
+  }
+
+  // 誤答時にどの選択肢が正解だったかを強調する（waiting-quiz で使用）。
+  &.correct {
+    border-color: #16a34a;
+    background: rgba(22, 163, 74, 0.12);
+  }
+}
