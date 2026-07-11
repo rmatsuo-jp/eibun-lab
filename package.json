@@ -11,7 +11,8 @@
     "test": "ng test",
     "lint:text": "textlint docs README.md src/app/core/gemini/prompt.util.ts",
     "lint:text:fix": "textlint --fix docs README.md src/app/core/gemini/prompt.util.ts",
-    "deploy": "ng build && node -e \"require('fs').copyFileSync('dist/eibun-lab/browser/index.html','dist/eibun-lab/browser/404.html')\" && npx angular-cli-ghpages --dir=dist/eibun-lab/browser"
+    "deploy": "ng build && node -e \"require('fs').copyFileSync('dist/eibun-lab/browser/index.html','dist/eibun-lab/browser/404.html')\" && npx angular-cli-ghpages --dir=dist/eibun-lab/browser",
+    "lint": "ng lint"
   },
   "private": true,
   "packageManager": "npm@11.13.0",
@@ -34,6 +35,7 @@
     "@angular/build": "^22.0.1",
     "@angular/cli": "^22.0.1",
     "@angular/compiler-cli": "^22.0.0",
+    "@eslint/js": "^10.0.1",
     "@semantic-release/changelog": "^6.0.3",
     "@semantic-release/commit-analyzer": "^13.0.1",
     "@semantic-release/exec": "^7.1.0",
@@ -44,6 +46,8 @@
     "@textlint/textlint-plugin-text": "^15.7.1",
     "@vitest/coverage-v8": "^4.1.10",
     "angular-cli-ghpages": "^3.1.0",
+    "angular-eslint": "22.0.0",
+    "eslint": "^10.3.0",
     "fake-indexeddb": "^6.2.5",
     "jsdom": "^28.0.0",
     "png-to-ico": "^3.0.1",
@@ -54,6 +58,7 @@
     "textlint-filter-rule-comments": "^1.3.0",
     "textlint-rule-prh": "^6.1.0",
     "typescript": "~6.0.2",
+    "typescript-eslint": "8.60.1",
     "vitest": "^4.0.8"
   }
 }

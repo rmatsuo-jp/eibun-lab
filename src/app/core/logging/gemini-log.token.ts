@@ -23,5 +23,5 @@ export interface GeminiLogger {
 }
 
 export const GEMINI_LOGGER = new InjectionToken<GeminiLogger>('GEMINI_LOGGER', {
-  factory: () => ({ record: () => {} }),
+  factory: () => ({ record: () => undefined }),
 });

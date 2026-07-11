@@ -23,5 +23,8 @@ jobs:
       - name: Prettier check
         run: npx prettier --check .
 
+      - name: ESLint
+        run: npx ng lint
+
       - name: Test
         run: npx ng test --watch=false --coverage
