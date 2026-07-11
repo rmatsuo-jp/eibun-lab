@@ -41,7 +41,6 @@ const ja = {
   'practice.clear': 'クリア',
   'practice.submit': '添削する',
   'practice.submitting': '添削中...',
-  'practice.waitWithQuiz': 'クイズで待つ',
   'practice.original': '元の英作文',
   'practice.evaluation': '評価スコア',
   'practice.evalOverall': '総合',
@@ -80,11 +79,9 @@ const ja = {
   // ── quiz（drill・waiting-quiz 共用） ──
   'quiz.cloze.badge': '穴埋め',
   'quiz.waiting.duringLoading': '添削中に復習しましょう',
-  'quiz.waiting.loaded': '添削が完了しました',
   'quiz.waiting.correct': '正解！',
   'quiz.waiting.wrong': '不正解 — 正解: {answer}',
   'quiz.waiting.next': '次の問題',
-  'quiz.waiting.showResult': '添削完了！結果を見る',
 
   // ── mistake categories ──
   'mistake.category.grammar': '文法',
@@ -260,7 +257,6 @@ const en: Record<TranslationKey, string> = {
   'practice.clear': 'Clear',
   'practice.submit': 'Correct',
   'practice.submitting': 'Correcting...',
-  'practice.waitWithQuiz': 'Wait with a quiz',
   'practice.original': 'Original Writing',
   'practice.evaluation': 'Evaluation',
   'practice.evalOverall': 'Overall',
@@ -299,11 +295,9 @@ const en: Record<TranslationKey, string> = {
   // ── quiz（drill・waiting-quiz 共用） ──
   'quiz.cloze.badge': 'Cloze',
   'quiz.waiting.duringLoading': 'Review while your writing is corrected',
-  'quiz.waiting.loaded': 'Correction complete',
   'quiz.waiting.correct': 'Correct!',
   'quiz.waiting.wrong': 'Incorrect — answer: {answer}',
   'quiz.waiting.next': 'Next question',
-  'quiz.waiting.showResult': 'Correction done! See results',
 
   // ── mistake categories ──
   'mistake.category.grammar': 'Grammar',

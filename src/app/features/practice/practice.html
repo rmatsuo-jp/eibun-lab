@@ -1,5 +1,5 @@
 <!-- @file Practice ページテンプレート。日付選択・APIキー未設定時の設定ページ誘導バナー・
-     入力エリア・エラー表示・送信ボタン・添削中の進捗バー＋待機中クイズ・
+     入力エリア・エラー表示・送信ボタン・添削中の進捗バー＋自動表示の待機中クイズ（完了で自動的に結果へ切り替わる）・
      添削結果（元の英作文 + 評価スコアパネル +
      添削後の英文Markdown + レベルアップした英文Markdown + 添削解説5項目Markdown + ミスリスト）に加え、
      JSONテンプレートで複数日分の英作文をまとめてアップロード・一括添削・進捗表示する一括添削セクションを含む。
@@ -57,13 +57,10 @@
         <div class="bar" [style.width.%]="state.progress()"></div>
       </div>
       <span class="progress-percent">{{ state.progress() }}%</span>
-      @if (!state.showQuiz() && hasReviewItems()) {
-        <button class="btn-secondary" (click)="state.showQuiz.set(true)">{{ i18n.t('practice.waitWithQuiz') }}</button>
-      }
     </div>
   }
 
-  <!-- ── 待機中クイズ。完了しても showQuiz が false になるまで開いたままにする ── -->
+  <!-- ── 待機中クイズ。送信開始と同時に自動表示され、添削完了時に自動で閉じる ── -->
   @if (state.showQuiz()) {
     <app-waiting-quiz />
   }

@@ -4,7 +4,7 @@
  * 入力テキスト・添削結果・ローディング状態が消えない。API 送信もこのサービス内で完結するため、
  * 送信中に別タブへ移動しても中断されない。
  * 単発添削はストリーミング受信の実測進捗を progress signal（0〜100）で公開し、待機中クイズの表示可否は
- * showQuiz signal で持つ（完了しても自動で閉じず、ユーザーが「結果を見る」を押すまで結果を隠す）。
+ * showQuiz signal で持つ（送信開始と同時に自動表示し、成功/失敗いずれで完了しても自動で閉じて結果/エラー表示へ切り替える）。
  * notice signal は「処理中／完了／エラー」をルートコンポーネントのグローバルバナーへ伝え、
  * どのタブにいても添削の状況が分かるようにする。
  * 一括添削（bulkEntries/bulkProgress/submitBulk）は JSON テンプレートでアップロードした複数日分の
@@ -66,7 +66,7 @@ export class PracticeState {
 
     this.loading.set(true);
     this.progress.set(0);
-    this.showQuiz.set(false);
+    this.showQuiz.set(true);
     this.error.set('');
     this.notice.set({ status: 'loading', message: '添削中…' });
     // 注: ここで result はクリアしない（新しい結果を受信して初めて置き換える）。
@@ -77,6 +77,7 @@ export class PracticeState {
       );
       this.progress.set(100);
       this.result.set({ original: text, ...res });
+      this.showQuiz.set(false);
       this.notice.set({ status: 'success', message: '添削が完了しました' });
 
       const session = this.buildSession(this.selectedDate(), text, res);
@@ -85,6 +86,7 @@ export class PracticeState {
       this.userText.set('');
     } catch (e) {
       this.error.set(toUserMessage(e));
+      this.showQuiz.set(false);
       this.notice.set({ status: 'error', message: this.error() });
     } finally {
       this.loading.set(false);
