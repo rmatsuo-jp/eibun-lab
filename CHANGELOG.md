@@ -1,3 +1,11 @@
+## [0.8.2](https://github.com/rmatsuo-jp/study-english/compare/v0.8.1...v0.8.2) (2026-07-11)
+
+
+### Bug Fixes
+
+* **ci:** GitHub Actionsによる Pages デプロイに移行し Node.js 20 非推奨警告を解消 ([8651201](https://github.com/rmatsuo-jp/study-english/commit/8651201661edd482002b2b7ab5575b441ff84fce))
+* **layout:** bottom-navの自己参照ResizeObserverループで高さが増殖する不具合を解消 ([5ab217f](https://github.com/rmatsuo-jp/study-english/commit/5ab217f948764d0e70fb5f5b2704865bdf2b09ef))
+
 ## [0.8.1](https://github.com/rmatsuo-jp/study-english/compare/v0.8.0...v0.8.1) (2026-07-11)
 
 
