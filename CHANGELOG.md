@@ -1,3 +1,12 @@
+## [0.10.2](https://github.com/rmatsuo-jp/study-english/compare/v0.10.1...v0.10.2) (2026-07-11)
+
+
+### Bug Fixes
+
+* **ui:** ドリルタブのカード幅を他タブと統一 ([9d443ac](https://github.com/rmatsuo-jp/study-english/commit/9d443ace88c948fd30474b67f6f66ecb1b921854))
+* **ui:** モバイルの言語トグルとフィードバックボタンの重なりを解消 ([f552231](https://github.com/rmatsuo-jp/study-english/commit/f55223189faf37e38b8fbca1b2c94ab3e2ac0feb))
+* **ui:** 一括添削ボタンの文言をスマホ表示向けに簡潔化 ([7bd24b2](https://github.com/rmatsuo-jp/study-english/commit/7bd24b211040d7a419a1a0b3a4e0175cb50f7198))
+
 ## [0.10.1](https://github.com/rmatsuo-jp/study-english/compare/v0.10.0...v0.10.1) (2026-07-11)
 
 
