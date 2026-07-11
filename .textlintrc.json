@@ -1,0 +1,15 @@
+{
+  "plugins": {
+    "@textlint/text": {
+      "extensions": [".ts"]
+    }
+  },
+  "filters": {
+    "comments": true
+  },
+  "rules": {
+    "prh": {
+      "rulePaths": ["./prh.yml"]
+    }
+  }
+}

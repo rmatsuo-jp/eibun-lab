@@ -3,15 +3,20 @@
  * 状態を signal で持ち providedIn:'root' で生存させることで、タブ遷移（コンポーネント破棄）後も
  * 入力テキスト・添削結果・ローディング状態が消えない。API 送信もこのサービス内で完結するため、
  * 送信中に別タブへ移動しても中断されない。
+ * 単発添削はストリーミング受信の実測進捗を progress signal（0〜100）で公開し、待機中クイズの表示可否は
+ * showQuiz signal で持つ（完了しても自動で閉じず、ユーザーが「結果を見る」を押すまで結果を隠す）。
  * notice signal は「処理中／完了／エラー」をルートコンポーネントのグローバルバナーへ伝え、
  * どのタブにいても添削の状況が分かるようにする。
  * 一括添削（bulkEntries/bulkProgress/submitBulk）は JSON テンプレートでアップロードした複数日分の
  * 英作文を BULK_CONCURRENCY 件ずつ並列添削・保存する正式機能。セッション組み立ては buildSession() に共通化し、
  * 単発添削（submit）と一括添削（submitBulk）の両方から使う。
  * 「今日」のローカル日付キー算出は date.util.ts の toDayKey() を共用する（重複実装しない）。
+ * API 例外は toUserMessage()（core/gemini/gemini-error.util）で日本語の対処案内に変換してから表示する。
+ * 変換は表示側のこのサービスで行い、GeminiService の throw 構造（モデルフォールバック判定）は変えない。
  */
 import { Injectable, inject, signal } from '@angular/core';
 import { GeminiService, CorrectionResult } from '@core/gemini/gemini.service';
+import { toUserMessage } from '@core/gemini/gemini-error.util';
 import { SessionRepositoryService } from '@core/sessions/session-repository.service';
 import { SettingsStoreService } from '@core/settings/settings-store.service';
 import { buildPrompt } from '@core/gemini/prompt.util';
@@ -29,6 +34,11 @@ export class PracticeState {
   userText = signal('');
   selectedDate = signal(toDayKey(new Date().toISOString()));
   loading = signal(false);
+  // 添削の進捗率（0〜100）。ストリーミング受信中に GeminiService から通知され、完了時に 100 になる。
+  // モデルのフォールバック等で通知値が巻き戻ることがあるため、更新は常に max を取って単調増加させる。
+  progress = signal(0);
+  // 待機中クイズを表示中か。「クイズで待つ」で true、「結果を見る」で false。添削開始時にリセットする。
+  showQuiz = signal(false);
   error = signal('');
   result = signal<{ original: string; corrected: string; correctedText?: string; mistakes: Mistake[]; evaluation?: WritingEvaluation; reviewItems?: ReviewItem[]; levelUpItems?: LevelUpItem[]; levelUpText?: string } | null>(null);
 
@@ -55,12 +65,17 @@ export class PracticeState {
     }
 
     this.loading.set(true);
+    this.progress.set(0);
+    this.showQuiz.set(false);
     this.error.set('');
     this.notice.set({ status: 'loading', message: '添削中…' });
     // 注: ここで result はクリアしない（新しい結果を受信して初めて置き換える）。
 
     try {
-      const res = await this.gemini.correct(settings.apiKey, settings.modelPriority, buildPrompt(), text);
+      const res = await this.gemini.correct(settings.apiKey, settings.modelPriority, buildPrompt(), text, (p) =>
+        this.progress.set(Math.max(this.progress(), p))
+      );
+      this.progress.set(100);
       this.result.set({ original: text, ...res });
       this.notice.set({ status: 'success', message: '添削が完了しました' });
 
@@ -69,7 +84,7 @@ export class PracticeState {
       // 添削が成功して初めて入力欄をクリアする。
       this.userText.set('');
     } catch (e) {
-      this.error.set('エラーが発生しました: ' + (e instanceof Error ? e.message : String(e)));
+      this.error.set(toUserMessage(e));
       this.notice.set({ status: 'error', message: this.error() });
     } finally {
       this.loading.set(false);
@@ -80,6 +95,8 @@ export class PracticeState {
     this.userText.set('');
     this.result.set(null);
     this.error.set('');
+    this.showQuiz.set(false);
+    this.progress.set(0);
   }
 
   // ── CorrectionSession 組み立て（単発添削・一括添削の両方から使う共通処理） ─
@@ -152,7 +169,7 @@ export class PracticeState {
           this.updateBulkStatus(i, 'success');
           successCount++;
         } catch (e) {
-          this.updateBulkStatus(i, 'error', e instanceof Error ? e.message : String(e));
+          this.updateBulkStatus(i, 'error', toUserMessage(e));
           errorCount++;
         } finally {
           completedCount++;

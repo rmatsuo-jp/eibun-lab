@@ -5,7 +5,7 @@ import {
   classifyMistake,
   maskedIndices,
   normalizeAnswer,
-} from './drill-quiz.util';
+} from './quiz.util';
 
 describe('buildMistakeQuiz', () => {
   it('頻出ミスをQuizへ正規化する', () => {

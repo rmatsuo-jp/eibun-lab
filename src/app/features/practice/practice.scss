@@ -63,6 +63,31 @@
   }
 }
 
+// APIキー未設定時の案内。まだ失敗はしていないので .error-box の赤ではなく、
+// primary 色の枠線で「次にやること」を示す情報トーンにする。
+.setup-box {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+  gap: 0.75rem;
+  border: 2px solid var(--color-primary);
+  border-radius: 0.75rem;
+  background: var(--color-surface);
+  padding: 1rem;
+  margin-bottom: 1rem;
+  font-size: 0.875rem; // 子要素（説明文・リンク）へ継承させる
+
+  // <a> をボタン見た目に揃える（.btn-primary は button 前提で display:flex のため別定義）。
+  .setup-link {
+    background: var(--color-primary);
+    color: #fff;
+    border-radius: 0.75rem;
+    padding: 0.5rem 1.25rem;
+    font-weight: 600;
+    text-decoration: none;
+  }
+}
+
 .error-box {
   background: #fee2e2;
   color: #b91c1c;
@@ -125,6 +150,37 @@
 
 @keyframes spin {
   to { transform: rotate(360deg); }
+}
+
+// ── 添削中の進捗バー（ストリーミング実測。mistakes.scss の .bar-wrap/.bar と同系統） ──
+.progress-row {
+  display: flex;
+  align-items: center;
+  gap: 0.75rem;
+  margin-top: 0.75rem;
+}
+
+.bar-wrap {
+  flex: 1;
+  height: 0.5rem;
+  border-radius: 0.25rem;
+  background: var(--color-border);
+  overflow: hidden;
+}
+
+.bar {
+  height: 100%;
+  border-radius: 0.25rem;
+  background: var(--color-primary);
+  transition: width 0.4s ease;
+}
+
+.progress-percent {
+  min-width: 3rem;
+  font-size: 0.875rem;
+  font-variant-numeric: tabular-nums;
+  color: var(--color-text-muted);
+  text-align: right;
 }
 
 .result-section {

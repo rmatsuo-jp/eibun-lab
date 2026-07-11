@@ -3,7 +3,8 @@
      tabindex/role/keydown.enter でキーボードからも開けるようにしている。
      PCレイアウト（サイドバー表示時）では nav 先頭にアプリタイトル（sidebar-title）を表示し、
      続く sidebar-toggle ボタンで格納/展開を切り替えられる（app.ts の sidebarCollapsed signal に連動）。
-     初回起動時は showConsent signal に応じて同意モーダルを最前面に表示する（app.ts 参照）。 -->
+     初回起動時、および同意文言の改訂時（CONSENT_VERSION）は showConsent signal に応じて
+     同意モーダルを最前面に表示する（app.ts 参照）。 -->
 <div class="app-shell" [class.sidebar-collapsed]="sidebarCollapsed()">
   @if (showConsent()) {
     <div class="consent-overlay">
@@ -13,6 +14,11 @@
           本アプリは、入力した英文を添削のために <strong>Google Gemini API</strong> へ送信します。
           ログインした場合は添削データが Firebase（Google）に保存されます。詳細は下記をご確認のうえ、
           同意いただける場合のみご利用ください。
+        </p>
+        <p>
+          添削には利用者ご自身が取得した API キーを使用します。
+          <strong>Gemini API の利用料金が発生した場合、その負担は利用者ご自身に帰属し、当方は一切の責任を負いません。</strong>
+          Google アカウント側の課金設定と利用上限をご確認ください。
         </p>
         <p class="consent-links">
           <a routerLink="/legal/privacy">プライバシーポリシー</a> ・

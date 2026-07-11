@@ -1,8 +1,9 @@
 /**
- * @file Drill ページの出題ロジックのうち、コンポーネントの signal 状態に依存しない純粋関数を切り出したもの。
+ * @file 出題ロジックのうち、コンポーネントの signal 状態に依存しない純粋関数を切り出したもの。
  * 重み付きシャッフル・回答文字列の正規化・マスク順生成・マスク対象計算に加え、
  * Quiz/LevelUpQuiz への正規化ビルダーと不正解分類（classifyMistake）も提供し、
- * drill.ts はこれらを呼び出すだけにすることでファイルサイズと責務を減らす。DIなしで単体テスト可能。
+ * 呼び出し側（features/drill のドリル、features/practice の添削待機中クイズ）はこれを呼ぶだけにする。
+ * 2つの feature が共用するため core に置く（feature 間 import を避けるため）。DIなしで単体テスト可能。
  */
 import { Mistake, ReviewItem } from '@core/models/session.model';
 

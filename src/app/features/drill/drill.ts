@@ -28,7 +28,8 @@
  * 「文一覧に戻る」1ボタンのみを表示する（判定・遷移先はテンプレート側の条件分岐のみで完結し、
  * ロジック側の変更は不要。習熟の記録自体は checkTyping() が既に行う）。
  * signal状態に依存しない純粋ロジック（重み付きシャッフル・回答正規化・マスク順生成・マスク対象計算・
- * Quiz/LevelUpQuiz構築・不正解分類）は drill-quiz.util.ts に切り出しており、単体テスト可能。
+ * Quiz/LevelUpQuiz構築・不正解分類）は core/quiz/quiz.util.ts に切り出しており、単体テスト可能
+ * （添削待機中クイズと共用するため core に置く）。
  * Quiz/LevelUpQuiz/MistakeKind の型定義も同ファイルへ移し、このファイルは状態管理と
  * 3モードのオーケストレーションに専念する。
  */
@@ -51,7 +52,7 @@ import {
   normalizeAnswer,
   Quiz,
   shuffleByWeight,
-} from './drill-quiz.util';
+} from '@core/quiz/quiz.util';
 
 // 出題モード。null は未選択（スタート画面）。
 type Mode = 'mistakes' | 'cloze' | 'levelup';

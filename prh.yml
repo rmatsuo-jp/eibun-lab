@@ -1,0 +1,58 @@
+# 用語表記ゆれ検出ルール（prh: proofread helper）
+#
+# docs/glossary.md の「用語一覧」表と 1:1 で対応する。用語を足すときは両方を更新すること。
+#
+# 設計方針:
+# - patterns は日本語表記のみを書く。英単語・コード識別子（corrected, levelUpItems 等）に
+#   マッチするパターンを書くと、prompt.util.ts の JSON スキーマや英文サンプルが誤検知される。
+# - 裸の「間違い」「誤り」は登録しない。「間違いやすい癖」「押し間違い」のような自然な日本語を
+#   壊してしまうため。UI ラベル相当の複合語に限定する（詳細は glossary.md 参照）。
+
+version: 1
+
+rules:
+  # ── 中核ドメイン用語 ──────────────────────────────
+  - expected: 添削
+    patterns:
+      - 校正
+
+  - expected: レベルアップ
+    patterns:
+      - ステップアップ
+      - 格上げ
+
+  - expected: 穴埋め復習
+    patterns:
+      - 穴埋めテスト
+
+  - expected: 定量評価
+    patterns:
+      - 採点結果
+
+  - expected: エラー密度
+    patterns:
+      - ミス密度
+
+  # ── UI ラベル相当の複合語（裸の「間違い」は対象外）──
+  - expected: ミス傾向
+    patterns:
+      - 間違い傾向
+      - 弱点分析
+
+  - expected: ミス一覧
+    patterns:
+      - 間違い一覧
+      - エラー一覧
+
+  # ── 固有名詞・略語（半角固定）────────────────────
+  - expected: Gemini
+    patterns:
+      - ジェミニ
+
+  - expected: AI
+    patterns:
+      - ＡＩ
+
+  - expected: CEFR
+    patterns:
+      - セファール

@@ -1,4 +1,6 @@
-<!-- @file Practice ページテンプレート。日付選択・入力エリア・エラー表示・送信ボタン・添削結果（元の英作文 + 評価スコアパネル +
+<!-- @file Practice ページテンプレート。日付選択・APIキー未設定時の設定ページ誘導バナー・
+     入力エリア・エラー表示・送信ボタン・添削中の進捗バー＋待機中クイズ・
+     添削結果（元の英作文 + 評価スコアパネル +
      添削後の英文Markdown + レベルアップした英文Markdown + 添削解説Markdown + ミスリスト）に加え、
      JSONテンプレートで複数日分の英作文をまとめてアップロード・一括添削・進捗表示する一括添削セクションを含む。 -->
 <div class="page">
@@ -10,6 +12,14 @@
       [value]="state.selectedDate()"
       (input)="state.selectedDate.set($any($event.target).value)" />
   </div>
+
+  <!-- ── APIキー未設定時の設定ページ誘導（未設定のあいだ添削ボタンは押せない） ── -->
+  @if (!settingsStore.hasApiKey()) {
+    <div class="setup-box">
+      <span>添削には Gemini API キーが必要です。設定ページでキーを登録してください。</span>
+      <a class="setup-link" routerLink="/settings">設定ページを開く</a>
+    </div>
+  }
 
   <div class="input-section">
     <label class="label">英作文</label>
@@ -28,7 +38,7 @@
 
   <div class="actions">
     <button class="btn-secondary" (click)="state.clear()" [disabled]="state.loading()">クリア</button>
-    <button class="btn-primary" (click)="state.submit()" [disabled]="state.loading() || !state.userText().trim()">
+    <button class="btn-primary" (click)="state.submit()" [disabled]="state.loading() || !state.userText().trim() || !settingsStore.hasApiKey()">
       @if (state.loading()) {
         <span class="spinner"></span> 添削中...
       } @else {
@@ -37,7 +47,25 @@
     </button>
   </div>
 
-  @if (state.result()) {
+  <!-- ── 添削中の実測進捗（ストリーミング受信のマイルストーン＋文字数比） ── -->
+  @if (state.loading()) {
+    <div class="progress-row">
+      <div class="bar-wrap">
+        <div class="bar" [style.width.%]="state.progress()"></div>
+      </div>
+      <span class="progress-percent">{{ state.progress() }}%</span>
+      @if (!state.showQuiz() && hasReviewItems()) {
+        <button class="btn-secondary" (click)="state.showQuiz.set(true)">クイズで待つ</button>
+      }
+    </div>
+  }
+
+  <!-- ── 待機中クイズ。完了しても showQuiz が false になるまで開いたままにする ── -->
+  @if (state.showQuiz()) {
+    <app-waiting-quiz />
+  }
+
+  @if (state.result() && !state.showQuiz()) {
     <div class="result-section">
       <h2 class="section-title">元の英作文</h2>
       <div class="original-box">{{ state.result()!.original }}</div>
@@ -110,7 +138,7 @@
   <!-- ── 一括添削: JSONテンプレートで複数日分の英作文をまとめて添削・保存する ── -->
   <div class="bulk-section">
     <h2 class="section-title">一括添削（複数の英文をまとめて送信）</h2>
-    <p class="bulk-hint">日付と英文をまとめたJSONファイルをアップロードすると、1件ずつ順番に添削して自動保存します。</p>
+    <p class="bulk-hint">日付と英文をまとめたJSONファイルをアップロードすると、1件ずつ順番に添削して自動保存します。送信件数がそのまま Gemini API の呼び出し回数になるため、無料枠を超えた分は課金対象となる場合があります。</p>
 
     <div class="bulk-actions">
       <button class="btn-secondary" (click)="downloadTemplate()">テンプレートをダウンロード</button>
@@ -131,7 +159,7 @@
           }
         </div>
         <div class="actions">
-          <button class="btn-primary" (click)="runBulk()" [disabled]="state.bulkRunning()">
+          <button class="btn-primary" (click)="runBulk()" [disabled]="state.bulkRunning() || !settingsStore.hasApiKey()">
             @if (state.bulkRunning()) {
               <span class="spinner"></span> 一括添削中...
             } @else {

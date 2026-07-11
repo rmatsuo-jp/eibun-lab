@@ -1,0 +1,41 @@
+<!-- @file 添削待機中のミニクイズ（4択穴埋め）。復習カードが1件も無い場合は何も描画しない。
+     添削完了後は完了バーと「結果を見る」ボタンを出し、解答を中断させずに遷移できるようにする。 -->
+@if (hasQuiz) {
+  <div class="quiz-card">
+    <div class="quiz-head">
+      <span class="quiz-badge">{{ current().badge }}</span>
+      <span class="quiz-caption">
+        @if (state.loading()) { 添削中に復習しましょう } @else { 添削が完了しました }
+      </span>
+    </div>
+
+    <p class="quiz-prompt">{{ current().prompt }}</p>
+    <p class="quiz-hint">{{ current().hint }}</p>
+
+    <div class="quiz-choices">
+      @for (c of current().choices; track c) {
+        <button
+          class="quiz-choice"
+          [class.selected]="selected() === c"
+          [class.correct]="selected() !== null && c === current().answer"
+          [disabled]="selected() !== null"
+          (click)="choose(c)"
+        >{{ c }}</button>
+      }
+    </div>
+
+    @if (selected() !== null) {
+      <div class="quiz-feedback" [class.ng]="!isCorrect()">
+        {{ isCorrect() ? '正解！' : '不正解 — 正解: ' + current().answer }}
+      </div>
+      <p class="quiz-translation">{{ current().translation }}</p>
+      <button class="btn-secondary" (click)="next()">次の問題</button>
+    }
+
+    @if (!state.loading()) {
+      <div class="quiz-done">
+        <button class="btn-primary" (click)="showResult()">添削完了！結果を見る</button>
+      </div>
+    }
+  </div>
+}

@@ -1,0 +1,124 @@
+/* @file 添削待機中ミニクイズのスタイル。カード・4択ボタン・正誤フィードバック・完了ボタンの見た目を定義する。
+   ボタン系クラスはコンポーネントスコープのため、drill.scss と同様にこのファイル内で定義する。 */
+
+.quiz-card {
+  margin: 1rem 0;
+  padding: 1rem;
+  border: 1px solid var(--color-border);
+  border-radius: 0.75rem;
+  background: var(--color-surface);
+}
+
+// ── ヘッダー ─────────────────────────────────────────────────────
+.quiz-head {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  margin-bottom: 0.75rem;
+}
+
+.quiz-badge {
+  padding: 0.15rem 0.5rem;
+  border-radius: 0.25rem;
+  font-size: 0.75rem;
+  background: var(--color-primary);
+  color: #fff;
+}
+
+.quiz-caption {
+  font-size: 0.8125rem;
+  color: var(--color-text-muted);
+}
+
+// ── 出題本文 ─────────────────────────────────────────────────────
+.quiz-prompt {
+  margin: 0 0 0.5rem;
+  font-size: 1.0625rem;
+  line-height: 1.6;
+  color: var(--color-text);
+}
+
+.quiz-hint,
+.quiz-translation {
+  font-size: 0.8125rem;
+  color: var(--color-text-muted);
+}
+
+.quiz-hint {
+  margin: 0 0 0.75rem;
+}
+
+.quiz-translation {
+  margin: 0.35rem 0 0.75rem;
+}
+
+// ── 4択 ──────────────────────────────────────────────────────────
+.quiz-choices {
+  display: grid;
+  gap: 0.5rem;
+}
+
+.quiz-choice {
+  padding: 0.625rem 0.75rem;
+  border: 2px solid var(--color-border);
+  border-radius: 0.5rem;
+  background: var(--color-surface);
+  color: var(--color-text);
+  font-size: 1rem;
+  text-align: left;
+  cursor: pointer;
+
+  &:disabled {
+    cursor: default;
+  }
+
+  &.selected {
+    border-color: var(--color-primary);
+  }
+
+  // 解答後は正解の選択肢を必ず強調する（誤答時にどれが正解だったか示すため）。
+  &.correct {
+    border-color: #16a34a;
+    background: rgba(22, 163, 74, 0.12);
+  }
+}
+
+// ── 正誤フィードバック ───────────────────────────────────────────
+.quiz-feedback {
+  margin-top: 0.75rem;
+  font-weight: 600;
+  color: #16a34a;
+
+  &.ng {
+    color: #dc2626;
+  }
+}
+
+// ── 完了時の遷移ボタン ───────────────────────────────────────────
+.quiz-done {
+  margin-top: 1rem;
+  padding-top: 0.75rem;
+  border-top: 1px solid var(--color-border);
+}
+
+// ── ボタン（コンポーネントスコープのため個別定義） ───────────────
+.btn-primary {
+  background: var(--color-primary);
+  color: #fff;
+  border: none;
+  border-radius: 0.75rem;
+  padding: 0.75rem 1.5rem;
+  font-size: 1rem;
+  font-weight: 600;
+  cursor: pointer;
+}
+
+.btn-secondary {
+  background: var(--color-surface);
+  color: var(--color-text);
+  border: 2px solid var(--color-border);
+  border-radius: 0.75rem;
+  padding: 0.5rem 1rem;
+  font-size: 0.9375rem;
+  cursor: pointer;
+}

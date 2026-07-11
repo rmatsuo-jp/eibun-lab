@@ -1,4 +1,7 @@
-<!-- @file Settings ページテンプレート。アカウント（Google SSO 同期）・テーマ・API キー・モデル優先順位（ドラッグ&ドロップ）・法的情報リンクを含む。未保存時は保存ボタン付近に警告を表示する。 -->
+<!-- @file Settings ページテンプレート。セクション順は アカウント（Google SSO 同期）→ テーマ → API キー → 法的情報 → モデル優先順位（ドラッグ&ドロップ）→ バージョン情報。
+     法的情報は重要度が高く同意ダイアログ以外で唯一の導線のため API キー直下に置き、参照頻度の低いバージョン情報を末尾に置く。
+     テーマとモデル優先順位は操作時に即時保存されるため保存ボタンを持たない。API キーのみ入力欄の右に専用の保存ボタンを置き、未保存時はその下に警告を表示する。
+     API キー欄には課金が利用者負担である旨の注意ボックスを常時表示する。 -->
 <div class="page">
   <h1 class="page-title">設定</h1>
 
@@ -38,9 +41,9 @@
     <label class="label">外観テーマ</label>
     <div class="theme-toggle">
       <button class="theme-btn" [class.active]="settings().theme === 'light'"
-              (click)="update('theme', 'light')" type="button">ライト</button>
+              (click)="updateTheme('light')" type="button">ライト</button>
       <button class="theme-btn" [class.active]="settings().theme === 'dark'"
-              (click)="update('theme', 'dark')" type="button">ダーク</button>
+              (click)="updateTheme('dark')" type="button">ダーク</button>
     </div>
   </div>
 
@@ -48,20 +51,54 @@
     <label class="label">Gemini API キー</label>
     <p class="hint">
       <a href="https://aistudio.google.com/app/apikey" target="_blank" rel="noopener">Google AI Studio</a>
-      で無料取得できます。
+      で取得できます。
     </p>
     <div class="key-input-wrap">
       <input
         class="input"
         [type]="showKey() ? 'text' : 'password'"
-        [value]="settings().apiKey"
-        (input)="update('apiKey', $any($event.target).value)"
-        placeholder="AIza..."
+        [value]="apiKeyDraft()"
+        (input)="updateApiKey($any($event.target).value)"
+        placeholder="API キーを貼り付け"
       />
       <button class="toggle-key" (click)="showKey.set(!showKey())" type="button">
         {{ showKey() ? '隠す' : '表示' }}
       </button>
+      <!-- API キーだけは入力途中の値を永続化しないよう、明示的な保存を要求する -->
+      <button class="save-key" [class.pending]="isDirty()" [disabled]="!isDirty()"
+              (click)="saveApiKey()" type="button">
+        @if (saved()) { ✓ } @else { 保存 }
+      </button>
     </div>
+    @if (isDirty()) {
+      <p class="unsaved-hint">● API キーが保存されていません</p>
+    }
+
+    <!-- ── 課金に関する注意（免責事項と整合させること。「無料」と断定しない） ─────────── -->
+    <div class="key-warning">
+      <strong>API 利用料金についてのご注意</strong>
+      <ul>
+        <li>無料枠を超えた利用や、Google Cloud の請求先アカウントを紐付けたプロジェクトのキーを使用した場合、<strong>料金が発生することがあります</strong>。</li>
+        <li>API の利用料金・請求は<strong>利用者ご自身の Google アカウントに帰属</strong>します。本アプリは料金を負担せず、一切の責任を負いません。</li>
+        <li>意図しない課金を防ぐため、Google Cloud 側で<strong>利用上限（割り当て）や予算アラートの設定</strong>を強く推奨します。</li>
+      </ul>
+      <p class="hint">
+        <a href="https://ai.google.dev/pricing" target="_blank" rel="noopener">Gemini API の料金体系</a> ・
+        <a routerLink="/legal/disclaimer">免責事項</a>
+      </p>
+    </div>
+  </div>
+
+  <!-- ── 法的情報（データの送信先・利用条件・免責事項）
+       同意ダイアログ（app.html）は初回のみ表示されるため、ここが同意済み利用者にとって唯一の常設導線。
+       直上の課金注意ボックスが説明する法的リスクと文脈が続くよう、API キーの直下に置く。 ─────────── -->
+  <div class="form-group">
+    <label class="label">法的情報</label>
+    <p class="hint">
+      <a routerLink="/legal/privacy">プライバシーポリシー</a> ・
+      <a routerLink="/legal/terms">利用規約</a> ・
+      <a routerLink="/legal/disclaimer">免責事項</a>
+    </p>
   </div>
 
   <div class="form-group">
@@ -84,29 +121,10 @@
     </ul>
   </div>
 
-  <div class="actions">
-    @if (isDirty()) {
-      <span class="unsaved-hint">● 未保存の変更があります</span>
-    }
-    <button class="btn-primary" [class.pending]="isDirty()" (click)="save()">
-      @if (saved()) { ✓ 保存しました } @else { 保存する }
-    </button>
-  </div>
-
-  <!-- ── バージョン情報（version.ts はビルド時に自動生成） ─────────── -->
+  <!-- ── バージョン情報（version.ts はビルド時に自動生成。参照頻度が低いためページ末尾に置く） ─────────── -->
   <div class="form-group">
     <label class="label">バージョン情報</label>
     <p class="hint">バージョン {{ version }}（リリース日 {{ releaseDate }}）</p>
-  </div>
-
-  <!-- ── 法的情報（データの送信先・利用条件・免責事項） ─────────── -->
-  <div class="form-group">
-    <label class="label">法的情報</label>
-    <p class="hint">
-      <a routerLink="/legal/privacy">プライバシーポリシー</a> ・
-      <a routerLink="/legal/terms">利用規約</a> ・
-      <a routerLink="/legal/disclaimer">免責事項</a>
-    </p>
   </div>
 
 </div>
