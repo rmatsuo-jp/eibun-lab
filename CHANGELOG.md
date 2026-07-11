@@ -1,3 +1,12 @@
+## [0.8.1](https://github.com/rmatsuo-jp/study-english/compare/v0.8.0...v0.8.1) (2026-07-11)
+
+
+### Bug Fixes
+
+* **app:** 下部タブバーの高さを実測してコンテンツの隠れを解消 ([660ab46](https://github.com/rmatsuo-jp/study-english/commit/660ab46573c0164d0b054cda7a83095dd84ae288))
+* **drill:** ドリル系ボタンのスタイルを統一し4択キー選択の不具合を解消 ([938bdad](https://github.com/rmatsuo-jp/study-english/commit/938bdad4dbba70930bbfb7d2efb93b36a8c14ac4))
+* **settings:** 表示言語ボタンの選択状態をサイドバーと同期 ([766864e](https://github.com/rmatsuo-jp/study-english/commit/766864e82b4569f321f4440e0ee5553155c22b7c))
+
 # [0.8.0](https://github.com/rmatsuo-jp/study-english/compare/v0.7.0...v0.8.0) (2026-07-11)
 
 
