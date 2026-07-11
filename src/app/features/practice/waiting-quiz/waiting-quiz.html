@@ -1,12 +1,16 @@
 <!-- @file 添削待機中のミニクイズ（4択穴埋め）。復習カードが1件も無い場合は何も描画しない。
      添削送信と同時に自動表示され、添削完了時（成功/失敗いずれも）は PracticeState 側で自動的に閉じて
-     結果/エラー表示へ切り替わる。全文言は i18n.t()（core/i18n/I18nService）経由で表示する。 -->
+     結果/エラー表示へ切り替わる。全文言は i18n.t()（core/i18n/I18nService）経由で表示する。
+     新規ユーザー（isSample=true）はサンプル問題を出題し、その旨の注記を表示する。 -->
 @if (hasQuiz) {
   <div class="quiz-card">
     <div class="quiz-head">
       <span class="quiz-badge">{{ current().badge }}</span>
       <span class="quiz-caption">{{ i18n.t('quiz.waiting.duringLoading') }}</span>
     </div>
+    @if (isSample) {
+      <p class="quiz-sample-note">{{ i18n.t('quiz.waiting.sampleNote') }}</p>
+    }
 
     <p class="quiz-prompt">{{ current().prompt }}</p>
     <p class="quiz-hint">{{ current().hint }}</p>
