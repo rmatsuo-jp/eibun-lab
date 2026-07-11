@@ -5,7 +5,7 @@
  * 経由して表示する。文書の原本は docs/legal/ の1箇所のみ。angular.json の assets 設定により
  * ビルド時に docs/legal/*.md が dist/legal/ へ自動コピーされる（手動同期は不要）。
  */
-import { Component, inject, signal } from '@angular/core';
+import { ChangeDetectionStrategy, Component, inject, signal } from '@angular/core';
 import { HttpClient } from '@angular/common/http';
 import { ActivatedRoute, RouterLink } from '@angular/router';
 import { DomSanitizer, SafeHtml } from '@angular/platform-browser';
@@ -22,6 +22,7 @@ const DOC_TITLES: Record<string, string> = {
   imports: [RouterLink],
   templateUrl: './legal.html',
   styleUrl: './legal.scss',
+  changeDetection: ChangeDetectionStrategy.OnPush,
 })
 export class Legal {
   private http = inject(HttpClient);

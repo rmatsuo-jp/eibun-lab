@@ -2,7 +2,7 @@
  * @file 開発者用ページ。Gemini との入出力ログ閲覧・添削後 HTML のライブプレビュー・buildPrompt() プレビュー・
  * localStorage 生データのダンプを行う。添削プロンプト改善や HTML 表示 UX の検証を目的とした開発専用タブ。
  */
-import { Component, computed, inject, signal } from '@angular/core';
+import { ChangeDetectionStrategy, Component, computed, inject, signal } from '@angular/core';
 import { DatePipe } from '@angular/common';
 import { FormsModule } from '@angular/forms';
 import { DomSanitizer, SafeHtml } from '@angular/platform-browser';
@@ -18,6 +18,7 @@ import { copyToClipboard } from '@shared/utils/clipboard.util';
   imports: [FormsModule, DatePipe],
   templateUrl: './dev.html',
   styleUrl: './dev.scss',
+  changeDetection: ChangeDetectionStrategy.OnPush,
 })
 export class Dev {
   private devLog = inject(DevLogService);

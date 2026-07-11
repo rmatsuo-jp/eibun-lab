@@ -1,9 +1,6 @@
 /**
- * @file 遅延ロード（loadComponent）を使ったルーティング設定。
- * デフォルトは /practice にリダイレクト。ルートは practice / drill / history / mistakes / settings /
- * legal/:doc / dev の7つ。
- * dev ルートは environment.production が true の場合はルート自体を登録しない（本番ビルドの route table・
- * lazy chunk から dev ページを除外し、APIキー等が見える開発用画面が本番に出荷されないようにする）。
+ * @file 遅延ロード（loadComponent）を使ったルーティング設定。デフォルトは /practice にリダイレクト。
+ * dev ルートは本番ビルドでは登録しない（route table・lazy chunkから除外し出荷されないようにする）。
  */
 import { Routes } from '@angular/router';
 import { environment } from '../environments/environment';

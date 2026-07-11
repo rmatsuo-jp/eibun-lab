@@ -68,6 +68,13 @@ npm run build
 npm test
 ```
 
+## Lint
+
+```bash
+npm run lint       # ESLint
+npm run lint:text  # 表記ゆれチェック（docs, README.md, prompt.util.ts）
+```
+
 ## セキュリティ
 
 このリポジトリは public 公開されています。運用上の注意点：

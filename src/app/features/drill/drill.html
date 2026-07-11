@@ -15,23 +15,23 @@
 <div class="page">
   <h1 class="page-title">{{ i18n.t('drill.title') }}</h1>
 
-  @if (!started()) {
+  @if (!state.started()) {
     <!-- ── モード選択（スタート画面） ── -->
     <div class="intro">
       <button
         class="mode-card"
-        (click)="start('cloze')"
-        [disabled]="clozeCount() === 0 && !isNewUser()"
+        (click)="state.start('cloze')"
+        [disabled]="state.clozeCount() === 0 && !state.isNewUser()"
       >
         <strong>{{ i18n.t('drill.cloze.name') }}</strong>
         <p>{{ i18n.t('drill.cloze.desc') }}</p>
-        @if (clozeCount() === 0 && isNewUser()) {
+        @if (state.clozeCount() === 0 && state.isNewUser()) {
           <p class="empty-note">{{ i18n.t('drill.cloze.sampleNote') }}</p>
         } @else {
-          <p class="intro-count">{{ i18n.t('drill.dayCount', { count: clozeCount() }) }}</p>
-          @if (clozeCount() === 0) {
+          <p class="intro-count">{{ i18n.t('drill.dayCount', { count: state.clozeCount() }) }}</p>
+          @if (state.clozeCount() === 0) {
             <p class="empty-note">{{ i18n.t('drill.cloze.empty') }}</p>
-          } @else if (clozeAchievement(); as a) {
+          } @else if (state.clozeAchievement(); as a) {
             <span
               class="achievement-badge"
               [class.achievement-done]="a.done === a.total && a.total > 0"
@@ -44,18 +44,18 @@
 
       <button
         class="mode-card"
-        (click)="start('levelup')"
-        [disabled]="levelUpCount() === 0 && !isNewUser()"
+        (click)="state.start('levelup')"
+        [disabled]="state.levelUpCount() === 0 && !state.isNewUser()"
       >
         <strong>{{ i18n.t('drill.levelup.name') }}</strong>
         <p>{{ i18n.t('drill.levelup.desc') }}</p>
-        @if (levelUpCount() === 0 && isNewUser()) {
+        @if (state.levelUpCount() === 0 && state.isNewUser()) {
           <p class="empty-note">{{ i18n.t('drill.levelup.sampleNote') }}</p>
         } @else {
-          <p class="intro-count">{{ i18n.t('drill.dayCount', { count: levelUpCount() }) }}</p>
-          @if (levelUpCount() === 0) {
+          <p class="intro-count">{{ i18n.t('drill.dayCount', { count: state.levelUpCount() }) }}</p>
+          @if (state.levelUpCount() === 0) {
             <p class="empty-note">{{ i18n.t('drill.levelup.empty') }}</p>
-          } @else if (levelUpAchievement(); as a) {
+          } @else if (state.levelUpAchievement(); as a) {
             <span
               class="achievement-badge"
               [class.achievement-done]="a.done === a.total && a.total > 0"
@@ -66,15 +66,15 @@
         }
       </button>
     </div>
-  } @else if (mode() === 'levelup' && !levelUpDateChosen()) {
+  } @else if (state.mode() === 'levelup' && !state.levelUpDateChosen()) {
     <!-- ── レベルアップ・タイピング: 日付選択画面 ── -->
     <div class="intro">
       <p>{{ i18n.t('drill.chooseDate') }}</p>
       <div class="date-select">
-        @for (s of levelUpDates(); track s.id) {
-          <button class="date-card" (click)="selectLevelUpDate(s)">
+        @for (s of state.levelUpDates(); track s.id) {
+          <button class="date-card" (click)="state.selectLevelUpDate(s)">
             <span class="date-card-date">{{ s.date | date: 'yyyy/MM/dd' }}</span>
-            @if (progressForSession(s); as p) {
+            @if (state.progressForSession(s); as p) {
               <span
                 class="date-card-count"
                 [class.date-card-done]="p.done === p.total && p.total > 0"
@@ -88,23 +88,23 @@
             }
           </button>
         }
-        @if (levelUpDates().length === 0) {
+        @if (state.levelUpDates().length === 0) {
           <p class="empty-note">{{ i18n.t('drill.noLevelUpSessions') }}</p>
         }
       </div>
-      <button class="btn-secondary" (click)="restart()">
+      <button class="btn-secondary" (click)="state.restart()">
         {{ i18n.t('drill.backToModeSelect') }}
       </button>
     </div>
-  } @else if (mode() === 'cloze' && !clozeDateChosen()) {
+  } @else if (state.mode() === 'cloze' && !state.clozeDateChosen()) {
     <!-- ── 穴埋め復習: 日付選択画面 ── -->
     <div class="intro">
       <p>{{ i18n.t('drill.chooseDateCloze') }}</p>
       <div class="date-select">
-        @for (s of clozeDates(); track s.id) {
-          <button class="date-card" (click)="selectClozeDate(s)">
+        @for (s of state.clozeDates(); track s.id) {
+          <button class="date-card" (click)="state.selectClozeDate(s)">
             <span class="date-card-date">{{ s.date | date: 'yyyy/MM/dd' }}</span>
-            @if (progressForClozeSession(s); as p) {
+            @if (state.progressForClozeSession(s); as p) {
               <span
                 class="date-card-count"
                 [class.date-card-done]="p.done === p.total && p.total > 0"
@@ -118,96 +118,84 @@
             }
           </button>
         }
-        @if (clozeDates().length === 0) {
+        @if (state.clozeDates().length === 0) {
           <p class="empty-note">{{ i18n.t('drill.noClozeSessions') }}</p>
         }
       </div>
-      <button class="btn-secondary" (click)="restart()">
+      <button class="btn-secondary" (click)="state.restart()">
         {{ i18n.t('drill.backToModeSelect') }}
       </button>
     </div>
-  } @else if (mode() === 'levelup' && !levelUpSentenceChosen()) {
+  } @else if (state.mode() === 'levelup' && !state.levelUpSentenceChosen()) {
     <!-- ── レベルアップ・タイピング: 文一覧選択画面 ── -->
-    <div class="intro">
-      <p>{{ i18n.t('drill.chooseSentence') }}</p>
-      <div class="date-select">
-        @for (item of levelUpQuiz(); track item.key; let i = $index) {
-          @if (progressForItem(item); as p) {
-            <button class="date-card sentence-card" (click)="selectLevelUpSentence(i)">
-              <span class="date-card-date">{{ i + 1 }}. {{ item.original }}</span>
-              <span class="date-card-count" [class.date-card-done]="p.completed">
-                {{
-                  p.completed
-                    ? i18n.t('drill.mastered')
-                    : p.maskLevel === 0
-                      ? i18n.t('drill.notStarted')
-                      : i18n.t('drill.maskProgress', { level: p.maskLevel, max: item.maxLevel })
-                }}
-              </span>
-            </button>
-          }
-        }
-      </div>
-      <button class="btn-secondary" (click)="backToDateSelect()">
-        {{ i18n.t('drill.backToDateSelect') }}
-      </button>
-    </div>
-  } @else if (finished()) {
+    <app-sentence-list
+      [items]="state.levelUpQuiz()"
+      [progressFor]="state.progressForItem.bind(state)"
+      (selectIndex)="state.selectLevelUpSentence($event)"
+      (back)="state.backToDateSelect()"
+    ></app-sentence-list>
+  } @else if (state.finished()) {
     <!-- ── 結果サマリー ── -->
     <div class="result-summary">
-      @if (sampleMode()) {
+      @if (state.sampleMode()) {
         <p class="empty-note">
-          {{ i18n.t(mode() === 'levelup' ? 'drill.levelup.sampleNote' : 'drill.cloze.sampleNote') }}
+          {{
+            i18n.t(
+              state.mode() === 'levelup' ? 'drill.levelup.sampleNote' : 'drill.cloze.sampleNote'
+            )
+          }}
         </p>
       }
-      @if (mode() === 'levelup') {
+      @if (state.mode() === 'levelup') {
         <p class="result-score">
-          {{ i18n.t('drill.resultLevelUp', { mastered: masteredCount(), total: total() }) }}
+          {{
+            i18n.t('drill.resultLevelUp', { mastered: state.masteredCount(), total: state.total() })
+          }}
         </p>
       } @else {
         <p class="result-score">
-          {{ i18n.t('drill.resultScore', { score: score(), total: total() }) }}
+          {{ i18n.t('drill.resultScore', { score: state.score(), total: state.total() }) }}
         </p>
       }
       <p class="result-message">{{ i18n.t('drill.resultMessage') }}</p>
-      <button class="btn-primary" (click)="restart()">
+      <button class="btn-primary" (click)="state.restart()">
         {{ i18n.t('drill.backToModeSelect') }}
       </button>
     </div>
-  } @else if (mode() === 'levelup') {
+  } @else if (state.mode() === 'levelup') {
     <!-- ── レベルアップ・タイピング出題中 ── -->
     <div class="progress">
-      {{ index() + 1 }} / {{ total() }}
-      <button class="link-button" (click)="backToSentenceList()">
+      {{ state.index() + 1 }} / {{ state.total() }}
+      <button class="link-button" (click)="state.backToSentenceList()">
         {{ i18n.t('drill.backToSentenceList') }}
       </button>
-      <button class="link-button" (click)="backToDateSelect()">
+      <button class="link-button" (click)="state.backToDateSelect()">
         {{ i18n.t('drill.backToDateSelect') }}
       </button>
     </div>
 
-    @if (currentLevelUp(); as item) {
+    @if (state.currentLevelUp(); as item) {
       <div class="quiz-card">
-        @if (sampleMode()) {
+        @if (state.sampleMode()) {
           <span class="achievement-badge">{{ i18n.t('drill.sampleBadge') }}</span>
         }
         <div class="mask-progress">
-          {{ i18n.t('drill.maskProgress', { level: maskLevel(), max: item.maxLevel }) }}
+          {{ i18n.t('drill.maskProgress', { level: state.maskLevel(), max: item.maxLevel }) }}
         </div>
 
         <p class="quiz-prompt">
           {{
-            maskLevel() === 0
+            state.maskLevel() === 0
               ? i18n.t('drill.promptSeeAndType')
               : i18n.t('drill.promptRecallAndType')
           }}
         </p>
-        <p class="quiz-original">{{ maskedSentence(item) }}</p>
+        <p class="quiz-original">{{ state.maskedSentence(item) }}</p>
 
-        @if (hintShown() || revealed()) {
+        @if (state.hintShown() || state.revealed()) {
           <p class="quiz-translation">{{ item.translation }}</p>
         } @else {
-          <button class="btn-secondary" (click)="toggleHint()">
+          <button class="btn-secondary" (click)="state.toggleHint()">
             {{ i18n.t('drill.hintTranslation') }}
           </button>
         }
@@ -216,31 +204,35 @@
           class="answer-input"
           type="text"
           [placeholder]="i18n.t('drill.answerPlaceholder')"
-          [(ngModel)]="userAnswer"
-          [disabled]="revealed()"
-          (keyup.enter)="checkTyping()"
+          [(ngModel)]="state.userAnswer"
+          [disabled]="state.revealed()"
+          (keyup.enter)="state.checkTyping()"
         />
 
-        @if (!revealed()) {
+        @if (!state.revealed()) {
           <div class="quiz-actions">
-            <button class="btn-primary" (click)="checkTyping()" [disabled]="!userAnswer().trim()">
+            <button
+              class="btn-primary"
+              (click)="state.checkTyping()"
+              [disabled]="!state.userAnswer().trim()"
+            >
               {{ i18n.t('drill.check') }}
             </button>
           </div>
         }
 
-        @if (revealed()) {
+        @if (state.revealed()) {
           <div
             class="answer-result"
-            [class.correct]="currentCorrect()"
-            [class.wrong]="!currentCorrect()"
+            [class.correct]="state.currentCorrect()"
+            [class.wrong]="!state.currentCorrect()"
           >
             {{
-              currentCorrect()
-                ? maskLevel() >= item.maxLevel
+              state.currentCorrect()
+                ? state.maskLevel() >= item.maxLevel
                   ? i18n.t('drill.resultCorrectMastered')
                   : i18n.t('drill.resultCorrect')
-                : mistakeKind() === 'gap'
+                : state.mistakeKind() === 'gap'
                   ? i18n.t('drill.resultWrongGap')
                   : i18n.t('drill.resultWrongTypo')
             }}
@@ -250,15 +242,15 @@
             <span class="correct-text">{{ item.leveledUp }}</span>
           </div>
           <div class="post-actions">
-            @if (currentCorrect() && maskLevel() >= item.maxLevel) {
-              <button class="btn-primary" #nextBtn (click)="backToSentenceList()">
+            @if (state.currentCorrect() && state.maskLevel() >= item.maxLevel) {
+              <button class="btn-primary" #nextBtn (click)="state.backToSentenceList()">
                 {{ i18n.t('drill.backToSentenceList') }}
               </button>
             } @else {
-              <button class="btn-secondary" (click)="backToSentenceList()">
+              <button class="btn-secondary" (click)="state.backToSentenceList()">
                 {{ i18n.t('drill.suspend') }}
               </button>
-              <button class="btn-primary" #nextBtn (click)="retry()">
+              <button class="btn-primary" #nextBtn (click)="state.retry()">
                 {{ i18n.t('drill.next') }}
               </button>
             }
@@ -269,16 +261,16 @@
   } @else {
     <!-- ── 出題中（穴埋め復習） ── -->
     <div class="progress">
-      {{ index() + 1 }} / {{ total() }}
-      <button class="link-button" (click)="backToDateSelect()">
+      {{ state.index() + 1 }} / {{ state.total() }}
+      <button class="link-button" (click)="state.backToDateSelect()">
         {{ i18n.t('drill.backToDateSelect') }}
       </button>
     </div>
 
-    @if (current(); as q) {
+    @if (state.current(); as q) {
       <div class="quiz-card">
         <span class="category-badge">{{ q.badge }}</span>
-        @if (sampleMode()) {
+        @if (state.sampleMode()) {
           <span class="achievement-badge">{{ i18n.t('drill.sampleBadge') }}</span>
         }
         <p class="quiz-prompt">
@@ -289,60 +281,70 @@
           <p class="quiz-translation">{{ q.translation }}</p>
         }
 
-        @if (!choiceMode()) {
+        @if (!state.choiceMode()) {
           <!-- 入力モード -->
           <input
             class="answer-input"
             type="text"
             [placeholder]="i18n.t('drill.answerInputPlaceholder')"
-            [(ngModel)]="userAnswer"
-            [disabled]="revealed()"
-            (keyup.enter)="check()"
+            [(ngModel)]="state.userAnswer"
+            [disabled]="state.revealed()"
+            (keyup.enter)="state.check()"
           />
 
-          @if (!revealed()) {
+          @if (!state.revealed()) {
             <div class="quiz-actions">
-              <button class="btn-primary" (click)="check()" [disabled]="!userAnswer().trim()">
+              <button
+                class="btn-primary"
+                (click)="state.check()"
+                [disabled]="!state.userAnswer().trim()"
+              >
                 {{ i18n.t('drill.check') }}
               </button>
             </div>
           }
         } @else {
           <!-- 4択モード（クローズのみ）。クリック/タップで即採点する。 -->
-          @if (hintShown() || revealed()) {
+          @if (state.hintShown() || state.revealed()) {
             <p class="quiz-hint">{{ i18n.t('drill.hintLabel', { hint: q.hint }) }}</p>
           } @else {
-            <button class="btn-secondary" (click)="toggleHint()">
+            <button class="btn-secondary" (click)="state.toggleHint()">
               {{ i18n.t('drill.showHint') }}
             </button>
           }
           <div class="choice-list">
             @for (c of q.choices; track c) {
-              <button class="choice-btn" [disabled]="revealed()" (click)="choose(c)">
+              <button class="choice-btn" [disabled]="state.revealed()" (click)="state.choose(c)">
                 {{ c }}
               </button>
             }
           </div>
         }
 
-        @if (revealed()) {
+        @if (state.revealed()) {
           <div
             class="answer-result"
-            [class.correct]="currentCorrect()"
-            [class.wrong]="!currentCorrect()"
+            [class.correct]="state.currentCorrect()"
+            [class.wrong]="!state.currentCorrect()"
           >
-            {{ currentCorrect() ? i18n.t('drill.resultCorrect') : i18n.t('drill.resultWrong') }}
+            {{
+              state.currentCorrect() ? i18n.t('drill.resultCorrect') : i18n.t('drill.resultWrong')
+            }}
           </div>
           <div class="correct-answer">
             <span class="correct-label">{{ i18n.t('drill.correctAnswer') }}</span>
             <span class="correct-text">{{ q.answer }}</span>
           </div>
-          @if (!choiceMode()) {
+          @if (!state.choiceMode()) {
             <p class="quiz-hint">{{ i18n.t('drill.hintLabel', { hint: q.hint }) }}</p>
           }
           <div class="post-actions">
-            <button class="btn-primary" #nextBtn (click)="next()">
-              {{ index() + 1 >= total() ? i18n.t('drill.seeResult') : i18n.t('drill.next') }}
+            <button class="btn-primary" #nextBtn (click)="state.next()">
+              {{
+                state.index() + 1 >= state.total()
+                  ? i18n.t('drill.seeResult')
+                  : i18n.t('drill.next')
+              }}
             </button>
           </div>
         }

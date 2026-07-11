@@ -1,0 +1,25 @@
+<!-- @file レベルアップ・タイピングの文一覧選択画面。drill.html から切り出し。 -->
+<div class="intro">
+  <p>{{ i18n.t('drill.chooseSentence') }}</p>
+  <div class="date-select">
+    @for (item of items(); track item.key; let i = $index) {
+      @if (progressFor()(item); as p) {
+        <button class="date-card sentence-card" (click)="selectIndex.emit(i)">
+          <span class="date-card-date">{{ i + 1 }}. {{ item.original }}</span>
+          <span class="date-card-count" [class.date-card-done]="p.completed">
+            {{
+              p.completed
+                ? i18n.t('drill.mastered')
+                : p.maskLevel === 0
+                  ? i18n.t('drill.notStarted')
+                  : i18n.t('drill.maskProgress', { level: p.maskLevel, max: item.maxLevel })
+            }}
+          </span>
+        </button>
+      }
+    }
+  </div>
+  <button class="btn-secondary" (click)="back.emit()">
+    {{ i18n.t('drill.backToDateSelect') }}
+  </button>
+</div>

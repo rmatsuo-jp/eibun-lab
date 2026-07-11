@@ -3,6 +3,7 @@ const eslint = require('@eslint/js');
 const { defineConfig } = require('eslint/config');
 const tseslint = require('typescript-eslint');
 const angular = require('angular-eslint');
+const boundaries = require('eslint-plugin-boundaries');
 
 module.exports = defineConfig([
   {
@@ -33,6 +34,56 @@ module.exports = defineConfig([
       ],
       // 全角空白除去など日本語アプリで意図的に不可視文字を扱うコードがあるため無効化
       'no-irregular-whitespace': 'off',
+    },
+  },
+  // features → core → shared の一方向依存（CLAUDE.md/ARCHITECTURE.md規約）をlintで機械強制する。
+  // src/app 直下のファイル（app.config.ts等、DI配線やルーティングでfeatureを参照する）は対象外。
+  {
+    files: ['src/app/{core,shared,features}/**/*.ts'],
+    plugins: { boundaries },
+    settings: {
+      // @core/* @shared/* @features/* のパスエイリアス(tsconfig.json)をboundariesが解決できるようにする。
+      // これが無いと import 先が「unknown」扱いになり、層違反があっても検知されない。
+      'import/resolver': {
+        typescript: { project: './tsconfig.json' },
+      },
+      'boundaries/elements': [
+        { type: 'shared', pattern: 'src/app/shared/**' },
+        { type: 'core', pattern: 'src/app/core/**' },
+        { type: 'feature', pattern: 'src/app/features/*', capture: ['featureName'] },
+      ],
+    },
+    rules: {
+      'boundaries/dependencies': [
+        'error',
+        {
+          default: 'disallow',
+          policies: [
+            {
+              from: { element: { type: 'shared' } },
+              allow: { to: { element: { type: 'shared' } } },
+            },
+            {
+              from: { element: { type: 'core' } },
+              allow: { to: { element: { types: { anyOf: ['core', 'shared'] } } } },
+            },
+            {
+              from: { element: { type: 'feature' } },
+              allow: {
+                to: [
+                  { element: { types: { anyOf: ['core', 'shared'] } } },
+                  {
+                    element: {
+                      type: 'feature',
+                      captured: { featureName: '{{ from.element.captured.featureName }}' },
+                    },
+                  },
+                ],
+              },
+            },
+          ],
+        },
+      ],
     },
   },
   {

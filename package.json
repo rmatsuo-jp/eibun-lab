@@ -48,6 +48,8 @@
     "@vitest/coverage-v8": "^4.1.10",
     "angular-eslint": "22.0.0",
     "eslint": "^10.3.0",
+    "eslint-import-resolver-typescript": "^4.4.5",
+    "eslint-plugin-boundaries": "^7.0.2",
     "fake-indexeddb": "^6.2.5",
     "jsdom": "^29.1.1",
     "png-to-ico": "^3.0.1",

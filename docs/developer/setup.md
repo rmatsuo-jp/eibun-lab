@@ -52,11 +52,20 @@ npm start
 npm test
 ```
 
-Vitest によるユニットテストが実行されます。`src/app/utils/` 配下の純粋関数や各サービスのテストが中心です。
+Vitest によるユニットテストが実行されます。`core/` 配下の純粋関数（gemini/stats/i18n/quiz等）や各サービスのテストが中心です。
 
 ---
 
-## 5. 本番ビルドの確認
+## 5. Lint の実行
+
+```bash
+npm run lint       # ESLint
+npm run lint:text  # 表記ゆれチェック（docs/README.md/prompt.util.ts）。用語やUI文言、Geminiプロンプトを変更したら必ず実行
+```
+
+---
+
+## 6. 本番ビルドの確認
 
 ```bash
 npm run build

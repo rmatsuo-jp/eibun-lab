@@ -7,6 +7,8 @@
  * 持つため、トップレベルだけでなく配列要素内の undefined キーも stripUndefinedDeep() で除去する。
  * 同期失敗は syncError signal（読み取り専用）にメッセージを流し、app.ts がグローバルバナーで
  * ユーザーに知らせる（次回の同期成功時に自動でクリアされる）。
+ * push に失敗したセッションは pendingPush に保持し、オンライン復帰（window の online イベント）時に
+ * 自動で再送する。
  */
 import { effect, Injectable, inject, signal } from '@angular/core';
 import { collection, doc, getDocs, setDoc } from 'firebase/firestore';
@@ -17,27 +19,31 @@ import { SessionStoreService } from './session-store.service';
 
 // CorrectionSession の任意（optional）フィールド一覧。Firestore は undefined を受け付けないため、
 // toDocData() で undefined のフィールドを除外するのに使う。
-// ⚠ session.model.ts の CorrectionSession に optional フィールドを追加したら、必ずここにも追加すること。
-const OPTIONAL_FIELDS: (keyof CorrectionSession)[] = [
-  'correctedText',
-  'correctedEn',
-  'grammarNotes',
-  'grammarNotesEn',
-  'naturalExpressions',
-  'naturalExpressionsEn',
-  'grammarTendency',
-  'grammarTendencyEn',
-  'cefrRationale',
-  'cefrRationaleEn',
-  'studyPlan',
-  'studyPlanEn',
-  'evaluation',
-  'reviewItems',
-  'levelUpItems',
-  'levelUpText',
-  'deleted',
-  'model',
-];
+// OptionalKeys<CorrectionSession> は model 側の optional フィールド集合を型レベルで導出したもの。
+// OPTIONAL_FIELDS_MAP のキーがこれと過不足あると tsc がコンパイルエラーにするため、
+// session.model.ts への optional フィールド追加/削除を「ここへの追加忘れ」ごとビルドで検知できる。
+type OptionalKeys<T> = { [K in keyof T]-?: undefined extends T[K] ? K : never }[keyof T];
+const OPTIONAL_FIELDS_MAP: Record<OptionalKeys<CorrectionSession>, true> = {
+  correctedText: true,
+  correctedEn: true,
+  grammarNotes: true,
+  grammarNotesEn: true,
+  naturalExpressions: true,
+  naturalExpressionsEn: true,
+  grammarTendency: true,
+  grammarTendencyEn: true,
+  cefrRationale: true,
+  cefrRationaleEn: true,
+  studyPlan: true,
+  studyPlanEn: true,
+  evaluation: true,
+  reviewItems: true,
+  levelUpItems: true,
+  levelUpText: true,
+  deleted: true,
+  model: true,
+};
+const OPTIONAL_FIELDS = Object.keys(OPTIONAL_FIELDS_MAP) as (keyof CorrectionSession)[];
 
 // mistakes/reviewItems/levelUpItems の配列要素が持つ optional フィールド（Mistake.explanationEn 等）を
 // Firestore へ渡す前に取り除く。値が undefined のキーだけを削除する（浅い1階層のみで十分）。
@@ -58,6 +64,9 @@ export class FirestoreSyncService {
   private _syncError = signal<string | null>(null);
   readonly syncError = this._syncError.asReadonly();
 
+  // push に失敗したセッションID。オンライン復帰時にこの分だけ再送する。
+  private pendingPushIds = new Set<string>();
+
   constructor() {
     // ログイン状態を監視し、ログインした瞬間にクラウドと双方向同期する。
     // ログアウト時（user が null）はローカルキャッシュをそのまま残す。
@@ -74,6 +83,17 @@ export class FirestoreSyncService {
           });
       }
     });
+
+    // オフライン中に失敗した push は、オンライン復帰時に自動で再送する。
+    window.addEventListener('online', () => this.retryPendingPush());
+  }
+
+  // pendingPushIds に溜まっているセッションを、ローカルの最新状態で再送する。
+  private retryPendingPush(): void {
+    if (this.pendingPushIds.size === 0) return;
+    const ids = this.pendingPushIds;
+    const sessions = this.sessionStore.allSessions().filter((s) => ids.has(s.id));
+    if (sessions.length > 0) this.pushSessions(sessions);
   }
 
   // apps/eibun_lab/users/{uid}/sessions/{sessionId} のドキュメント参照を返す。
@@ -88,8 +108,9 @@ export class FirestoreSyncService {
   }
 
   // Firestore は undefined を受け付けないため、値が undefined の任意フィールドをフィールドごと除外する。
-  // 任意フィールドが増えてもモジュール先頭の OPTIONAL_FIELDS に足すだけで対応できる。
-  private toDocData(session: CorrectionSession): Record<string, unknown> {
+  // 任意フィールドが増えてもモジュール先頭の OPTIONAL_FIELDS_MAP に足すだけで対応できる（型で強制）。
+  // spec からの直接検証用に internal 公開（外部からの呼び出しは想定しない）。
+  toDocData(session: CorrectionSession): Record<string, unknown> {
     const data: Record<string, unknown> = { ...session };
     for (const field of OPTIONAL_FIELDS) {
       if (data[field] === undefined) delete data[field];
@@ -113,9 +134,13 @@ export class FirestoreSyncService {
     const uid = this.auth.user()?.uid;
     if (!uid || sessions.length === 0) return;
     Promise.all(sessions.map((s) => setDoc(this.sessionDoc(uid, s.id), this.toDocData(s))))
-      .then(() => this._syncError.set(null))
+      .then(() => {
+        for (const s of sessions) this.pendingPushIds.delete(s.id);
+        this._syncError.set(null);
+      })
       .catch((err) => {
         console.error('[FirestoreSyncService] 一括同期に失敗:', err);
+        for (const s of sessions) this.pendingPushIds.add(s.id);
         this._syncError.set('学習履歴のクラウド同期に失敗しました。ローカルには保存されています。');
       });
   }
