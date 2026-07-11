@@ -4,61 +4,10 @@
   <h1 class="page-title">{{ i18n.t('history.title') }}</h1>
 
   <!-- ── カレンダー（常設・日付クリックで下の一覧を絞り込む） ── -->
-  <div class="calendar-nav">
-    <button
-      class="toolbar-btn"
-      (click)="prevMonth()"
-      [attr.aria-label]="i18n.t('history.prevMonth')"
-    >
-      ‹
-    </button>
-    <span class="calendar-month-label">{{ calendarMonthLabel() }}</span>
-    <button
-      class="toolbar-btn"
-      (click)="nextMonth()"
-      [attr.aria-label]="i18n.t('history.nextMonth')"
-    >
-      ›
-    </button>
-  </div>
-
-  <div class="calendar-weekdays">
-    @for (w of weekdayLabels(); track w) {
-      <span class="weekday-cell">{{ w }}</span>
-    }
-  </div>
-
-  <div class="calendar-grid">
-    @for (cell of calendarCells(); track cell.dayKey) {
-      <button
-        class="calendar-cell"
-        [class.other-month]="!cell.inMonth"
-        [class.today]="cell.isToday"
-        [class.selected]="selectedDate() === cell.dayKey"
-        [class.has-session]="cell.hasSession"
-        (click)="selectDay(cell.dayKey)"
-      >
-        <span class="cell-day">{{ cell.date.getDate() }}</span>
-        @if (cell.evaluation; as ev) {
-          <span class="cell-eval-row">
-            <span class="cell-score">{{ ev.overallScore }}</span>
-            <span class="cell-cefr">{{ ev.overallCefr }}</span>
-          </span>
-        } @else if (cell.hasSession) {
-          <span class="cell-dot"></span>
-        }
-      </button>
-    }
-  </div>
-
-  @if (selectedDate()) {
-    <div class="date-filter-banner">
-      <span>{{ i18n.t('history.dateFilterBanner', { date: formatDayKey(selectedDate()!) }) }}</span>
-      <button class="toolbar-btn" (click)="clearDateFilter()">
-        {{ i18n.t('history.clearFilter') }}
-      </button>
-    </div>
-  }
+  <app-history-calendar
+    [sessions]="sessions()"
+    (dateSelected)="onDateSelected($event)"
+  ></app-history-calendar>
 
   <!-- ── セッション一覧（カレンダーの選択日 + キーワード検索で絞り込み） ── -->
   <div class="toolbar">

@@ -14,7 +14,7 @@
  * corrected/correctedEn を単一ブロックとして表示するフォールバックを使う（proseSections() 参照）。
  * 添削結果には使用Geminiモデル（modelLabel()で人間可読ラベルに変換、historyタブと同じi18nキー・見た目）も表示する。
  */
-import { Component, ElementRef, ViewChild, inject } from '@angular/core';
+import { ChangeDetectionStrategy, Component, ElementRef, ViewChild, inject } from '@angular/core';
 import { FormsModule } from '@angular/forms';
 import { RouterLink } from '@angular/router';
 import { SettingsStoreService } from '@core/settings/settings-store.service';
@@ -45,6 +45,7 @@ import { WaitingQuiz } from './waiting-quiz/waiting-quiz';
   imports: [FormsModule, RouterLink, WaitingQuiz],
   templateUrl: './practice.html',
   styleUrl: './practice.scss',
+  changeDetection: ChangeDetectionStrategy.OnPush,
 })
 export class Practice {
   // ── 状態はサービスへ委譲（テンプレートから state.xxx で参照） ──────

@@ -11,7 +11,7 @@
  * 次の問題への遷移は行わせない（next() は state.loading() が false の間は何もしない）。
  * 出題データ（hint/badge/translation）は生成時点の i18n.lang() で固定される（Drill と同じスナップショット方式）。
  */
-import { Component, computed, inject, signal } from '@angular/core';
+import { ChangeDetectionStrategy, Component, computed, inject, signal } from '@angular/core';
 import { SessionRepositoryService } from '@core/sessions/session-repository.service';
 import { getReviewItems, normalizeDrillKey } from '@core/stats/session-stats.util';
 import { buildClozeQuiz, normalizeAnswer, shuffleByWeight } from '@core/quiz/quiz.util';
@@ -24,6 +24,7 @@ import { PracticeState } from '../practice-state.service';
   imports: [],
   templateUrl: './waiting-quiz.html',
   styleUrl: './waiting-quiz.scss',
+  changeDetection: ChangeDetectionStrategy.OnPush,
 })
 export class WaitingQuiz {
   private repository = inject(SessionRepositoryService);

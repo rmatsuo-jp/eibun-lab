@@ -1,7 +1,8 @@
 /**
  * @file 過去の添削セッション一覧ページ。
- * ページ上部に月表示のカレンダー（添削済みの日を総合スコア/CEFR表示。評価が無い旧データはドット表示）を常設し、その下にセッション一覧を表示する単一画面構成。
- * カレンダーで日付を選ぶと一覧がその日だけに絞り込まれ（キーワード検索と併用可）、複数選択削除・展開表示・日付ソート・JSON インポート/エクスポートも提供する。
+ * ページ上部に月表示のカレンダー（history-calendar/、添削済みの日を総合スコア/CEFR表示。評価が無い旧データはドット表示）を常設し、その下にセッション一覧を表示する単一画面構成。
+ * カレンダーで日付を選ぶと dateSelected 出力経由で selectedDate に反映され、一覧がその日だけに絞り込まれる
+ * （キーワード検索と併用可）。複数選択削除・展開表示・日付ソート・JSON インポート/エクスポートも提供する。
  * セッションカードは折りたたみ状態でも総合スコア/CEFRバッジを表示する。
  * SessionRepositoryService の sessions signal を直接参照し、データ変更を自動反映する。
  * 添削解説5項目（proseSections）・ミスのカテゴリ（categoryText）は i18n.lang() に追随して表示言語が切り替わる
@@ -11,14 +12,22 @@
  * HTMLキャッシュは言語＋項目ごとに保持し、言語切替時に別セッション・別項目の内容が誤って再利用されないようにする。
  * 展開時の詳細には使用Geminiモデル（session.model、modelLabel()で人間可読ラベルに変換）も表示する。旧データは欠落し得るため非表示。
  */
-import { Component, ElementRef, ViewChild, computed, inject, signal } from '@angular/core';
+import {
+  ChangeDetectionStrategy,
+  Component,
+  ElementRef,
+  ViewChild,
+  computed,
+  inject,
+  signal,
+} from '@angular/core';
 import { FormsModule } from '@angular/forms';
 import { NgTemplateOutlet } from '@angular/common';
 import { DomSanitizer, SafeHtml } from '@angular/platform-browser';
 import { renderSafeMarkdown } from '@shared/utils/markdown.util';
 import { formatTimestampForFilename, toDayKey } from '@shared/utils/date.util';
 import { SessionRepositoryService } from '@core/sessions/session-repository.service';
-import { CorrectionSession, Mistake, WritingEvaluation } from '@core/models/session.model';
+import { CorrectionSession, Mistake } from '@core/models/session.model';
 import { I18nService } from '@core/i18n/i18n.service';
 import {
   localizedCategory,
@@ -27,21 +36,14 @@ import {
 } from '@core/i18n/localized-session.util';
 import { PROSE_FIELDS } from '@core/i18n/prose-fields.util';
 import { GEMINI_MODELS } from '@core/gemini/gemini-models.constants';
-
-interface CalendarCell {
-  date: Date;
-  dayKey: string;
-  inMonth: boolean;
-  hasSession: boolean;
-  isToday: boolean;
-  evaluation?: WritingEvaluation;
-}
+import { HistoryCalendar } from './history-calendar/history-calendar';
 
 @Component({
   selector: 'app-history',
-  imports: [FormsModule, NgTemplateOutlet],
+  imports: [FormsModule, NgTemplateOutlet, HistoryCalendar],
   templateUrl: './history.html',
   styleUrl: './history.scss',
+  changeDetection: ChangeDetectionStrategy.OnPush,
 })
 export class History {
   private repository = inject(SessionRepositoryService);
@@ -58,74 +60,16 @@ export class History {
   sortOrder = signal<'asc' | 'desc'>('desc');
   searchQuery = signal('');
 
-  // ── カレンダー表示（一覧の日付フィルタとして機能） ──────────────
-  calendarMonth = signal<Date>(new Date());
+  // ── 日付フィルタ（history-calendar の dateSelected 出力で更新） ──────
   selectedDate = signal<string | null>(null);
-
-  // 日付キー（YYYY-MM-DD）ごとにセッションをグルーピングし、カレンダー描画と日付クリック両方で使う。
-  sessionsByDay = computed(() => {
-    const map = new Map<string, CorrectionSession[]>();
-    for (const s of this.sessions()) {
-      const key = toDayKey(s.date);
-      const list = map.get(key);
-      if (list) list.push(s);
-      else map.set(key, [s]);
-    }
-    return map;
-  });
-
-  // 表示月を含む週の日曜から、月末を含む週の土曜までのセルを生成する。
-  calendarCells = computed<CalendarCell[]>(() => {
-    const month = this.calendarMonth();
-    const year = month.getFullYear();
-    const monthIndex = month.getMonth();
-    const firstOfMonth = new Date(year, monthIndex, 1);
-    const lastOfMonth = new Date(year, monthIndex + 1, 0);
-
-    const start = new Date(firstOfMonth);
-    start.setDate(start.getDate() - start.getDay());
-    const end = new Date(lastOfMonth);
-    end.setDate(end.getDate() + (6 - end.getDay()));
-
-    const byDay = this.sessionsByDay();
-    const todayKey = toDayKey(new Date().toISOString());
-
-    const cells: CalendarCell[] = [];
-    const cursor = new Date(start);
-    while (cursor <= end) {
-      const dayKey = toDayKey(cursor.toISOString());
-      const daySessions = byDay.get(dayKey);
-      cells.push({
-        date: new Date(cursor),
-        dayKey,
-        inMonth: cursor.getMonth() === monthIndex,
-        hasSession: byDay.has(dayKey),
-        isToday: dayKey === todayKey,
-        evaluation: daySessions?.at(-1)?.evaluation,
-      });
-      cursor.setDate(cursor.getDate() + 1);
-    }
-    return cells;
-  });
-
-  weekdayLabels = computed(() =>
-    this.i18n.lang() === 'en'
-      ? ['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat']
-      : ['日', '月', '火', '水', '木', '金', '土'],
-  );
-
-  calendarMonthLabel = computed(() =>
-    this.calendarMonth().toLocaleDateString(this.i18n.lang() === 'en' ? 'en-US' : 'ja-JP', {
-      year: 'numeric',
-      month: 'long',
-    }),
-  );
 
   // ── 日付フィルタ → 検索フィルタ → 日付ソートの順で派生（元文・添削文・ミス表現を横断検索） ─
   // カレンダーで日付を選んでいれば、まずその日のセッションに絞り込んでから検索フィルタを適用する（AND条件）。
   filteredSessions = computed(() => {
     const selectedDate = this.selectedDate();
-    const base = selectedDate ? (this.sessionsByDay().get(selectedDate) ?? []) : this.sessions();
+    const base = selectedDate
+      ? this.sessions().filter((s) => toDayKey(s.date) === selectedDate)
+      : this.sessions();
 
     const q = this.searchQuery().trim().toLowerCase();
     const filtered = q
@@ -201,28 +145,10 @@ export class History {
     this.sortOrder.set(this.sortOrder() === 'desc' ? 'asc' : 'desc');
   }
 
-  // ── カレンダー操作 ────────────────────────────────────────────────
-  prevMonth() {
-    const m = this.calendarMonth();
-    this.calendarMonth.set(new Date(m.getFullYear(), m.getMonth() - 1, 1));
-  }
-
-  nextMonth() {
-    const m = this.calendarMonth();
-    this.calendarMonth.set(new Date(m.getFullYear(), m.getMonth() + 1, 1));
-  }
-
-  selectDay(dayKey: string) {
-    this.selectedDate.set(this.selectedDate() === dayKey ? null : dayKey);
+  // ── カレンダーからの日付選択（history-calendar の dateSelected 出力から呼ばれる） ──
+  onDateSelected(dayKey: string | null) {
+    this.selectedDate.set(dayKey);
     this.expandedId.set(null);
-  }
-
-  clearDateFilter() {
-    this.selectedDate.set(null);
-  }
-
-  formatDayKey(dayKey: string): string {
-    return this.formatDate(new Date(dayKey).toISOString());
   }
 
   toggleSelectionMode() {

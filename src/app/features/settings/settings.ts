@@ -11,7 +11,7 @@
  * 表示言語（テーマの直下）も即時保存対象。updateLanguage() は I18nService.setLang() で即時反映しつつ
  * settings signal を更新して persist() する（updateTheme() と同じ即時保存パターン）。
  */
-import { Component, computed, inject, signal } from '@angular/core';
+import { ChangeDetectionStrategy, Component, computed, inject, signal } from '@angular/core';
 import { FormsModule } from '@angular/forms';
 import { RouterLink } from '@angular/router';
 import { AppSettings, SettingsStoreService } from '@core/settings/settings-store.service';
@@ -26,6 +26,7 @@ import { APP_VERSION, RELEASE_DATE } from '../../../version';
   imports: [FormsModule, RouterLink],
   templateUrl: './settings.html',
   styleUrl: './settings.scss',
+  changeDetection: ChangeDetectionStrategy.OnPush,
 })
 export class Settings {
   private settingsStore = inject(SettingsStoreService);

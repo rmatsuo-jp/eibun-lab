@@ -26,6 +26,7 @@
  * 同じグローバルバナー（.global-notice）で表示する（練習の添削通知が無い時のみ、優先度を下げて表示）。
  */
 import {
+  ChangeDetectionStrategy,
   Component,
   ElementRef,
   inject,
@@ -50,6 +51,7 @@ import { DrillProgressSyncService } from '@features/drill/drill-progress-sync.se
   imports: [RouterOutlet, RouterLink, RouterLinkActive],
   templateUrl: './app.html',
   styleUrl: './app.scss',
+  changeDetection: ChangeDetectionStrategy.OnPush,
 })
 export class App {
   protected practiceState = inject(PracticeState);

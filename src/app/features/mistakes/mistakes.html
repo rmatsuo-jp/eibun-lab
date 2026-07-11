@@ -3,7 +3,7 @@
 <div class="page">
   <h1 class="page-title">{{ i18n.t('mistakes.title') }}</h1>
 
-  @if (studyStats().totalSessions === 0) {
+  @if (state.studyStats().totalSessions === 0) {
     <div class="empty">
       <p>{{ i18n.t('mistakes.empty1') }}</p>
       <p>{{ i18n.t('mistakes.empty2') }}</p>
@@ -13,59 +13,59 @@
     <section class="section">
       <div class="stat-grid">
         <div class="stat-card streak">
-          <span class="stat-value">🔥 {{ studyStats().currentStreak }}</span>
+          <span class="stat-value">🔥 {{ state.studyStats().currentStreak }}</span>
           <span class="stat-label">{{ i18n.t('mistakes.streak') }}</span>
         </div>
         <div class="stat-card">
-          <span class="stat-value">{{ studyStats().totalSessions }}</span>
+          <span class="stat-value">{{ state.studyStats().totalSessions }}</span>
           <span class="stat-label">{{ i18n.t('mistakes.totalSessions') }}</span>
         </div>
         <div class="stat-card">
-          <span class="stat-value">{{ studyStats().totalMistakes }}</span>
+          <span class="stat-value">{{ state.studyStats().totalMistakes }}</span>
           <span class="stat-label">{{ i18n.t('mistakes.totalMistakes') }}</span>
         </div>
         <div class="stat-card">
-          <span class="stat-value">{{ studyStats().avgMistakes }}</span>
+          <span class="stat-value">{{ state.studyStats().avgMistakes }}</span>
           <span class="stat-label">{{ i18n.t('mistakes.avgMistakes') }}</span>
         </div>
         <div class="stat-card">
-          <span class="stat-value">{{ studyStats().last7DaysCount }}</span>
+          <span class="stat-value">{{ state.studyStats().last7DaysCount }}</span>
           <span class="stat-label">{{ i18n.t('mistakes.last7Days') }}</span>
         </div>
       </div>
     </section>
 
     <!-- ── スコア推移（10点満点） ── -->
-    @if (evalHistory().length > 0) {
+    @if (state.evalHistory().length > 0) {
       <section class="section">
         <h2 class="section-title">{{ i18n.t('mistakes.scoreTrend') }}</h2>
-        @if (scoreChart().length > 0) {
+        @if (state.scoreChart().length > 0) {
           <div class="cefr-chart">
             <svg
-              [attr.viewBox]="'0 0 ' + chartBox.w + ' ' + chartBox.h"
+              [attr.viewBox]="'0 0 ' + state.chartBox.w + ' ' + state.chartBox.h"
               preserveAspectRatio="xMidYMid meet"
             >
               <!-- y軸グリッド -->
-              @for (g of scoreLevels(); track g.label) {
+              @for (g of state.scoreLevels(); track g.label) {
                 <line
                   class="grid-line"
-                  [attr.x1]="chartBox.padL"
-                  [attr.x2]="chartBox.w - chartBox.padR"
+                  [attr.x1]="state.chartBox.padL"
+                  [attr.x2]="state.chartBox.w - state.chartBox.padR"
                   [attr.y1]="g.y"
                   [attr.y2]="g.y"
                 />
                 <text class="grid-label" [attr.x]="2" [attr.y]="g.y + 3">{{ g.label }}</text>
               }
               <!-- 系列 -->
-              @for (s of scoreChart(); track s.name) {
+              @for (s of state.scoreChart(); track s.name) {
                 <polyline
                   [attr.points]="s.line"
                   fill="none"
                   [attr.stroke]="s.color"
                   [attr.stroke-width]="
-                    highlightedSeries() && highlightedSeries() !== s.name ? 1.5 : 2.5
+                    state.highlightedSeries() && state.highlightedSeries() !== s.name ? 1.5 : 2.5
                   "
-                  [attr.opacity]="highlightedSeries() && highlightedSeries() !== s.name ? 0.3 : 1"
+                  [attr.opacity]="state.highlightedSeries() && state.highlightedSeries() !== s.name ? 0.3 : 1"
                 />
                 @for (d of s.dots; track $index) {
                   <circle
@@ -73,16 +73,16 @@
                     [attr.cy]="d.y"
                     r="2.5"
                     [attr.fill]="s.color"
-                    [attr.opacity]="highlightedSeries() && highlightedSeries() !== s.name ? 0.3 : 1"
+                    [attr.opacity]="state.highlightedSeries() && state.highlightedSeries() !== s.name ? 0.3 : 1"
                   />
                 }
               }
               <!-- x軸ラベル（日付） -->
-              @for (t of xAxisLabels(); track t.x) {
+              @for (t of state.xAxisLabels(); track t.x) {
                 <text
                   class="axis-label"
                   [attr.x]="t.x"
-                  [attr.y]="xAxisLabelY"
+                  [attr.y]="state.xAxisLabelY"
                   [attr.text-anchor]="t.anchor"
                 >
                   {{ t.label }}
@@ -90,16 +90,16 @@
               }
             </svg>
             <div class="cefr-legend">
-              @for (s of scoreChart(); track s.name) {
+              @for (s of state.scoreChart(); track s.name) {
                 <span
                   class="legend-item"
                   tabindex="0"
                   role="button"
-                  [attr.aria-pressed]="highlightedSeries() === s.name"
-                  [class.active]="highlightedSeries() === s.name"
-                  (click)="toggleHighlight(s.name)"
-                  (keydown.enter)="toggleHighlight(s.name)"
-                  (keydown.space)="$event.preventDefault(); toggleHighlight(s.name)"
+                  [attr.aria-pressed]="state.highlightedSeries() === s.name"
+                  [class.active]="state.highlightedSeries() === s.name"
+                  (click)="state.toggleHighlight(s.name)"
+                  (keydown.enter)="state.toggleHighlight(s.name)"
+                  (keydown.space)="$event.preventDefault(); state.toggleHighlight(s.name)"
                 >
                   <span class="legend-dot" [style.background]="s.color"></span>{{ s.name }}
                 </span>
@@ -113,36 +113,36 @@
     }
 
     <!-- ── CEFR レベル推移 ── -->
-    @if (evalHistory().length > 0) {
+    @if (state.evalHistory().length > 0) {
       <section class="section">
         <h2 class="section-title">{{ i18n.t('mistakes.cefrTrend') }}</h2>
-        @if (cefrChart().length > 0) {
+        @if (state.cefrChart().length > 0) {
           <div class="cefr-chart">
             <svg
-              [attr.viewBox]="'0 0 ' + chartBox.w + ' ' + chartBox.h"
+              [attr.viewBox]="'0 0 ' + state.chartBox.w + ' ' + state.chartBox.h"
               preserveAspectRatio="xMidYMid meet"
             >
               <!-- y軸グリッド -->
-              @for (g of cefrLevels; track g.label) {
+              @for (g of state.cefrLevels; track g.label) {
                 <line
                   class="grid-line"
-                  [attr.x1]="chartBox.padL"
-                  [attr.x2]="chartBox.w - chartBox.padR"
+                  [attr.x1]="state.chartBox.padL"
+                  [attr.x2]="state.chartBox.w - state.chartBox.padR"
                   [attr.y1]="g.y"
                   [attr.y2]="g.y"
                 />
                 <text class="grid-label" [attr.x]="2" [attr.y]="g.y + 3">{{ g.label }}</text>
               }
               <!-- 系列 -->
-              @for (s of cefrChart(); track s.name) {
+              @for (s of state.cefrChart(); track s.name) {
                 <polyline
                   [attr.points]="s.line"
                   fill="none"
                   [attr.stroke]="s.color"
                   [attr.stroke-width]="
-                    highlightedSeries() && highlightedSeries() !== s.name ? 1.5 : 2.5
+                    state.highlightedSeries() && state.highlightedSeries() !== s.name ? 1.5 : 2.5
                   "
-                  [attr.opacity]="highlightedSeries() && highlightedSeries() !== s.name ? 0.3 : 1"
+                  [attr.opacity]="state.highlightedSeries() && state.highlightedSeries() !== s.name ? 0.3 : 1"
                 />
                 @for (d of s.dots; track $index) {
                   <circle
@@ -150,16 +150,16 @@
                     [attr.cy]="d.y"
                     r="2.5"
                     [attr.fill]="s.color"
-                    [attr.opacity]="highlightedSeries() && highlightedSeries() !== s.name ? 0.3 : 1"
+                    [attr.opacity]="state.highlightedSeries() && state.highlightedSeries() !== s.name ? 0.3 : 1"
                   />
                 }
               }
               <!-- x軸ラベル（日付） -->
-              @for (t of xAxisLabels(); track t.x) {
+              @for (t of state.xAxisLabels(); track t.x) {
                 <text
                   class="axis-label"
                   [attr.x]="t.x"
-                  [attr.y]="xAxisLabelY"
+                  [attr.y]="state.xAxisLabelY"
                   [attr.text-anchor]="t.anchor"
                 >
                   {{ t.label }}
@@ -167,16 +167,16 @@
               }
             </svg>
             <div class="cefr-legend">
-              @for (s of cefrChart(); track s.name) {
+              @for (s of state.cefrChart(); track s.name) {
                 <span
                   class="legend-item"
                   tabindex="0"
                   role="button"
-                  [attr.aria-pressed]="highlightedSeries() === s.name"
-                  [class.active]="highlightedSeries() === s.name"
-                  (click)="toggleHighlight(s.name)"
-                  (keydown.enter)="toggleHighlight(s.name)"
-                  (keydown.space)="$event.preventDefault(); toggleHighlight(s.name)"
+                  [attr.aria-pressed]="state.highlightedSeries() === s.name"
+                  [class.active]="state.highlightedSeries() === s.name"
+                  (click)="state.toggleHighlight(s.name)"
+                  (keydown.enter)="state.toggleHighlight(s.name)"
+                  (keydown.space)="$event.preventDefault(); state.toggleHighlight(s.name)"
                 >
                   <span class="legend-dot" [style.background]="s.color"></span>{{ s.name }}
                 </span>
@@ -189,15 +189,15 @@
       </section>
     }
 
-    @if (stats().length > 0) {
+    @if (state.stats().length > 0) {
       <section class="section">
         <h2 class="section-title">{{ i18n.t('mistakes.categoryCount') }}</h2>
         <div class="chart">
-          @for (s of stats(); track s.category) {
+          @for (s of state.stats(); track s.category) {
             <div class="chart-row">
-              <span class="chart-label">{{ categoryLabel(s.category) }}</span>
+              <span class="chart-label">{{ state.categoryLabel(s.category) }}</span>
               <div class="bar-wrap">
-                <div class="bar" [style.width]="barWidth(s.count)"></div>
+                <div class="bar" [style.width]="state.barWidth(s.count)"></div>
               </div>
               <span class="chart-count">{{ s.count }}</span>
             </div>
@@ -208,10 +208,10 @@
       <section class="section">
         <h2 class="section-title">{{ i18n.t('mistakes.frequent') }}</h2>
         <div class="frequent-list">
-          @for (m of frequent(); track m.original) {
+          @for (m of state.frequent(); track m.original) {
             <div class="frequent-item">
               <div class="frequent-header">
-                <span class="category-badge">{{ mistakeCategoryLabel(m) }}</span>
+                <span class="category-badge">{{ state.mistakeCategoryLabel(m) }}</span>
                 @if (m.count > 1) {
                   <span class="repeat-badge">{{
                     i18n.t('mistakes.repeatCount', { count: m.count })
@@ -223,7 +223,7 @@
                 <span class="arrow">→</span>
                 <span class="f-corrected">{{ m.corrected }}</span>
               </div>
-              <p class="f-explanation">{{ mistakeExplanation(m) }}</p>
+              <p class="f-explanation">{{ state.mistakeExplanation(m) }}</p>
             </div>
           }
         </div>
