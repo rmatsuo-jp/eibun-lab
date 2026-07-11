@@ -3,6 +3,9 @@
   flex-direction: column;
   height: 100dvh;
   background: var(--color-bg);
+  // bottom-nav実高さの決め打ち多重管理を避けるため、ここで一元定義し
+  // .bottom-nav/.nav-item/.app-content/.global-noticeが全て参照する
+  --bottom-nav-height: 4.5rem;
 }
 
 // ── 初回同意モーダル（プライバシーポリシー・利用規約への同意） ────────
@@ -48,7 +51,7 @@
   overflow-y: auto;
   -webkit-overflow-scrolling: touch;
   overscroll-behavior-y: contain;
-  padding-bottom: calc(4rem + env(safe-area-inset-bottom));
+  padding-bottom: calc(var(--bottom-nav-height) + env(safe-area-inset-bottom));
 }
 
 .bottom-nav {
@@ -57,6 +60,7 @@
   left: 0;
   right: 0;
   display: flex;
+  min-height: var(--bottom-nav-height);
   border-top: 1px solid var(--color-border);
   background: var(--color-surface);
   padding-bottom: env(safe-area-inset-bottom);
@@ -68,7 +72,7 @@
   position: fixed;
   left: 0;
   right: 0;
-  bottom: calc(4rem + env(safe-area-inset-bottom));
+  bottom: calc(var(--bottom-nav-height) + env(safe-area-inset-bottom));
   z-index: 101; // bottom-nav(100) より前面
   display: flex;
   align-items: center;
@@ -132,6 +136,7 @@
   justify-content: center;
   gap: 0.25rem;
   padding: 0.625rem 0;
+  min-height: var(--bottom-nav-height);
   color: var(--color-text-muted);
   text-decoration: none;
   font-size: 0.6875rem;
@@ -197,6 +202,8 @@
 @media (min-width: 768px) {
   .app-shell {
     flex-direction: row;
+    // サイドバー化するため下部タブ用の余白確保は不要
+    --bottom-nav-height: 0rem;
   }
 
   .bottom-nav {
