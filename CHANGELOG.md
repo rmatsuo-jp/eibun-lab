@@ -1,3 +1,11 @@
+## [0.9.1](https://github.com/rmatsuo-jp/study-english/compare/v0.9.0...v0.9.1) (2026-07-11)
+
+
+### Bug Fixes
+
+* **app:** PWAスタンドアロン起動時の下部タブバー高さ反映を強化 ([49c65e7](https://github.com/rmatsuo-jp/study-english/commit/49c65e7bc3dc3ef7aa8127b34d6ac9cf75f13f36))
+* **drill:** 誤答時の「正解にする」ボタンを削除、穴埋めサンプル問題を15問に拡充 ([bff6229](https://github.com/rmatsuo-jp/study-english/commit/bff62293037028432b7a872b2dc4e8a6d136bfb6))
+
 # [0.9.0](https://github.com/rmatsuo-jp/study-english/compare/v0.8.2...v0.9.0) (2026-07-11)
 
 
