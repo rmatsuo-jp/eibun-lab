@@ -1,3 +1,10 @@
+## [1.0.1](https://github.com/rmatsuo-jp/eibun-lab/compare/v1.0.0...v1.0.1) (2026-07-11)
+
+
+### Bug Fixes
+
+* 非対応環境でもAPIキーを平文でlocalStorageに保存しない ([5116481](https://github.com/rmatsuo-jp/eibun-lab/commit/51164812fed09bfedb33eb4b1444fcb4c91937ae))
+
 # [1.0.0](https://github.com/rmatsuo-jp/eibun-lab/compare/v0.10.2...v1.0.0) (2026-07-11)
 
 
