@@ -1,3 +1,15 @@
+# [0.10.0](https://github.com/rmatsuo-jp/study-english/compare/v0.9.1...v0.10.0) (2026-07-11)
+
+
+### Bug Fixes
+
+* **drill:** 穴埋め復習カードをレベルアップより上に表示 ([04c26bf](https://github.com/rmatsuo-jp/study-english/commit/04c26bfcd32c9f3a86f18c075ad707a14349f16a))
+
+
+### Features
+
+* **app:** 全画面共通のフィードバックボタンを追加 ([494dbe1](https://github.com/rmatsuo-jp/study-english/commit/494dbe1ac482eb1e96f88464943aa07b8fd80e27))
+
 ## [0.9.1](https://github.com/rmatsuo-jp/study-english/compare/v0.9.0...v0.9.1) (2026-07-11)
 
 
