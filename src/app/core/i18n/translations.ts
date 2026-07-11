@@ -223,7 +223,7 @@ const ja = {
   'settings.modelPriority': 'モデルの優先順位（フォールバック順）',
   'settings.modelPriorityHint': '上から順に試行します。API送信に失敗した場合、次のモデルに自動的に切り替わります。ドラッグして並び替えできます。',
   'settings.version': 'バージョン情報',
-  'settings.versionLine': 'バージョン {version}（リリース日 {date}）',
+  'settings.versionLine': 'Ver {version}（リリース日 {date}）',
   'settings.confirmLeave': 'API キーの変更が保存されていません。移動しますか？',
 } as const;
 

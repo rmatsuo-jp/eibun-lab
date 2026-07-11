@@ -196,8 +196,13 @@
   display: none;
 }
 
-// ── 言語トグル（JA/EN、サイドバー最下部）。モバイルでは lang-toggle-mobile を使うので既定は非表示 ──
+// ── 言語トグル（日/EN、サイドバー最下部）。モバイルでは lang-toggle-mobile を使うので既定は非表示 ──
 .lang-toggle {
+  display: none;
+}
+
+// ── サイドバー格納時の単一ボタン言語トグル（日⇔ENを交互表示・切替）。既定（モバイル/展開時）は非表示 ──
+.lang-toggle-collapsed {
   display: none;
 }
 
@@ -301,7 +306,7 @@
     }
   }
 
-  // ── 言語トグル（JA/EN、ナビ項目の下＝サイドバー最下部）。格納時（.collapsed）は幅を圧迫しないよう非表示にする ──
+  // ── 言語トグル（日/EN、ナビ項目の下＝サイドバー最下部）。格納時（.collapsed）は幅を圧迫しないよう非表示にする ──
   .lang-toggle {
     display: flex;
     flex: 0 0 auto;
@@ -312,10 +317,29 @@
       display: none;
     }
 
-    // ── PC版はJA/ENを同幅に揃える（テキスト幅任せだとバランスが崩れるため） ──
+    // ── PC版は日/ENを同幅に揃える（テキスト幅任せだとバランスが崩れるため） ──
     .lang-btn {
       flex: 1;
       text-align: center;
+    }
+  }
+
+  // ── 格納時のみ表示する単一ボタン言語トグル（幅64pxのサイドバーに収まるよう1ボタンで日⇔ENを交互切替） ──
+  .lang-toggle-collapsed {
+    display: none;
+    flex: 0 0 auto;
+    margin: auto auto 0.75rem;
+    padding: 0.5rem 0.625rem;
+    border: 2px solid var(--color-border);
+    border-radius: 0.75rem;
+    background: var(--color-surface);
+    color: var(--color-text);
+    font-size: 0.75rem;
+    font-weight: 700;
+    cursor: pointer;
+
+    .collapsed & {
+      display: block;
     }
   }
 

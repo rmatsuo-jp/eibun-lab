@@ -1,61 +1,10 @@
-<!-- @file Settings ページテンプレート。セクション順は アカウント（Google SSO 同期）→ テーマ → 表示言語 → API キー → 法的情報 → モデル優先順位（ドラッグ&ドロップ）→ バージョン情報。
-     法的情報は重要度が高く同意ダイアログ以外で唯一の導線のため API キー直下に置き、参照頻度の低いバージョン情報を末尾に置く。
+<!-- @file Settings ページテンプレート。セクション順は API キー → テーマ → 表示言語 → 法的情報 → モデル優先順位（ドラッグ&ドロップ）→ バージョン情報 → アカウント（Google SSO 同期）。
+     API キーは最頻使用の設定項目のため先頭に置き、参照頻度の低いアカウント（データ同期）はバージョン情報の下・末尾に置く。
      テーマ・表示言語・モデル優先順位は操作時に即時保存されるため保存ボタンを持たない。API キーのみ入力欄の右に専用の保存ボタンを置き、未保存時はその下に警告を表示する。
      API キー欄には課金が利用者負担である旨の注意ボックスを常時表示する。
      全文言は i18n.t()（core/i18n/I18nService）経由で表示し、言語トグルの操作にリロードなしで追随する。 -->
 <div class="page">
   <h1 class="page-title">{{ i18n.t('settings.title') }}</h1>
-
-  <!-- ── アカウント（Google ログインでデータを複数端末で共有） ─────────── -->
-  <div class="form-group">
-    <label class="label">{{ i18n.t('settings.account') }}</label>
-    <p class="hint">{{ i18n.t('settings.accountHint') }}</p>
-    @if (user(); as u) {
-      <div class="account-card">
-        @if (u.photoURL) {
-          <img class="account-avatar" [src]="u.photoURL" alt="" referrerpolicy="no-referrer" />
-        }
-        <div class="account-info">
-          <strong>{{ u.displayName || i18n.t('settings.loggedIn') }}</strong>
-          <span class="account-email">{{ u.email }}</span>
-        </div>
-        <button class="btn-secondary" (click)="logout()" [disabled]="authBusy()" type="button">
-          {{ i18n.t('settings.logout') }}
-        </button>
-      </div>
-    } @else {
-      <button class="btn-primary" (click)="login()" [disabled]="authBusy()" type="button">
-        @if (authBusy()) { {{ i18n.t('settings.processing') }} } @else { {{ i18n.t('settings.login') }} }
-      </button>
-      <!-- クラウド同期はホワイトリスト制であることの常時表示注記 -->
-      <p class="auth-note">{{ i18n.t('settings.authNote') }}</p>
-    }
-    <!-- 非許可ユーザーがログインを試みたときの拒否メッセージ -->
-    @if (loginError(); as msg) {
-      <p class="auth-error">{{ msg }}</p>
-    }
-  </div>
-
-  <div class="form-group">
-    <label class="label">{{ i18n.t('settings.theme') }}</label>
-    <div class="theme-toggle">
-      <button class="theme-btn" [class.active]="settings().theme === 'light'"
-              (click)="updateTheme('light')" type="button">{{ i18n.t('settings.themeLight') }}</button>
-      <button class="theme-btn" [class.active]="settings().theme === 'dark'"
-              (click)="updateTheme('dark')" type="button">{{ i18n.t('settings.themeDark') }}</button>
-    </div>
-  </div>
-
-  <!-- ── 表示言語（サイドバーの言語トグルと同じ設定を共有する。モバイルではここが唯一の入口） ── -->
-  <div class="form-group">
-    <label class="label">{{ i18n.t('settings.language') }}</label>
-    <div class="theme-toggle">
-      <button class="theme-btn" [class.active]="i18n.lang() === 'ja'"
-              (click)="updateLanguage('ja')" type="button">{{ i18n.t('settings.languageJa') }}</button>
-      <button class="theme-btn" [class.active]="i18n.lang() === 'en'"
-              (click)="updateLanguage('en')" type="button">{{ i18n.t('settings.languageEn') }}</button>
-    </div>
-  </div>
 
   <div class="form-group">
     <label class="label">{{ i18n.t('settings.apiKey') }}</label>
@@ -99,9 +48,29 @@
     </div>
   </div>
 
+  <div class="form-group">
+    <label class="label">{{ i18n.t('settings.theme') }}</label>
+    <div class="theme-toggle">
+      <button class="theme-btn" [class.active]="settings().theme === 'light'"
+              (click)="updateTheme('light')" type="button">{{ i18n.t('settings.themeLight') }}</button>
+      <button class="theme-btn" [class.active]="settings().theme === 'dark'"
+              (click)="updateTheme('dark')" type="button">{{ i18n.t('settings.themeDark') }}</button>
+    </div>
+  </div>
+
+  <!-- ── 表示言語（サイドバーの言語トグルと同じ設定を共有する。モバイルではここが唯一の入口） ── -->
+  <div class="form-group">
+    <label class="label">{{ i18n.t('settings.language') }}</label>
+    <div class="theme-toggle">
+      <button class="theme-btn" [class.active]="i18n.lang() === 'ja'"
+              (click)="updateLanguage('ja')" type="button">{{ i18n.t('settings.languageJa') }}</button>
+      <button class="theme-btn" [class.active]="i18n.lang() === 'en'"
+              (click)="updateLanguage('en')" type="button">{{ i18n.t('settings.languageEn') }}</button>
+    </div>
+  </div>
+
   <!-- ── 法的情報（データの送信先・利用条件・免責事項）
-       同意ダイアログ（app.html）は初回のみ表示されるため、ここが同意済み利用者にとって唯一の常設導線。
-       直上の課金注意ボックスが説明する法的リスクと文脈が続くよう、API キーの直下に置く。 ─────────── -->
+       同意ダイアログ（app.html）は初回のみ表示されるため、ここが同意済み利用者にとって唯一の常設導線。 ─────────── -->
   <div class="form-group">
     <label class="label">{{ i18n.t('settings.legal') }}</label>
     <p class="hint">
@@ -131,10 +100,40 @@
     </ul>
   </div>
 
-  <!-- ── バージョン情報（version.ts はビルド時に自動生成。参照頻度が低いためページ末尾に置く） ─────────── -->
+  <!-- ── バージョン情報（version.ts はビルド時に自動生成） ─────────── -->
   <div class="form-group">
     <label class="label">{{ i18n.t('settings.version') }}</label>
     <p class="hint">{{ i18n.t('settings.versionLine', { version, date: releaseDate }) }}</p>
+  </div>
+
+  <!-- ── アカウント（Google ログインでデータを複数端末で共有。参照頻度が低いためページ末尾に置く） ─────────── -->
+  <div class="form-group">
+    <label class="label">{{ i18n.t('settings.account') }}</label>
+    <p class="hint">{{ i18n.t('settings.accountHint') }}</p>
+    @if (user(); as u) {
+      <div class="account-card">
+        @if (u.photoURL) {
+          <img class="account-avatar" [src]="u.photoURL" alt="" referrerpolicy="no-referrer" />
+        }
+        <div class="account-info">
+          <strong>{{ u.displayName || i18n.t('settings.loggedIn') }}</strong>
+          <span class="account-email">{{ u.email }}</span>
+        </div>
+        <button class="btn-secondary" (click)="logout()" [disabled]="authBusy()" type="button">
+          {{ i18n.t('settings.logout') }}
+        </button>
+      </div>
+    } @else {
+      <button class="btn-primary" (click)="login()" [disabled]="authBusy()" type="button">
+        @if (authBusy()) { {{ i18n.t('settings.processing') }} } @else { {{ i18n.t('settings.login') }} }
+      </button>
+      <!-- クラウド同期はホワイトリスト制であることの常時表示注記 -->
+      <p class="auth-note">{{ i18n.t('settings.authNote') }}</p>
+    }
+    <!-- 非許可ユーザーがログインを試みたときの拒否メッセージ -->
+    @if (loginError(); as msg) {
+      <p class="auth-error">{{ msg }}</p>
+    }
   </div>
 
 </div>

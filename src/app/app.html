@@ -2,10 +2,11 @@
      各ナビ項目は routerLinkActive を #rlaN で参照して aria-current="page" を付与し、通知バナーは
      tabindex/role/keydown.enter でキーボードからも開けるようにしている。
      PCレイアウト（サイドバー表示時）では nav 先頭にアプリタイトル（sidebar-title）、末尾（ナビ項目の下）に
-     JA/EN 言語トグルを表示し、タイトル横の sidebar-toggle ボタンで格納/展開を切り替えられる
-     （app.ts の sidebarCollapsed signal に連動、格納時は言語トグルも非表示）。
+     日/EN 言語トグルを表示し、タイトル横の sidebar-toggle ボタンで格納/展開を切り替えられる
+     （app.ts の sidebarCollapsed signal に連動、格納時は2ボタンの lang-toggle の代わりに
+     単一ボタンの lang-toggle-collapsed（タップごとに日⇔ENを交互表示・切替）を表示する）。
      モバイルレイアウトでは bottom-nav 自体が非表示にならないタブバーのため、代わりに画面右上に固定表示する
-     lang-toggle-mobile（単一ボタン、タップごとにJA⇔ENを交互表示・切替）でどのタブからも言語切り替えができるようにしている。
+     lang-toggle-mobile（単一ボタン、タップごとに日⇔ENを交互表示・切替）でどのタブからも言語切り替えができるようにしている。
      フィードバックボタン（Googleフォームへの外部リンク）は app-content 先頭の content-topbar 内に
      配置し、各ページ本体の .page コンテナ（max-width 640px/768px以上で960px、margin:0 auto、
      padding 1rem/2rem）と同じ幅・パディング・中央寄せを content-topbar にも適用することで、
@@ -110,17 +111,26 @@
         <span>{{ i18n.t('nav.dev') }}</span>
       </a>
     }
-    <div class="lang-toggle" role="group" [attr.aria-label]="i18n.t('sidebar.language')">
-      <button type="button" class="lang-btn" [class.active]="i18n.lang() === 'ja'" (click)="toggleLanguage('ja')">JA</button>
-      <button type="button" class="lang-btn" [class.active]="i18n.lang() === 'en'" (click)="toggleLanguage('en')">EN</button>
-    </div>
+    @if (sidebarCollapsed()) {
+      <button
+        type="button"
+        class="lang-toggle-collapsed"
+        [attr.aria-label]="i18n.t('sidebar.language')"
+        (click)="toggleLanguage(i18n.lang() === 'ja' ? 'en' : 'ja')"
+      >{{ i18n.lang() === 'ja' ? '日' : 'EN' }}</button>
+    } @else {
+      <div class="lang-toggle" role="group" [attr.aria-label]="i18n.t('sidebar.language')">
+        <button type="button" class="lang-btn" [class.active]="i18n.lang() === 'ja'" (click)="toggleLanguage('ja')">日</button>
+        <button type="button" class="lang-btn" [class.active]="i18n.lang() === 'en'" (click)="toggleLanguage('en')">EN</button>
+      </div>
+    }
   </nav>
 
-  <!-- ── モバイル用言語トグル（bottom-nav は常時表示のため右上に固定表示。タップ前提のため単一ボタンでJA⇔ENを交互切替） ── -->
+  <!-- ── モバイル用言語トグル（bottom-nav は常時表示のため右上に固定表示。タップ前提のため単一ボタンで日⇔ENを交互切替） ── -->
   <button
     type="button"
     class="lang-toggle-mobile"
     [attr.aria-label]="i18n.t('sidebar.language')"
     (click)="toggleLanguage(i18n.lang() === 'ja' ? 'en' : 'ja')"
-  >{{ i18n.lang() === 'ja' ? 'JA' : 'EN' }}</button>
+  >{{ i18n.lang() === 'ja' ? '日' : 'EN' }}</button>
 </div>
