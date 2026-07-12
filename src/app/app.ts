@@ -86,18 +86,23 @@ export class App {
     // 祖先要素にセットしても継承で上書きできない。同じ要素に直接設定する。
     // 値が変化した時のみ書き込む（同値の再設定によるResizeObserverの無駄な再発火を避けるため）。
     let lastHeight = -1;
+    let rafId = -1;
     const applyHeight = () => {
-      if (this.desktopMedia.matches) return;
-      const height = el.offsetHeight;
-      if (height === lastHeight) return;
-      lastHeight = height;
-      shell.style.setProperty('--bottom-nav-height', `${height}px`);
+      // pull-to-refresh中のchrome表示アニメーション等、viewport変化の過渡フレームで
+      // offsetHeightを誤読しないよう1フレーム遅延させてから読み取る。
+      window.cancelAnimationFrame(rafId);
+      rafId = window.requestAnimationFrame(() => {
+        if (this.desktopMedia.matches) return;
+        const height = el.offsetHeight;
+        if (height === lastHeight) return;
+        lastHeight = height;
+        shell.style.setProperty('--bottom-nav-height', `${height}px`);
+      });
     };
 
     const observer = new ResizeObserver(applyHeight);
     observer.observe(el);
     this.desktopMedia.addEventListener('change', applyHeight);
-    window.addEventListener('resize', applyHeight);
     window.visualViewport?.addEventListener('resize', applyHeight);
     // PWAスタンドアロン起動時は safe-area-inset-bottom の確定が初回レイアウトより遅れることがある（iOS Safari standalone特有）ため、遅延再チェックで補う
     const deferredCheck = window.setTimeout(applyHeight, 300);
@@ -106,9 +111,9 @@ export class App {
     this.destroyRef.onDestroy(() => {
       observer.disconnect();
       this.desktopMedia.removeEventListener('change', applyHeight);
-      window.removeEventListener('resize', applyHeight);
       window.visualViewport?.removeEventListener('resize', applyHeight);
       window.clearTimeout(deferredCheck);
+      window.cancelAnimationFrame(rafId);
     });
   }
 
