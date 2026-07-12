@@ -1,3 +1,3 @@
 // このファイルは scripts/generate-version.mjs により自動生成されます（手動編集しない）。
-export const APP_VERSION = '1.0.3';
+export const APP_VERSION = '1.0.4';
 export const RELEASE_DATE = '2026-07-12';
