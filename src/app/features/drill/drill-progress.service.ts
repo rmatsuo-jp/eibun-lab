@@ -1,7 +1,8 @@
 /**
  * @file ドリルの習熟度（頻出ミス・復習カードの正解ストリーク）と、レベルアップ・タイピングの
  * マスク段階進捗のローカル永続化を担うサービス。Drill 機能専用のストア（features/drill 内に同居）。
- * 各問題の正誤履歴は drillProgress signal（DRILL_PROGRESS_KEY）で正解ストリークとして永続化する。
+ * 各問題の正誤履歴は drillProgress signal（DRILL_PROGRESS_KEY）で正解ストリーク（出題重み用）と
+ * everCorrect（1回でも正解したかの永続フラグ、達成バッジ用）として永続化する。
  * レベルアップ・タイピングのマスク段階進捗は levelUpProgress signal（LEVELUP_PROGRESS_KEY）で
  * セッションID単位に永続化し、日付選択画面での再開・完了表示に使う。
  * クラウド同期は行わない（ローカル専任）。DrillProgressSyncService が allDrillProgress() /
@@ -57,14 +58,16 @@ export class DrillProgressService {
   }
 
   // 正解なら連続正解数を+1、不正解なら0にリセットして保存する。
+  // everCorrect は1回でも正解したら true になり、以後不正解が続いても false には戻らない。
   recordDrillResult(key: string, correct: boolean): void {
     const normalized = normalizeDrillKey(key);
     const current = this.drillProgress();
-    const prevStreak = current[normalized]?.correctStreak ?? 0;
+    const prev = current[normalized];
     const updated: Record<string, DrillProgress> = {
       ...current,
       [normalized]: {
-        correctStreak: correct ? prevStreak + 1 : 0,
+        correctStreak: correct ? (prev?.correctStreak ?? 0) + 1 : 0,
+        everCorrect: (prev?.everCorrect ?? false) || correct,
         lastAttemptAt: new Date().toISOString(),
       },
     };

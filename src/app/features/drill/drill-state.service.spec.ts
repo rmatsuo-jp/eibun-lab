@@ -35,6 +35,7 @@ class FakeDrillProgressSync {
     const prev = this.drill.get(key);
     this.drill.set(key, {
       correctStreak: correct ? (prev?.correctStreak ?? 0) + 1 : 0,
+      everCorrect: (prev?.everCorrect ?? false) || correct,
       lastAttemptAt: new Date().toISOString(),
     });
   }
@@ -113,7 +114,7 @@ describe('DrillState', () => {
       expect(masteredWeight).toBeLessThan(freshWeight);
     });
 
-    it('progressForClozeSessionは習熟済み数/全体数を返す', () => {
+    it('progressForClozeSessionは達成数/全体数を返す（1回でも正解していれば達成）', () => {
       const session = makeSession({
         id: 's1',
         reviewItems: [
@@ -127,8 +128,24 @@ describe('DrillState', () => {
       const key = normalizeDrillKey(
         `${session.reviewItems![0].sentence}${session.reviewItems![0].answer}`,
       );
-      fakeSync.masterKey(key);
+      fakeSync.recordDrillResult(key, true); // 1回だけ正解
       expect(state.progressForClozeSession(session)).toEqual({ done: 1, total: 2 });
+    });
+
+    it('progressForClozeSessionの達成は不正解が続いても取り消されない', () => {
+      const session = makeSession({
+        id: 's1',
+        reviewItems: [
+          { sentence: 'a ___ b', answer: 'fox', hint: 'h', translation: 't', choices: ['fox'] },
+        ],
+      });
+      const { state, fakeSync } = setup([session]);
+      const key = normalizeDrillKey(
+        `${session.reviewItems![0].sentence}${session.reviewItems![0].answer}`,
+      );
+      fakeSync.recordDrillResult(key, true);
+      fakeSync.recordDrillResult(key, false);
+      expect(state.progressForClozeSession(session)).toEqual({ done: 1, total: 1 });
     });
   });
 

@@ -26,6 +26,22 @@ describe('DrillProgressService', () => {
     expect(service.getDrillProgress('key-b')?.correctStreak).toBe(0);
   });
 
+  it('everCorrectは1回でも正解したらtrueになり、以後不正解が続いてもtrueのまま残る', () => {
+    const service = new DrillProgressService();
+    service.recordDrillResult('key-d', true);
+    expect(service.getDrillProgress('key-d')?.everCorrect).toBe(true);
+
+    service.recordDrillResult('key-d', false);
+    service.recordDrillResult('key-d', false);
+    expect(service.getDrillProgress('key-d')?.everCorrect).toBe(true);
+  });
+
+  it('一度も正解していなければeverCorrectはfalse', () => {
+    const service = new DrillProgressService();
+    service.recordDrillResult('key-e', false);
+    expect(service.getDrillProgress('key-e')?.everCorrect).toBe(false);
+  });
+
   it('キーは正規化されて同一問題として扱われる（大文字小文字・前後空白の違いを無視）', () => {
     const service = new DrillProgressService();
     service.recordDrillResult('  Key-C  ', true);

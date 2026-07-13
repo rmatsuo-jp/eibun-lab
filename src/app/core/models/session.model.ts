@@ -53,8 +53,11 @@ export interface LevelUpItem {
 // ── DrillProgress: ドリルの1問（ミス or 復習カード）ごとの習熟度 ─────
 // key（正規化した original、または sentence+answer）ごとに DrillProgressService が保持する。
 // correctStreak が一定数以上になると出題の重みを下げ、既に習熟した問題の再出題頻度を減らす。
+// everCorrect は1回でも正解したら true になり、以後不正解になっても false に戻さない
+// （穴埋め復習の日付選択画面の達成バッジ判定に使用。既存データには存在しないため optional）。
 export interface DrillProgress {
   correctStreak: number; // 連続正解数
+  everCorrect?: boolean; // 1回でも正解したことがあるか（永続的な達成フラグ）
   lastAttemptAt: string; // 直近に解答した日時（ISO 8601）
 }
 

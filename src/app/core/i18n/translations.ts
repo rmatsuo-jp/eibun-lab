@@ -168,6 +168,7 @@ const ja = {
   'drill.noClozeSessions': '復習カードを持つセッションがありません。',
   'drill.cleared': 'クリア済み',
   'drill.progressCount': '{done} / {total}文',
+  'drill.progressCountCloze': '{done} / {total}問',
   'drill.chooseSentence':
     '取り組みたい文を選んでください。進捗は文ごとに保存されるので、途中からでも再開できます。',
   'drill.mastered': '習熟済み',
@@ -403,6 +404,7 @@ const en: Record<TranslationKey, string> = {
   'drill.noClozeSessions': 'No sessions with review cards.',
   'drill.cleared': 'Cleared',
   'drill.progressCount': '{done} / {total} sentences',
+  'drill.progressCountCloze': '{done} / {total} questions',
   'drill.chooseSentence':
     'Choose a sentence to work on. Progress is saved per sentence, so you can resume anytime.',
   'drill.mastered': 'Mastered',

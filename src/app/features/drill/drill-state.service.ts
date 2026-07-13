@@ -4,8 +4,10 @@
  *  - 'cloze'    穴埋め復習（getSessionsWithReviewItems）: まず日付（＝1回の添削セッション）を選び、
  *               その日の reviewItems だけで出題する（selectClozeDate）。既定は入力、
  *               「ヒント（4択）」ボタンで類似4択に切り替えて答えられる。4択モードはクリック/タップで
- *               即採点する。日付選択画面では各日付ごとに習熟済み数/全体数の
- *               進捗バッジ（progressForClozeSession、判定基準は DRILL_MASTERY_STREAK）を表示する。
+ *               即採点する。日付選択画面では各日付ごとに達成数/全体数の
+ *               進捗バッジ（progressForClozeSession、判定基準は1回でも正解したか＝everCorrect）を表示する。
+ *               出題の重み付け（weightFor、既に習熟した問題を出にくくする）は別基準で、
+ *               引き続き DRILL_MASTERY_STREAK（3回連続正解）を使う。
  *  - 'levelup'  レベルアップ・タイピング（getSessionsWithLevelUp）: まず日付（＝1回の添削セッション）を選び、
  *               次にその日の文一覧から取り組みたい1文を選んで出題する（セッション横断のシャッフルはしない。
  *               文の並びは Gemini が返した元の順番のまま）。
@@ -194,12 +196,13 @@ export class DrillState {
     this.clozeDateChosen.set(true);
   }
 
-  // 選択中セッションの進捗サマリー（習熟済み数/全体数）。穴埋め復習の日付選択画面のバッジ表示に使う。
+  // 選択中セッションの進捗サマリー（達成数/全体数）。穴埋め復習の日付選択画面のバッジ表示に使う。
+  // 達成は「1回でも正解したか（everCorrect）」で判定する（後で間違えても達成は取り消さない）。
   progressForClozeSession(session: CorrectionSession): { done: number; total: number } {
     const items = session.reviewItems ?? [];
     const done = items.filter((r) => {
       const key = normalizeDrillKey(`${r.sentence}${r.answer}`);
-      return (this.drillProgress.getDrillProgress(key)?.correctStreak ?? 0) >= DRILL_MASTERY_STREAK;
+      return this.drillProgress.getDrillProgress(key)?.everCorrect ?? false;
     }).length;
     return { done, total: items.length };
   }
