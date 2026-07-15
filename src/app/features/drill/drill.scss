@@ -1,27 +1,13 @@
-.page {
-  padding: 1rem;
-  max-width: 640px;
-  margin: 0 auto;
-}
-
-.page-title {
-  font-size: 1.5rem;
-  font-weight: 700;
-  margin: 0 0 1.5rem;
-  color: var(--color-text);
-}
-
-.empty {
+﻿.empty {
   text-align: center;
   padding: 3rem 1rem;
   color: var(--color-text-muted);
   line-height: 1.8;
 }
 
-// ── スタート画面 / 結果サマリー ────────────────────────────────────
+// 笏笏 繧ｹ繧ｿ繝ｼ繝育判髱｢ / 邨先棡繧ｵ繝槭Μ繝ｼ 笏笏笏笏笏笏笏笏笏笏笏笏笏笏笏笏笏笏笏笏笏笏笏笏笏笏笏笏笏笏笏笏笏笏笏笏
 // .btn-primary / .btn-secondary / .link-button / .quiz-actions / .post-actions /
-// .choice-list / .choice-btn は src/styles.scss（ドリル系共通ボタン）で一元定義。
-.intro,
+// .choice-list / .choice-btn 縺ｯ src/styles.scss・医ラ繝ｪ繝ｫ邉ｻ蜈ｱ騾壹・繧ｿ繝ｳ・峨〒荳蜈・ｮ夂ｾｩ縲・.intro,
 .result-summary {
   text-align: center;
   padding: 2rem 0;
@@ -38,7 +24,7 @@
   color: var(--color-text);
 }
 
-// ── モード選択カード（カード全体がボタン） ──────────────────────
+// 笏笏 繝｢繝ｼ繝蛾∈謚槭き繝ｼ繝会ｼ医き繝ｼ繝牙・菴薙′繝懊ち繝ｳ・・笏笏笏笏笏笏笏笏笏笏笏笏笏笏笏笏笏笏笏笏笏笏
 .mode-card {
   display: block;
   width: 100%;
@@ -100,12 +86,12 @@
   color: var(--color-text-muted);
 
   &.achievement-done {
-    color: #16a34a;
+    color: var(--color-success);
     font-weight: 700;
   }
 }
 
-// ── 穴あきタイピング: 日付選択画面 ────────────────────────
+// 笏笏 遨ｴ縺ゅ″繧ｿ繧､繝斐Φ繧ｰ: 譌･莉倬∈謚樒判髱｢ 笏笏笏笏笏笏笏笏笏笏笏笏笏笏笏笏笏笏笏笏笏笏笏笏
 .date-select-header {
   text-align: left;
   margin-bottom: 1rem;
@@ -140,7 +126,7 @@
   font-weight: 700;
 }
 
-// ── 穴あきタイピング: 文一覧選択画面（date-card を流用し、文の見た目だけ調整） ─
+// 笏笏 遨ｴ縺ゅ″繧ｿ繧､繝斐Φ繧ｰ: 譁・ｸ隕ｧ驕ｸ謚樒判髱｢・・ate-card 繧呈ｵ∫畑縺励∵枚縺ｮ隕九◆逶ｮ縺縺題ｪｿ謨ｴ・・笏
 .sentence-card {
   .date-card-date {
     font-weight: 400;
@@ -160,7 +146,7 @@
   color: var(--color-text-muted);
 
   &.date-card-done {
-    color: #16a34a;
+    color: var(--color-success);
     font-weight: 700;
   }
 }
@@ -176,7 +162,7 @@
   color: var(--color-text-muted);
 }
 
-// ── 出題中 ────────────────────────────────────────────────────────
+// 笏笏 蜃ｺ鬘御ｸｭ 笏笏笏笏笏笏笏笏笏笏笏笏笏笏笏笏笏笏笏笏笏笏笏笏笏笏笏笏笏笏笏笏笏笏笏笏笏笏笏笏笏笏笏笏笏笏笏笏笏笏笏笏笏笏笏笏
 .progress {
   font-size: 0.875rem;
   font-weight: 600;
@@ -201,7 +187,7 @@
   border-radius: 999px;
 }
 
-// ── 穴あきタイピングのマスク段階表示 ──────────────────────
+// 笏笏 遨ｴ縺ゅ″繧ｿ繧､繝斐Φ繧ｰ縺ｮ繝槭せ繧ｯ谿ｵ髫手｡ｨ遉ｺ 笏笏笏笏笏笏笏笏笏笏笏笏笏笏笏笏笏笏笏笏笏笏
 .mask-progress {
   font-size: 0.8125rem;
   font-weight: 700;
@@ -218,7 +204,7 @@
 .quiz-original {
   font-size: 1.125rem;
   font-weight: 600;
-  color: #ef4444;
+  color: var(--color-error);
   margin: 0 0 0.75rem;
 }
 
@@ -262,10 +248,10 @@
   margin-bottom: 0.75rem;
 
   &.correct {
-    color: #16a34a;
+    color: var(--color-success);
   }
   &.wrong {
-    color: #ef4444;
+    color: var(--color-error);
   }
 }
 
@@ -281,7 +267,7 @@
 }
 
 .correct-label {
-  background: #16a34a;
+  background: var(--color-success);
   color: #fff;
   font-size: 0.7rem;
   font-weight: 700;
@@ -290,14 +276,8 @@
 }
 
 .correct-text {
-  color: #16a34a;
+  color: var(--color-success);
   font-weight: 600;
 }
 
-// ── PC レイアウト（768px 以上）────────────────────────────────────
-@media (min-width: 768px) {
-  .page {
-    max-width: 960px;
-    padding: 2rem;
-  }
-}
+// 笏笏 PC 繝ｬ繧､繧｢繧ｦ繝茨ｼ・68px 莉･荳奇ｼ俄楳笏笏笏笏笏笏笏笏笏笏笏笏笏笏笏笏笏笏笏笏笏笏笏笏笏笏笏笏笏笏笏笏笏笏笏

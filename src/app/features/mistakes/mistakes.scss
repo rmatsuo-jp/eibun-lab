@@ -1,17 +1,4 @@
-.page {
-  padding: 1rem;
-  max-width: 640px;
-  margin: 0 auto;
-}
-
-.page-title {
-  font-size: 1.5rem;
-  font-weight: 700;
-  margin: 0 0 1.5rem;
-  color: var(--color-text);
-}
-
-.empty {
+﻿.empty {
   text-align: center;
   padding: 3rem 1rem;
   color: var(--color-text-muted);
@@ -22,7 +9,7 @@
   margin-bottom: 2rem;
 }
 
-// ── 学習統計ダッシュボード ────────────────────────────────────────
+// 笏笏 蟄ｦ鄙堤ｵｱ險医ム繝・す繝･繝懊・繝・笏笏笏笏笏笏笏笏笏笏笏笏笏笏笏笏笏笏笏笏笏笏笏笏笏笏笏笏笏笏笏笏笏笏笏笏笏笏笏笏
 .stat-grid {
   display: grid;
   grid-template-columns: repeat(auto-fit, minmax(5.5rem, 1fr));
@@ -65,7 +52,7 @@
   margin: 0 0 1rem;
 }
 
-// ── CEFR 推移グラフ ──────────────────────────────────────────────
+// 笏笏 CEFR 謗ｨ遘ｻ繧ｰ繝ｩ繝・笏笏笏笏笏笏笏笏笏笏笏笏笏笏笏笏笏笏笏笏笏笏笏笏笏笏笏笏笏笏笏笏笏笏笏笏笏笏笏笏笏笏笏笏笏笏
 .cefr-chart {
   background: var(--color-surface);
   border: 1px solid var(--color-border);
@@ -222,7 +209,7 @@
 }
 
 .f-original {
-  color: #ef4444;
+  color: var(--color-error);
 }
 
 .arrow {
@@ -230,7 +217,7 @@
 }
 
 .f-corrected {
-  color: #16a34a;
+  color: var(--color-success);
   font-weight: 600;
 }
 
@@ -241,13 +228,8 @@
   line-height: 1.5;
 }
 
-// ── PC レイアウト（768px 以上）────────────────────────────────────
+// 笏笏 PC 繝ｬ繧､繧｢繧ｦ繝茨ｼ・68px 莉･荳奇ｼ俄楳笏笏笏笏笏笏笏笏笏笏笏笏笏笏笏笏笏笏笏笏笏笏笏笏笏笏笏笏笏笏笏笏笏笏笏
 @media (min-width: 768px) {
-  .page {
-    max-width: 960px;
-    padding: 2rem;
-  }
-
   .chart-row {
     grid-template-columns: 8rem 1fr 2.5rem;
   }

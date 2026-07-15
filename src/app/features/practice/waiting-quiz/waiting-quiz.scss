@@ -62,10 +62,10 @@
 .quiz-feedback {
   margin-top: 0.75rem;
   font-weight: 600;
-  color: #16a34a;
+  color: var(--color-success);
 
   &.ng {
-    color: #dc2626;
+    color: var(--color-error);
   }
 }
 

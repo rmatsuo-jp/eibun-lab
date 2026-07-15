@@ -1,17 +1,4 @@
-.page {
-  padding: 1rem;
-  max-width: 640px;
-  margin: 0 auto;
-}
-
-.page-title {
-  font-size: 1.5rem;
-  font-weight: 700;
-  margin: 0 0 1.5rem;
-  color: var(--color-text);
-}
-
-.form-group {
+﻿.form-group {
   margin-bottom: 1.5rem;
 }
 
@@ -82,8 +69,8 @@
   }
 }
 
-// API キー専用の保存ボタン。テーマ・モデル優先順位が即時保存なのに対し、
-// API キーだけは入力途中の値を確定させないため明示的な保存操作を要求する。
+// API 繧ｭ繝ｼ蟆ら畑縺ｮ菫晏ｭ倥・繧ｿ繝ｳ縲ゅユ繝ｼ繝槭・繝｢繝・Ν蜆ｪ蜈磯・ｽ阪′蜊ｳ譎ゆｿ晏ｭ倥↑縺ｮ縺ｫ蟇ｾ縺励・
+// API 繧ｭ繝ｼ縺縺代・蜈･蜉幃比ｸｭ縺ｮ蛟､繧堤｢ｺ螳壹＆縺帙↑縺・◆繧∵・遉ｺ逧・↑菫晏ｭ俶桃菴懊ｒ隕∵ｱゅ☆繧九・
 .save-key {
   padding: 0.75rem 1rem;
   border: 2px solid transparent;
@@ -106,11 +93,11 @@
   }
 
   &.pending {
-    box-shadow: 0 0 0 3px color-mix(in srgb, #f59e0b 35%, transparent);
+    box-shadow: 0 0 0 3px color-mix(in srgb, var(--color-warning) 35%, transparent);
   }
 }
 
-// ── モデル優先順位（ドラッグ&ドロップ並び替えリスト） ───────────────
+// 笏笏 繝｢繝・Ν蜆ｪ蜈磯・ｽ搾ｼ医ラ繝ｩ繝・げ&繝峨Ο繝・・荳ｦ縺ｳ譖ｿ縺医Μ繧ｹ繝茨ｼ・笏笏笏笏笏笏笏笏笏笏笏笏笏笏笏
 .model-priority-list {
   list-style: none;
   margin: 0;
@@ -189,7 +176,7 @@
 .unsaved-hint {
   margin: 0.5rem 0 0;
   font-size: 0.8125rem;
-  color: #f59e0b;
+  color: var(--color-warning);
   font-weight: 600;
 }
 
@@ -227,8 +214,8 @@
   align-self: flex-start;
 
   &:hover {
-    color: #ef4444;
-    background: #fee2e2;
+    color: var(--color-error);
+    background: var(--color-error-bg);
   }
 }
 
@@ -279,52 +266,19 @@
   }
 }
 
+// 繧ｵ繧､繧ｺ繝ｻ濶ｲ縺ｯ繧ｰ繝ｭ繝ｼ繝舌Ν縺ｮ.btn-primary繧堤ｶ呎価縺励∵э蜻ｳ縺ｮ縺ゅｋ繝ｭ繝ｼ繧ｫ繝ｫ蟾ｮ蛻・・縺ｿ谿九☆
 .btn-primary {
-  background: var(--color-primary);
-  color: #fff;
-  border: none;
-  border-radius: 0.75rem;
-  padding: 0.75rem 1.5rem;
-  font-size: 1rem;
-  font-weight: 600;
-  cursor: pointer;
-  transition: opacity 0.2s;
   min-width: 8rem;
 
-  &:hover {
-    opacity: 0.9;
-  }
-
-  &:disabled {
-    opacity: 0.6;
-    cursor: default;
-  }
-
   &.pending {
-    box-shadow: 0 0 0 3px color-mix(in srgb, #f59e0b 35%, transparent);
+    box-shadow: 0 0 0 3px color-mix(in srgb, var(--color-warning) 35%, transparent);
   }
 }
 
-// ── アカウント（ログイン状態カード） ──────────────────────────────
+// 笏笏 繧｢繧ｫ繧ｦ繝ｳ繝茨ｼ医Ο繧ｰ繧､繝ｳ迥ｶ諷九き繝ｼ繝会ｼ・笏笏笏笏笏笏笏笏笏笏笏笏笏笏笏笏笏笏笏笏笏笏笏笏笏笏笏笏笏笏
+// 繧ｵ繧､繧ｺ繝ｻ濶ｲ縺ｯ繧ｰ繝ｭ繝ｼ繝舌Ν縺ｮ.btn-secondary繧堤ｶ呎価
 .btn-secondary {
-  background: var(--color-surface);
-  color: var(--color-text);
-  border: 2px solid var(--color-border);
-  border-radius: 0.75rem;
-  padding: 0.5rem 1rem;
-  font-size: 0.875rem;
-  font-weight: 600;
-  cursor: pointer;
   white-space: nowrap;
-  transition: border-color 0.2s;
-
-  &:hover {
-    border-color: var(--color-primary);
-  }
-  &:disabled {
-    opacity: 0.6;
-    cursor: default;
-  }
 }
 
 .account-card {
@@ -364,7 +318,7 @@
   white-space: nowrap;
 }
 
-// ── ホワイトリスト制の注記・ログイン拒否メッセージ ────────────────
+// 笏笏 繝帙Ρ繧､繝医Μ繧ｹ繝亥宛縺ｮ豕ｨ險倥・繝ｭ繧ｰ繧､繝ｳ諡貞凄繝｡繝・そ繝ｼ繧ｸ 笏笏笏笏笏笏笏笏笏笏笏笏笏笏笏笏
 .auth-note {
   font-size: 0.75rem;
   color: var(--color-text-muted);
@@ -373,18 +327,18 @@
 
 .auth-error {
   font-size: 0.8125rem;
-  color: #dc2626; // app.scss のエラー表示（.is-error）と同色
+  color: var(--color-error); // app.scss 縺ｮ繧ｨ繝ｩ繝ｼ陦ｨ遉ｺ・・is-error・峨→蜷瑚牡
   margin: 0.5rem 0 0;
 }
 
-// ── API キーの課金注意（常時表示） ────────────────────────────────
-// 免責事項（docs/legal/disclaimer.md 第5条）と内容を一致させること。
+// 笏笏 API 繧ｭ繝ｼ縺ｮ隱ｲ驥第ｳｨ諢擾ｼ亥ｸｸ譎り｡ｨ遉ｺ・・笏笏笏笏笏笏笏笏笏笏笏笏笏笏笏笏笏笏笏笏笏笏笏笏笏笏笏笏笏笏笏笏
+// 蜈崎ｲｬ莠矩・ｼ・ocs/legal/disclaimer.md 隨ｬ5譚｡・峨→蜀・ｮｹ繧剃ｸ閾ｴ縺輔○繧九％縺ｨ縲・
 .key-warning {
   margin: 0.75rem 0 0;
   padding: 0.75rem 0.875rem;
   border: 1px solid var(--color-border);
-  border-left: 3px solid #dc2626;
-  border-radius: 6px;
+  border-left: 3px solid var(--color-error);
+  border-radius: 0.5rem;
   background: var(--color-surface);
 
   strong {
@@ -417,10 +371,4 @@
   }
 }
 
-// ── PC レイアウト（768px 以上）────────────────────────────────────
-@media (min-width: 768px) {
-  .page {
-    max-width: 960px;
-    padding: 2rem;
-  }
-}
+// 笏笏 PC 繝ｬ繧､繧｢繧ｦ繝茨ｼ・68px 莉･荳奇ｼ俄楳笏笏笏笏笏笏笏笏笏笏笏笏笏笏笏笏笏笏笏笏笏笏笏笏笏笏笏笏笏笏笏笏笏笏笏

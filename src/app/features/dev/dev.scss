@@ -1,16 +1,3 @@
-.page {
-  padding: 1rem;
-  max-width: 640px;
-  margin: 0 auto;
-}
-
-.page-title {
-  font-size: 1.5rem;
-  font-weight: 700;
-  margin: 0 0 0.5rem;
-  color: var(--color-text);
-}
-
 .form-group {
   margin-bottom: 1.5rem;
 }
@@ -72,21 +59,9 @@
   }
 }
 
+// サイズ・色はグローバルの.btn-secondaryを継承
 .btn-secondary {
-  background: var(--color-surface);
-  color: var(--color-text);
-  border: 2px solid var(--color-border);
-  border-radius: 0.75rem;
-  padding: 0.5rem 1rem;
-  font-size: 0.8125rem;
-  font-weight: 600;
-  cursor: pointer;
   white-space: nowrap;
-  transition: border-color 0.2s;
-
-  &:hover {
-    border-color: var(--color-primary);
-  }
 }
 
 .toggle-key,
@@ -206,11 +181,6 @@
 
 // ── PC レイアウト（768px 以上）────────────────────────────────────
 @media (min-width: 768px) {
-  .page {
-    max-width: 960px;
-    padding: 2rem;
-  }
-
   .preview-grid {
     flex-direction: row;
 
