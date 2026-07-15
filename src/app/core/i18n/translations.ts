@@ -69,7 +69,6 @@ const ja = {
   'practice.bulk.title': '一括添削（複数の英文をまとめて送信）',
   'practice.bulk.hint':
     '日付と英文をまとめたJSONファイルをアップロードすると、1件ずつ順番に添削して自動保存します。送信件数がそのまま Gemini API の呼び出し回数になるため、無料枠を超えた分は課金対象となる場合があります。',
-  'practice.bulk.downloadTemplate': 'テンプレート取得',
   'practice.bulk.downloadFromHistory': '履歴からテンプレート作成',
   'practice.bulk.selectFile': 'JSONを選択',
   'practice.bulk.preview': 'アップロード内容（{count}件）',
@@ -306,7 +305,6 @@ const en: Record<TranslationKey, string> = {
   'practice.bulk.title': 'Bulk Correction (submit multiple entries at once)',
   'practice.bulk.hint':
     'Upload a JSON file with dates and texts to correct and save them one by one automatically. The number of entries equals the number of Gemini API calls, so usage beyond the free tier may incur charges.',
-  'practice.bulk.downloadTemplate': 'Get Template',
   'practice.bulk.downloadFromHistory': 'From History',
   'practice.bulk.selectFile': 'Select JSON',
   'practice.bulk.preview': 'Uploaded Content ({count} entries)',

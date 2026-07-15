@@ -22,7 +22,7 @@ import { RouterLink } from '@angular/router';
 import { SettingsStoreService } from '@core/settings/settings-store.service';
 import { DomSanitizer, SafeHtml } from '@angular/platform-browser';
 import { renderSafeMarkdown } from '@shared/utils/markdown.util';
-import { buildBulkTemplateJson, parseBulkImportJson } from './bulk-import.util';
+import { parseBulkImportJson } from './bulk-import.util';
 import { formatTimestampForFilename } from '@shared/utils/date.util';
 import { I18nService } from '@core/i18n/i18n.service';
 import {
@@ -96,15 +96,7 @@ export class Practice {
   }
 
   // ── 一括添削: テンプレートダウンロード / JSONアップロード ──────────
-  downloadTemplate() {
-    const blob = new Blob([buildBulkTemplateJson()], { type: 'application/json' });
-    const a = document.createElement('a');
-    a.href = URL.createObjectURL(blob);
-    a.download = `bulk_template_${formatTimestampForFilename()}.json`;
-    a.click();
-    URL.revokeObjectURL(a.href);
-  }
-
+  // 履歴が0件の場合は buildHistoryTemplateJson() 側でサンプルテンプレートにフォールバックする。
   downloadHistoryAsTemplate() {
     const json = this.state.buildHistoryTemplateJson();
     const blob = new Blob([json], { type: 'application/json' });
