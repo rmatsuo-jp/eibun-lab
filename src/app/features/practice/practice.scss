@@ -35,12 +35,84 @@
   }
 }
 
+// 2列グリッド（日付ラベル/テーマ見出しを1行目、入力欄/カードを2行目）にすることで、
+// flexの折り返しに伴う見出し・本体のずれを起こさず両列の高さを揃える。
 .date-row {
+  display: grid;
+  grid-template-columns: auto 1fr;
+  align-items: start;
+  column-gap: 1rem;
+  row-gap: 0.5rem;
   margin-bottom: 1rem;
 }
 
+.date-label {
+  margin-bottom: 0;
+}
+
 .date-input {
+  // テーマ提案カード（.theme-card）と高さを揃えるため、padding/border/font-size を合わせる。
+  box-sizing: border-box;
   max-width: 160px;
+  padding: 0.625rem 0.75rem;
+  border-width: 1px;
+  font-size: 0.8125rem;
+}
+
+// ── テーマ提案カード（日付選択の右側。表示専用） ──
+.theme-suggest-header {
+  display: flex;
+  align-items: center;
+  margin-bottom: 0;
+}
+
+// カードの枠は常時表示。クリックのたびに「初表示 → 別候補への入れ替え」を行う
+// （handleThemeCardClick）。入力欄は自分で書いた英文専用のため、テーマ文を入力欄へ挿入する処理は持たない。
+// ホバー/フォーカス時の枠線変化と末尾の切り替えアイコンで「クリックすると変わる」ことを説明なしに伝える。
+.theme-card {
+  box-sizing: border-box;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 0.5rem;
+  width: 100%;
+  min-width: 0;
+  background: var(--color-surface);
+  border: 1px solid var(--color-border);
+  border-radius: 0.75rem;
+  padding: 0.625rem 0.75rem;
+  text-align: left;
+  font: inherit;
+  font-size: 0.8125rem;
+  line-height: 1.4;
+  color: var(--color-text);
+  cursor: pointer;
+  transition: border-color 0.2s;
+
+  &:hover,
+  &:focus-visible {
+    border-color: var(--color-primary);
+  }
+
+  &:focus-visible {
+    outline: 2px solid var(--color-primary);
+    outline-offset: 2px;
+  }
+}
+
+.theme-card-text {
+  flex: 1;
+}
+
+.theme-card-placeholder {
+  color: var(--color-text-muted);
+}
+
+.theme-card-icon {
+  flex: 0 0 auto;
+  color: var(--color-text-muted);
+  font-size: 1rem;
+  line-height: 1;
 }
 
 .textarea {

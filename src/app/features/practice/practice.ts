@@ -13,6 +13,8 @@
  * 影響しない。5項目が1つも無い旧データ（generatedAtがproseタグ導入前のセッション）のみ、
  * corrected/correctedEn を単一ブロックとして表示するフォールバックを使う（proseSections() 参照）。
  * 添削結果には使用Geminiモデル（modelLabel()で人間可読ラベルに変換、historyタブと同じi18nキー・見た目）も表示する。
+ * テーマ提案カードは日付選択の右側に表示専用（practice-themes.data.ts の静的候補）。入力欄は
+ * 自分で書いた英文専用のため、カードはクリックしても挿入されない（クリック不可の表示のみ）。
  */
 import { ChangeDetectionStrategy, Component, ElementRef, ViewChild, inject } from '@angular/core';
 import { FormsModule } from '@angular/forms';

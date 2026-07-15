@@ -54,6 +54,12 @@ rules:
       - 例題
       - 体験版問題
 
+  - expected: テーマのヒント
+    patterns:
+      - テーマ提案
+      - お題
+      - トピック提案
+
   # ── 固有名詞・略語（半角固定）────────────────────
   - expected: Gemini
     patterns:

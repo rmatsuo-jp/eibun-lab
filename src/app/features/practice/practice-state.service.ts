@@ -13,6 +13,13 @@
  * 「今日」のローカル日付キー算出は date.util.ts の toDayKey() を共用する（重複実装しない）。
  * API 例外は toUserMessage()（core/gemini/gemini-error.util）で日本語の対処案内に変換してから表示する。
  * 変換は表示側のこのサービスで行い、GeminiService の throw 構造（モデルフォールバック判定）は変えない。
+ * テーマ提案（suggestedTheme/handleThemeCardClick）は書く内容に迷うユーザー向けの表示専用の静的候補で、
+ * PRACTICE_THEMES から1件だけランダムに選ぶ。入力欄は自分で書いた英文専用のため、
+ * テーマ文を入力欄へ挿入する処理は持たない。
+ * カードの枠自体は最初から表示し、中身（テーマ文）だけを themeRevealed で出し分ける
+ * （practice.html 側はプレースホルダー文言を表示）。カードは常時クリック可能な1つの要素で、
+ * 未表示（themeRevealed=false）のクリックで初めて候補を選んで表示し、表示済みのクリックでは
+ * 別の候補に入れ替える。この分岐を handleThemeCardClick() に一本化する。
  */
 import { Injectable, inject, signal } from '@angular/core';
 import { GeminiService, CorrectionResult } from '@core/gemini/gemini.service';
@@ -23,6 +30,7 @@ import { buildPrompt } from '@core/gemini/prompt.util';
 import { BulkEntry, buildBulkTemplateFromSessions } from './bulk-import.util';
 import { toDayKey } from '@shared/utils/date.util';
 import { CorrectionSession } from '@core/models/session.model';
+import { PRACTICE_THEMES, PracticeTheme } from '@core/practice/practice-themes.data';
 
 @Injectable({ providedIn: 'root' })
 export class PracticeState {
@@ -48,6 +56,20 @@ export class PracticeState {
 
   dismissNotice() {
     this.notice.set(null);
+  }
+
+  // ── テーマ提案: カードの枠は常時表示、中身は未クリックのあいだ隠す ────────
+  themeRevealed = signal(false);
+  suggestedTheme = signal<PracticeTheme>(this.pickRandomTheme());
+
+  // 未表示時のクリックは「初めて表示」、表示済み時のクリックは「別の候補に入れ替え」を兼ねる。
+  handleThemeCardClick() {
+    this.suggestedTheme.set(this.pickRandomTheme());
+    this.themeRevealed.set(true);
+  }
+
+  private pickRandomTheme(): PracticeTheme {
+    return PRACTICE_THEMES[Math.floor(Math.random() * PRACTICE_THEMES.length)];
   }
 
   // ── 添削実行: Gemini API 呼び出し → 結果表示 → セッション保存 ───

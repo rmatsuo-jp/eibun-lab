@@ -37,6 +37,9 @@ const ja = {
   // ── practice ──
   'practice.title': '添削',
   'practice.date': '日付',
+  'practice.themeSuggest.title': 'テーマのヒント',
+  'practice.themeSuggest.placeholder': 'クリックしてテーマのヒントを表示',
+  'practice.themeSuggest.cardLabel': 'クリックで他のテーマのヒントを表示します',
   'practice.setupRequired':
     '添削には Gemini API キーが必要です。設定ページでキーを登録してください。',
   'practice.setupLink': '設定ページを開く',
@@ -271,6 +274,9 @@ const en: Record<TranslationKey, string> = {
   // ── practice ──
   'practice.title': 'Correction',
   'practice.date': 'Date',
+  'practice.themeSuggest.title': 'Topic hints',
+  'practice.themeSuggest.placeholder': 'Click to show a topic hint',
+  'practice.themeSuggest.cardLabel': 'Click to show another topic hint',
   'practice.setupRequired':
     'A Gemini API key is required for correction. Please register one on the Settings page.',
   'practice.setupLink': 'Open Settings',
