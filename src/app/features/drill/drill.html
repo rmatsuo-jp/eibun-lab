@@ -164,8 +164,8 @@
         </p>
       }
       <p class="result-message">{{ i18n.t('drill.resultMessage') }}</p>
-      <button class="btn-primary" (click)="state.restart()">
-        {{ i18n.t('drill.backToModeSelect') }}
+      <button class="btn-primary" (click)="state.backToDateSelect()">
+        {{ i18n.t('drill.backToDateSelect') }}
       </button>
     </div>
   } @else if (state.mode() === 'levelup') {
