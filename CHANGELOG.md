@@ -1,3 +1,23 @@
+# [1.1.0](https://github.com/rmatsuo-jp/eibun-lab/compare/v1.0.4...v1.1.0) (2026-07-16)
+
+
+### Bug Fixes
+
+* prettierフォーマット崩れを修正しCI失敗を解消 ([aa65e07](https://github.com/rmatsuo-jp/eibun-lab/commit/aa65e07450d8587e4a13faf837dc359d132baa9e))
+* スマートフォンでのピンチズームを無効化 ([bf68c79](https://github.com/rmatsuo-jp/eibun-lab/commit/bf68c7919662e596e2889c251adfce74a7213032))
+* ドリルのモード名称を統一し選択カードに番号バッジを追加 ([10c58d4](https://github.com/rmatsuo-jp/eibun-lab/commit/10c58d47f037647370125c69ddf492327e0fe7ca))
+* ドリル全問終了後の戻り先をモード選択から日付選択に変更 ([e8ce302](https://github.com/rmatsuo-jp/eibun-lab/commit/e8ce30250cc51c58d8fb6a0bfad89eb1760f5ede))
+* ドリル日付選択画面の戻るボタンを上部左側に固定 ([a453bed](https://github.com/rmatsuo-jp/eibun-lab/commit/a453bed5a012076d7f11dd27df6f9bf0fdf36dcf))
+* 履歴カレンダーの月移動ボタンを専用スタイルに変更 ([5094897](https://github.com/rmatsuo-jp/eibun-lab/commit/5094897f6db615005cab147aba71bc3316a87c68))
+* 穴埋め復習の達成バッジが1回正解しても増えない不具合を修正 ([87513e8](https://github.com/rmatsuo-jp/eibun-lab/commit/87513e856ed8079aefbd0f1b7f777cfb9819f589))
+
+
+### Features
+
+* ドリル・添削にゲーミフィケーション（統計・実績）を追加 ([80b1a4a](https://github.com/rmatsuo-jp/eibun-lab/commit/80b1a4afad18aef770d0b3201f73e156af2133b8))
+* 実績の未解除項目に進捗バーを表示 ([aae7166](https://github.com/rmatsuo-jp/eibun-lab/commit/aae716606fbf1d3b5c0e60850cf1d498c03357e4))
+* 添削タブにテーマのヒント提案機能を追加 ([e65a35e](https://github.com/rmatsuo-jp/eibun-lab/commit/e65a35eb84bc48708dddbee7c028649376378e62))
+
 ## [1.0.4](https://github.com/rmatsuo-jp/eibun-lab/compare/v1.0.3...v1.0.4) (2026-07-12)
 
 
