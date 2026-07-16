@@ -22,6 +22,15 @@
               <span class="achievement-status">
                 {{ i18n.t('achievements.progress', { progress: view.progressText }) }}
               </span>
+              <div
+                class="achievement-progress-bar"
+                role="progressbar"
+                [attr.aria-valuenow]="view.progressRatio! * 100"
+                aria-valuemin="0"
+                aria-valuemax="100"
+              >
+                <div class="achievement-progress-fill" [style.width.%]="view.progressRatio! * 100"></div>
+              </div>
             } @else {
               <span class="achievement-status">{{ i18n.t('achievements.locked') }}</span>
             }

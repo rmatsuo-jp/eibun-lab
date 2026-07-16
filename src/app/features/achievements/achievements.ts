@@ -23,6 +23,7 @@ interface AchievementView {
   unlocked: boolean;
   unlockedAt: string | null;
   progressText: string | null; // 未解除かつ progress 定義がある場合のみ「現在値/しきい値」
+  progressRatio: number | null; // 未解除かつ progress 定義がある場合のみ 0-1 の割合
 }
 
 const GROUP_ORDER: AchievementGroup[] = ['correction', 'cloze', 'levelup'];
@@ -49,16 +50,18 @@ export class Achievements {
     };
     for (const def of ACHIEVEMENTS) {
       const unlockedAt = stats.unlockedAchievements[def.id] ?? null;
+      const current =
+        unlockedAt === null && def.progress
+          ? Math.min(def.progress.currentValue(stats), def.progress.target)
+          : null;
       result[def.group].push({
         id: def.id,
         titleKey: def.titleKey as TranslationKey,
         descKey: def.descKey as TranslationKey,
         unlocked: unlockedAt !== null,
         unlockedAt,
-        progressText:
-          unlockedAt === null && def.progress
-            ? `${Math.min(def.progress.currentValue(stats), def.progress.target)}/${def.progress.target}`
-            : null,
+        progressText: current !== null ? `${current}/${def.progress!.target}` : null,
+        progressRatio: current !== null ? current / def.progress!.target : null,
       });
     }
     return result;
