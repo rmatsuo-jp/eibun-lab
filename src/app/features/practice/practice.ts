@@ -13,6 +13,8 @@
  * 影響しない。5項目が1つも無い旧データ（generatedAtがproseタグ導入前のセッション）のみ、
  * corrected/correctedEn を単一ブロックとして表示するフォールバックを使う（proseSections() 参照）。
  * 添削結果には使用Geminiモデル（modelLabel()で人間可読ラベルに変換、historyタブと同じi18nキー・見た目）も表示する。
+ * テーマ提案カードは日付選択の右側に表示専用（practice-themes.data.ts の静的候補）。入力欄は
+ * 自分で書いた英文専用のため、カードはクリックしても挿入されない（クリック不可の表示のみ）。
  */
 import { ChangeDetectionStrategy, Component, ElementRef, ViewChild, inject } from '@angular/core';
 import { FormsModule } from '@angular/forms';
@@ -20,7 +22,7 @@ import { RouterLink } from '@angular/router';
 import { SettingsStoreService } from '@core/settings/settings-store.service';
 import { DomSanitizer, SafeHtml } from '@angular/platform-browser';
 import { renderSafeMarkdown } from '@shared/utils/markdown.util';
-import { buildBulkTemplateJson, parseBulkImportJson } from './bulk-import.util';
+import { parseBulkImportJson } from './bulk-import.util';
 import { formatTimestampForFilename } from '@shared/utils/date.util';
 import { I18nService } from '@core/i18n/i18n.service';
 import {
@@ -94,15 +96,7 @@ export class Practice {
   }
 
   // ── 一括添削: テンプレートダウンロード / JSONアップロード ──────────
-  downloadTemplate() {
-    const blob = new Blob([buildBulkTemplateJson()], { type: 'application/json' });
-    const a = document.createElement('a');
-    a.href = URL.createObjectURL(blob);
-    a.download = `bulk_template_${formatTimestampForFilename()}.json`;
-    a.click();
-    URL.revokeObjectURL(a.href);
-  }
-
+  // 履歴が0件の場合は buildHistoryTemplateJson() 側でサンプルテンプレートにフォールバックする。
   downloadHistoryAsTemplate() {
     const json = this.state.buildHistoryTemplateJson();
     const blob = new Blob([json], { type: 'application/json' });

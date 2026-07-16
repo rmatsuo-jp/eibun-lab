@@ -1,19 +1,36 @@
 <!-- @file Drill ページテンプレート。モード選択カードはカード全体がボタンで達成度バッジを表示する。
-     レベルアップ・タイピング／穴埋め復習→出題→答え合わせ→次へ→結果サマリーの流れ
-     （レベルアップ・タイピングのみ結果サマリーへは至らず、答え合わせ後は「次へ」で同じ文のまま／「中断」で文一覧に戻る）。
+     穴あきタイピング／穴埋めクイズ→出題→答え合わせ→次へ→結果サマリーの流れ
+     （穴あきタイピングのみ結果サマリーへは至らず、答え合わせ後は「次へ」で同じ文のまま／「中断」で文一覧に戻る）。
      日本語訳はどのモードでも既定非表示で、「ヒント」ボタン押下時または答え合わせ後にのみ表示する。
-     穴埋め復習・レベルアップ・タイピングともに、まず日付（＝1回の添削セッション）を選ぶ画面から始まり、
-     各日付には進捗バッジ（穴埋め復習は習熟済み数/全体数、レベルアップ・タイピングは完了数/全体数）を表示する。
-     レベルアップ・タイピングはさらに 日付選択 → 文一覧選択 → 出題 の3段階。日付を選ぶとその日の文一覧（進捗バッジ付き）が
+     穴埋めクイズ・穴あきタイピングともに、まず日付（＝1回の添削セッション）を選ぶ画面から始まり、
+     各日付には進捗バッジ（穴埋めクイズは習熟済み数/全体数、穴あきタイピングは完了数/全体数）を表示する。
+     穴あきタイピングはさらに 日付選択 → 文一覧選択 → 出題 の3段階。日付を選ぶとその日の文一覧（進捗バッジ付き）が
      表示され、任意の文を選んで出題画面に進む（途中再開可）。
      各文は maskLevel（0=全文表示〜maxLevel=全単語マスク）の一本道で進行し、正解のたびに隠れる単語が増える。
      不正解時はタイポ（見えている単語のミス）なら据え置き、理解度不足（隠れている単語のミス）なら1段階戻る。
      答え合わせ後は「次へ」で同じ文を更新後の maskLevel のまま再出題し、「中断」で文一覧選択画面に戻る
      （別の文に進みたい場合は中断→文一覧から選び直す）。
      日付・文ごとの進捗はセッションID単位で保存され、日付選択・文一覧の各画面で完了状況の確認・途中再開ができる。
-     全文言は i18n.t()（core/i18n/I18nService）経由で表示する。 -->
+     全文言は i18n.t()（core/i18n/I18nService）経由で表示する。
+     実績解除時は画面上部にトーストを表示し（state.newlyUnlocked()）、結果サマリー（clozeのみ）には
+     現在の連続正解自己ベスト・継続日数（state.gamificationStats()）を表示する。 -->
 <div class="page">
   <h1 class="page-title">{{ i18n.t('drill.title') }}</h1>
+
+  @if (state.newlyUnlocked().length > 0) {
+    <!-- ── 実績解除トースト（ドリル画面内のみ表示） ── -->
+    <div class="achievement-toast">
+      <strong>{{ i18n.t('achievements.toast.heading') }}</strong>
+      <ul>
+        @for (id of state.newlyUnlocked(); track id) {
+          <li>{{ i18n.t(state.achievementTitleKey(id)) }}</li>
+        }
+      </ul>
+      <button class="btn-secondary" (click)="state.dismissNewlyUnlocked()">
+        {{ i18n.t('achievements.toast.dismiss') }}
+      </button>
+    </div>
+  }
 
   @if (!state.started()) {
     <!-- ── モード選択（スタート画面） ── -->
@@ -23,6 +40,7 @@
         (click)="state.start('cloze')"
         [disabled]="state.clozeCount() === 0 && !state.isNewUser()"
       >
+        <span class="mode-number">1</span>
         <strong>{{ i18n.t('drill.cloze.name') }}</strong>
         <p>{{ i18n.t('drill.cloze.desc') }}</p>
         @if (state.clozeCount() === 0 && state.isNewUser()) {
@@ -47,6 +65,7 @@
         (click)="state.start('levelup')"
         [disabled]="state.levelUpCount() === 0 && !state.isNewUser()"
       >
+        <span class="mode-number">2</span>
         <strong>{{ i18n.t('drill.levelup.name') }}</strong>
         <p>{{ i18n.t('drill.levelup.desc') }}</p>
         @if (state.levelUpCount() === 0 && state.isNewUser()) {
@@ -67,8 +86,13 @@
       </button>
     </div>
   } @else if (state.mode() === 'levelup' && !state.levelUpDateChosen()) {
-    <!-- ── レベルアップ・タイピング: 日付選択画面 ── -->
+    <!-- ── 穴あきタイピング: 日付選択画面 ── -->
     <div class="intro">
+      <div class="date-select-header">
+        <button class="btn-secondary" (click)="state.restart()">
+          {{ i18n.t('drill.backToModeSelect') }}
+        </button>
+      </div>
       <p>{{ i18n.t('drill.chooseDate') }}</p>
       <div class="date-select">
         @for (s of state.levelUpDates(); track s.id) {
@@ -92,13 +116,15 @@
           <p class="empty-note">{{ i18n.t('drill.noLevelUpSessions') }}</p>
         }
       </div>
-      <button class="btn-secondary" (click)="state.restart()">
-        {{ i18n.t('drill.backToModeSelect') }}
-      </button>
     </div>
   } @else if (state.mode() === 'cloze' && !state.clozeDateChosen()) {
-    <!-- ── 穴埋め復習: 日付選択画面 ── -->
+    <!-- ── 穴埋めクイズ: 日付選択画面 ── -->
     <div class="intro">
+      <div class="date-select-header">
+        <button class="btn-secondary" (click)="state.restart()">
+          {{ i18n.t('drill.backToModeSelect') }}
+        </button>
+      </div>
       <p>{{ i18n.t('drill.chooseDateCloze') }}</p>
       <div class="date-select">
         @for (s of state.clozeDates(); track s.id) {
@@ -112,7 +138,7 @@
                 {{
                   p.done === p.total && p.total > 0
                     ? i18n.t('drill.cleared')
-                    : i18n.t('drill.progressCount', { done: p.done, total: p.total })
+                    : i18n.t('drill.progressCountCloze', { done: p.done, total: p.total })
                 }}
               </span>
             }
@@ -122,12 +148,9 @@
           <p class="empty-note">{{ i18n.t('drill.noClozeSessions') }}</p>
         }
       </div>
-      <button class="btn-secondary" (click)="state.restart()">
-        {{ i18n.t('drill.backToModeSelect') }}
-      </button>
     </div>
   } @else if (state.mode() === 'levelup' && !state.levelUpSentenceChosen()) {
-    <!-- ── レベルアップ・タイピング: 文一覧選択画面 ── -->
+    <!-- ── 穴あきタイピング: 文一覧選択画面 ── -->
     <app-sentence-list
       [items]="state.levelUpQuiz()"
       [progressFor]="state.progressForItem.bind(state)"
@@ -158,12 +181,26 @@
         </p>
       }
       <p class="result-message">{{ i18n.t('drill.resultMessage') }}</p>
-      <button class="btn-primary" (click)="state.restart()">
-        {{ i18n.t('drill.backToModeSelect') }}
+      <p class="result-stats">
+        {{
+          i18n.t('drill.stats.bestStreak', {
+            streak: state.gamificationStats().cloze.bestInSessionCorrectStreak,
+          })
+        }}
+      </p>
+      <p class="result-stats">
+        {{
+          i18n.t('drill.stats.dailyStreak', {
+            days: state.gamificationStats().cloze.currentDailyStreak,
+          })
+        }}
+      </p>
+      <button class="btn-primary" (click)="state.backToDateSelect()">
+        {{ i18n.t('drill.backToDateSelect') }}
       </button>
     </div>
   } @else if (state.mode() === 'levelup') {
-    <!-- ── レベルアップ・タイピング出題中 ── -->
+    <!-- ── 穴あきタイピング出題中 ── -->
     <div class="progress">
       {{ state.index() + 1 }} / {{ state.total() }}
       <button class="link-button" (click)="state.backToSentenceList()">
@@ -259,7 +296,7 @@
       </div>
     }
   } @else {
-    <!-- ── 出題中（穴埋め復習） ── -->
+    <!-- ── 出題中（穴埋めクイズ） ── -->
     <div class="progress">
       {{ state.index() + 1 }} / {{ state.total() }}
       <button class="link-button" (click)="state.backToDateSelect()">

@@ -6,9 +6,30 @@
      添削解説5項目（proseSections、1項目ずつ独立表示。旧データは proseText の単一ブロックにフォールバック）・
      ミス説明（explanationText）・カテゴリ（categoryText）は
      i18n.lang() に追随して表示言語が切り替わる（practice.ts のヘルパー参照）。
-     待機中クイズ＋進捗バーはスクロールなしで解答できるよう、日付・入力欄より上（タイトル直下）に配置する。 -->
+     待機中クイズ＋進捗バーはスクロールなしで解答できるよう、日付・入力欄より上（タイトル直下）に配置する。
+     日付選択の右側にはテーマ提案カード（練習用の静的候補、practice-themes.data.ts）の枠を常時表示する。
+     カードの中身は未クリックのあいだプレースホルダー文言を出し、クリックして初めて1件のテーマ文が現れる
+     （以降のクリックでは別の候補に入れ替わる）。入力欄は自分で書いた英文専用のため、
+     カードはクリックしても入力欄には挿入されない表示専用。
+     添削実績を新規解除した際は、タイトル直下に実績解除トースト（state.newlyUnlocked()）を表示する
+     （features/drill/drill.html と同じ視覚言語・i18nキーを使う）。 -->
 <div class="page">
   <h1 class="page-title">{{ i18n.t('practice.title') }}</h1>
+
+  @if (state.newlyUnlocked().length > 0) {
+    <!-- ── 実績解除トースト（添削ページ内のみ表示） ── -->
+    <div class="achievement-toast">
+      <strong>{{ i18n.t('achievements.toast.heading') }}</strong>
+      <ul>
+        @for (id of state.newlyUnlocked(); track id) {
+          <li>{{ i18n.t(state.achievementTitleKey(id)) }}</li>
+        }
+      </ul>
+      <button class="btn-secondary" (click)="state.dismissNewlyUnlocked()">
+        {{ i18n.t('achievements.toast.dismiss') }}
+      </button>
+    </div>
+  }
 
   <!-- ── 添削中の実測進捗（ストリーミング受信のマイルストーン＋文字数比）＋待機中クイズ。
        送信開始と同時に自動表示され、添削完了時に自動で閉じる。スクロールせず解けるようタイトル直下に置く。 ── -->
@@ -25,14 +46,49 @@
     <app-waiting-quiz />
   }
 
+  <!-- ── 日付ラベル・テーマ提案見出しを1行目、日付入力欄・テーマカードを2行目に揃える2列グリッド。
+       テーマ提案カードの枠は常時表示し、クリックのたびに「初表示 → 別候補への入れ替え」を行う
+       （handleThemeCardClick に一本化。末尾の切り替えアイコンとホバー/フォーカス時の枠線変化で
+       「クリックで変わる」ことを暗示する）。入力欄は自分で書いた英文専用のため、
+       クリックしても入力欄への挿入はしない。 ── -->
   <div class="date-row">
-    <label class="label">{{ i18n.t('practice.date') }}</label>
+    <label class="label date-label">{{ i18n.t('practice.date') }}</label>
+
+    <div class="theme-suggest-header">
+      <span class="label">{{ i18n.t('practice.themeSuggest.title') }}</span>
+    </div>
+
     <input
       class="input date-input"
       type="date"
       [value]="state.selectedDate()"
       (input)="state.selectedDate.set($any($event.target).value)"
     />
+
+    <div
+      class="theme-card"
+      role="button"
+      tabindex="0"
+      [attr.aria-label]="
+        state.themeRevealed()
+          ? i18n.t('practice.themeSuggest.cardLabel')
+          : i18n.t('practice.themeSuggest.placeholder')
+      "
+      (click)="state.handleThemeCardClick()"
+      (keydown.enter)="state.handleThemeCardClick()"
+      (keydown.space)="state.handleThemeCardClick()"
+    >
+      @if (state.themeRevealed()) {
+        <span class="theme-card-text">
+          {{ i18n.lang() === 'en' ? state.suggestedTheme().en : state.suggestedTheme().ja }}
+        </span>
+        <span class="theme-card-icon" aria-hidden="true">⟳</span>
+      } @else {
+        <span class="theme-card-text theme-card-placeholder">
+          {{ i18n.t('practice.themeSuggest.placeholder') }}
+        </span>
+      }
+    </div>
   </div>
 
   <!-- ── APIキー未設定時の設定ページ誘導（未設定のあいだ添削ボタンは押せない） ── -->
@@ -168,9 +224,6 @@
     <p class="bulk-hint">{{ i18n.t('practice.bulk.hint') }}</p>
 
     <div class="bulk-actions">
-      <button class="btn-secondary" (click)="downloadTemplate()">
-        {{ i18n.t('practice.bulk.downloadTemplate') }}
-      </button>
       <button class="btn-secondary" (click)="downloadHistoryAsTemplate()">
         {{ i18n.t('practice.bulk.downloadFromHistory') }}
       </button>

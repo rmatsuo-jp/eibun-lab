@@ -224,6 +224,29 @@
       <span>{{ i18n.t('nav.mistakes') }}</span>
     </a>
     <a
+      routerLink="/achievements"
+      routerLinkActive="active"
+      #rla7="routerLinkActive"
+      [attr.aria-current]="rla7.isActive ? 'page' : null"
+      class="nav-item"
+    >
+      <svg
+        xmlns="http://www.w3.org/2000/svg"
+        width="22"
+        height="22"
+        viewBox="0 0 24 24"
+        fill="none"
+        stroke="currentColor"
+        stroke-width="2"
+        stroke-linecap="round"
+        stroke-linejoin="round"
+      >
+        <circle cx="12" cy="8" r="6" />
+        <path d="M8.21 13.89 7 23l5-3 5 3-1.21-9.12" />
+      </svg>
+      <span>{{ i18n.t('nav.achievements') }}</span>
+    </a>
+    <a
       routerLink="/settings"
       routerLinkActive="active"
       #rla5="routerLinkActive"

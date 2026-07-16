@@ -208,7 +208,7 @@ sequenceDiagram
 
 ## 5. ドリル機能のデータフロー
 
-`Drill`（features/drill）は「頻出ミス出題」「穴埋め復習」「レベルアップ・タイピング」の3モードを持つ。
+`Drill`（features/drill）は「頻出ミス出題」「穴埋めクイズ」「穴あきタイピング」の3モードを持つ。
 状態とロジックは `DrillState`（features/drill、singleton）に集約されており、出題元データは core の
 `SessionRepositoryService.sessions` を `session-stats.util`（core/stats）と `quiz.util`（core/quiz）の
 純粋関数で集計・整形し、習熟度は同じく feature 内の `DrillProgressService` が管理する。`drill.ts` 自体は

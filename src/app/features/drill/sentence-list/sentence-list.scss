@@ -58,7 +58,7 @@
   color: var(--color-text-muted);
 
   &.date-card-done {
-    color: #16a34a;
+    color: var(--color-success);
     font-weight: 700;
   }
 }

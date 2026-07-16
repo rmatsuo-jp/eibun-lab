@@ -13,6 +13,18 @@
  * 「今日」のローカル日付キー算出は date.util.ts の toDayKey() を共用する（重複実装しない）。
  * API 例外は toUserMessage()（core/gemini/gemini-error.util）で日本語の対処案内に変換してから表示する。
  * 変換は表示側のこのサービスで行い、GeminiService の throw 構造（モデルフォールバック判定）は変えない。
+ * テーマ提案（suggestedTheme/handleThemeCardClick）は書く内容に迷うユーザー向けの表示専用の静的候補で、
+ * PRACTICE_THEMES から1件だけランダムに選ぶ。入力欄は自分で書いた英文専用のため、
+ * テーマ文を入力欄へ挿入する処理は持たない。
+ * カードの枠自体は最初から表示し、中身（テーマ文）だけを themeRevealed で出し分ける
+ * （practice.html 側はプレースホルダー文言を表示）。カードは常時クリック可能な1つの要素で、
+ * 未表示（themeRevealed=false）のクリックで初めて候補を選んで表示し、表示済みのクリックでは
+ * 別の候補に入れ替える。この分岐を handleThemeCardClick() に一本化する。
+ * ゲーミフィケーション（添削の統計・実績）: submit()/submitBulk() の saveSession() 直後に
+ * recordCorrectionForGamification() を呼び、GamificationSyncService.recordCorrectionSaved() で
+ * 添削回数・継続日数を更新する。記録直後に achievement-engine.util.ts の evaluateNewlyUnlocked() で
+ * 新規解除を判定し、newlyUnlocked signal に積んで practice.html のトースト表示に渡す
+ * （dismissNewlyUnlocked()で消去。features/drill/drill-state.service.ts と同じ方針）。
  */
 import { Injectable, inject, signal } from '@angular/core';
 import { GeminiService, CorrectionResult } from '@core/gemini/gemini.service';
@@ -23,12 +35,45 @@ import { buildPrompt } from '@core/gemini/prompt.util';
 import { BulkEntry, buildBulkTemplateFromSessions } from './bulk-import.util';
 import { toDayKey } from '@shared/utils/date.util';
 import { CorrectionSession } from '@core/models/session.model';
+import { PRACTICE_THEMES, PracticeTheme } from '@core/practice/practice-themes.data';
+import { AchievementId } from '@core/achievements/achievement.model';
+import { evaluateNewlyUnlocked } from '@core/achievements/achievement-engine.util';
+import { GamificationSyncService } from '@core/achievements/gamification-sync.service';
+import { TranslationKey } from '@core/i18n/translations';
 
 @Injectable({ providedIn: 'root' })
 export class PracticeState {
   private gemini = inject(GeminiService);
   private repository = inject(SessionRepositoryService);
   private settingsStore = inject(SettingsStoreService);
+  private gamification = inject(GamificationSyncService);
+
+  // 直近の添削保存で新規解除された実績ID一覧。UI（practice.html）のトースト表示に使う。
+  newlyUnlocked = signal<AchievementId[]>([]);
+
+  dismissNewlyUnlocked(): void {
+    this.newlyUnlocked.set([]);
+  }
+
+  // 実績IDから i18n タイトルキー（achievements.<id>.title）を組み立てる。
+  // AchievementId は core/achievements 側で string リテラルユニオンとして定義されており
+  // i18n の TranslationKey を知らないため、ここでキャストする
+  // （core/i18n/localized-session.util.ts / features/drill/drill-state.service.ts と同じ方針）。
+  achievementTitleKey(id: AchievementId): TranslationKey {
+    return `achievements.${id}.title` as TranslationKey;
+  }
+
+  // 添削保存のたびに呼ぶ。添削の累積統計（回数・継続日数）を記録し、新規解除された実績があれば積む。
+  private recordCorrectionForGamification(): void {
+    this.gamification.recordCorrectionSaved();
+    const ids = evaluateNewlyUnlocked(this.gamification.stats(), {
+      clozeAchievement: { done: 0, total: 0 },
+      levelUpAchievement: { done: 0, total: 0 },
+    });
+    if (ids.length === 0) return;
+    this.gamification.markUnlocked(ids);
+    this.newlyUnlocked.update((prev) => [...prev, ...ids]);
+  }
 
   // ── 状態管理（signal。コンポーネント破棄後も保持される） ──────────
   userText = signal('');
@@ -48,6 +93,20 @@ export class PracticeState {
 
   dismissNotice() {
     this.notice.set(null);
+  }
+
+  // ── テーマ提案: カードの枠は常時表示、中身は未クリックのあいだ隠す ────────
+  themeRevealed = signal(false);
+  suggestedTheme = signal<PracticeTheme>(this.pickRandomTheme());
+
+  // 未表示時のクリックは「初めて表示」、表示済み時のクリックは「別の候補に入れ替え」を兼ねる。
+  handleThemeCardClick() {
+    this.suggestedTheme.set(this.pickRandomTheme());
+    this.themeRevealed.set(true);
+  }
+
+  private pickRandomTheme(): PracticeTheme {
+    return PRACTICE_THEMES[Math.floor(Math.random() * PRACTICE_THEMES.length)];
   }
 
   // ── 添削実行: Gemini API 呼び出し → 結果表示 → セッション保存 ───
@@ -86,6 +145,7 @@ export class PracticeState {
 
       const session = this.buildSession(this.selectedDate(), text, res);
       this.repository.saveSession(session);
+      this.recordCorrectionForGamification();
       // 添削が成功して初めて入力欄をクリアする。
       this.userText.set('');
     } catch (e) {
@@ -204,6 +264,7 @@ export class PracticeState {
             );
             const session = this.buildSession(entry.date, entry.text, res);
             this.repository.saveSession(session);
+            this.recordCorrectionForGamification();
             this.updateBulkStatus(i, 'success');
             successCount++;
           } catch (e) {

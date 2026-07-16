@@ -24,7 +24,7 @@ export interface Quiz {
   choices?: string[]; // クローズのみ: 4択
 }
 
-// レベルアップ・タイピング専用の出題型。Quiz とは形が異なる（マスク段階を持つ）ため独立させる。
+// 穴あきタイピング専用の出題型。Quiz とは形が異なる（マスク段階を持つ）ため独立させる。
 export interface LevelUpQuiz {
   key: string; // 習熟度トラッキング用の一意キー（normalizeDrillKey(leveledUp)）
   leveledUp: string; // 正解の全文（採点基準・マスク生成の元）

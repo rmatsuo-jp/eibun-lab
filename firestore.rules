@@ -29,5 +29,12 @@ service cloud.firestore {
       allow read, write: if isAllowedUser() && request.auth.uid == uid;
     }
 
+    // apps/eibun_lab/users/{uid}/gamification/{docId}
+    // 添削・穴埋めクイズ・穴あきタイピングの累積統計・実績解除状況（単一ドキュメント "data"）。
+    // 同じく許可ユーザー本人のみ。
+    match /apps/eibun_lab/users/{uid}/gamification/{docId} {
+      allow read, write: if isAllowedUser() && request.auth.uid == uid;
+    }
+
   }
 }

@@ -144,7 +144,7 @@ export function getFrequentMistakes(
   return [...seen.values()].sort((a, b) => b.count - a.count).slice(0, 20);
 }
 
-// ── 復習カード集計: 直近 RECENT_SESSION_LIMIT 件の reviewItems を平坦化して返す（Drill の穴埋め復習で出題） ─
+// ── 復習カード集計: 直近 RECENT_SESSION_LIMIT 件の reviewItems を平坦化して返す（Drill の穴埋めクイズで出題） ─
 export function getReviewItems(sessions: CorrectionSession[]): ReviewItem[] {
   return sessions.slice(0, RECENT_SESSION_LIMIT).flatMap((s) => s.reviewItems ?? []);
 }
@@ -157,7 +157,7 @@ export function getSessionsWithLevelUp(sessions: CorrectionSession[]): Correctio
   return sessions.filter((s) => (s.levelUpItems?.length ?? 0) > 0);
 }
 
-// ── 復習カードを持つセッション一覧: Drill の穴埋め復習・日付選択画面で使う ─
+// ── 復習カードを持つセッション一覧: Drill の穴埋めクイズ・日付選択画面で使う ─
 // getReviewItems と同じ RECENT_SESSION_LIMIT 件のスライスを対象にする（今のレベルではもう
 // 犯していない古いミス由来のカードを除外し、「今の弱点」を優先出題する方針を日付選択でも踏襲する）。
 export function getSessionsWithReviewItems(sessions: CorrectionSession[]): CorrectionSession[] {

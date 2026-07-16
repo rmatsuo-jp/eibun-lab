@@ -21,8 +21,13 @@ rules:
       - ステップアップ
       - 格上げ
 
-  - expected: 穴埋め復習
+  - expected: 穴あきタイピング
     patterns:
+      - レベルアップ・タイピング
+
+  - expected: 穴埋めクイズ
+    patterns:
+      - 穴埋め復習
       - 穴埋めテスト
 
   - expected: 定量評価
@@ -48,6 +53,28 @@ rules:
     patterns:
       - 例題
       - 体験版問題
+
+  - expected: テーマのヒント
+    patterns:
+      - テーマ提案
+      - お題
+      - トピック提案
+
+  - expected: 実績
+    patterns:
+      - アチーブメント
+
+  - expected: 連続正解
+    patterns:
+      - コンボ
+
+  - expected: パーフェクト
+    patterns:
+      - コンプリート
+
+  - expected: 継続日数
+    patterns:
+      - ログイン日数
 
   # ── 固有名詞・略語（半角固定）────────────────────
   - expected: Gemini

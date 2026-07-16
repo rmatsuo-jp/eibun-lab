@@ -11,8 +11,8 @@
     "build": "ng build",
     "watch": "ng build --watch --configuration development",
     "test": "ng test",
-    "lint:text": "textlint docs README.md src/app/core/gemini/prompt.util.ts",
-    "lint:text:fix": "textlint --fix docs README.md src/app/core/gemini/prompt.util.ts",
+    "lint:text": "textlint docs README.md ARCHITECTURE.md src/app/core/gemini/prompt.util.ts",
+    "lint:text:fix": "textlint --fix docs README.md ARCHITECTURE.md src/app/core/gemini/prompt.util.ts",
     "lint": "ng lint"
   },
   "private": true,

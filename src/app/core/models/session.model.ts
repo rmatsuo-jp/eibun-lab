@@ -1,7 +1,8 @@
 /**
  * @file アプリ全体で使うドメイン型定義。Mistake（1件のミス情報）・WritingEvaluation（定量評価＝スコア＋CEFR）・
- * ReviewItem（穴埋め復習カード）・LevelUpItem（レベルアップ例文タイピング用、1文単位）・
- * DrillProgress（ドリルの習熟度）・LevelUpItemProgress（レベルアップ・タイピングのマスク段階進捗）と
+ * ReviewItem（穴埋めクイズカード）・LevelUpItem（レベルアップ例文タイピング用、1文単位）・
+ * DrillProgress（ドリルの習熟度）・GamificationStats/FeatureGamificationStats（添削・穴埋めクイズ・
+ * 穴あきタイピングの対象機能別累積統計・実績解除状況）・LevelUpItemProgress（穴あきタイピングのマスク段階進捗）と
  * CorrectionSession（1回の添削セッション。corrected=添削解説プローズ、correctedText=添削後の全文、
  * levelUpText=レベルアップ後の全文、model=添削に使用したGeminiモデルID）を定義する。
  * 日本語の説明系フィールド（Mistake.explanation, ReviewItem.hint/translation, LevelUpItem.translation,
@@ -26,7 +27,7 @@ export interface Mistake {
 }
 
 // ── ReviewItem: Gemini が返す穴埋め（クローズ）復習カード 1 件 ─────
-// Drill ページの「穴埋め復習」モードで出題する。既定は answer をタイピング入力、
+// Drill ページの「穴埋めクイズ」モードで出題する。既定は answer をタイピング入力、
 // ヒント押下時は choices（正解含む4択）に切り替えて出題する。
 export interface ReviewItem {
   sentence: string; // ___（半角アンダースコア3つ）で空所を作った英文
@@ -39,7 +40,7 @@ export interface ReviewItem {
 }
 
 // ── LevelUpItem: Gemini が返す「CEFR一段階上のレベルアップ」1文分の例文 ─────
-// Drill ページの「レベルアップ・タイピング」モードで、見て打つ→穴埋めで打つ→何も見ずに打つ、の
+// Drill ページの「穴あきタイピング」モードで、見て打つ→穴埋めで打つ→何も見ずに打つ、の
 // 3段階タイピング練習に使う。keyPhrases は leveledUp 内に実際に出現する部分文字列でなければならず、
 // 穴埋め表示（stage 2）は単純な文字列置換で行う。
 export interface LevelUpItem {
@@ -53,12 +54,53 @@ export interface LevelUpItem {
 // ── DrillProgress: ドリルの1問（ミス or 復習カード）ごとの習熟度 ─────
 // key（正規化した original、または sentence+answer）ごとに DrillProgressService が保持する。
 // correctStreak が一定数以上になると出題の重みを下げ、既に習熟した問題の再出題頻度を減らす。
+// everCorrect は1回でも正解したら true になり、以後不正解になっても false に戻さない
+// （穴埋めクイズの日付選択画面の達成バッジ判定に使用。既存データには存在しないため optional）。
 export interface DrillProgress {
   correctStreak: number; // 連続正解数
+  everCorrect?: boolean; // 1回でも正解したことがあるか（永続的な達成フラグ）
   lastAttemptAt: string; // 直近に解答した日時（ISO 8601）
 }
 
-// ── LevelUpItemProgress: レベルアップ・タイピング1文分の進捗 ─────
+// ── FeatureGamificationStats: 1機能（添削／穴埋めクイズ／穴あきタイピング）分の累積統計 ─
+// 挑戦回数・正誤数はグレーディング（drill-state.service.ts の grade()/checkTyping()、
+// または practice-state.service.ts の添削保存）のたびに加算する。
+// currentDailyStreak/longestDailyStreak は「その機能に取り組んだ日」の連続日数（lastActiveDate基準、
+// 日付キーは @shared/utils/date.util.ts の toDayKey() で統一する）。
+// currentPerfectStreak/longestPerfectStreak は「全問正解で終えたセッション」の連続回数
+// （levelupは日程内全文完了、clozeは全問正解で1セッションとしてカウント）。
+// completedSessionKeys は levelup の「日程完了」を重複カウントしないための既完了キー集合。
+// 添削（correction）は totalAttempts（＝添削回数）と日次ストリーク系フィールドのみ使用し、
+// 正誤・パーフェクト・セッション完了系フィールドは常に初期値（0 / 空オブジェクト）のまま未使用とする
+// （型を1つに共通化することで、日次ストリーク更新・Firestoreマージのロジックを3機能で使い回せる）。
+export interface FeatureGamificationStats {
+  totalAttempts: number;
+  totalCorrect: number;
+  totalWrong: number;
+  sessionsCompleted: number;
+  perfectSessionCount: number;
+  currentPerfectStreak: number;
+  longestPerfectStreak: number;
+  currentDailyStreak: number;
+  longestDailyStreak: number;
+  lastActiveDate?: string; // 'YYYY-MM-DD'（日次ストリーク判定用）
+  bestInSessionCorrectStreak: number; // 1プレイ内の最大連続正解数（自己ベスト）
+  completedSessionKeys: Record<string, true>; // levelup日程完了の重複防止
+}
+
+// ── GamificationStats: 実績判定の元データ。添削／穴埋めクイズ／穴あきタイピングの
+// 対象機能別に統計を持つ（実績の分類も対象機能単位）。
+// 既存データの遡及集計は行わず、本機能リリース以降のプレイ・添削から集計を開始する方針
+// （docs/todo.md 参照）。CorrectionSession とは独立のモデルのため
+// firestore-sync.service.ts の OPTIONAL_FIELDS_MAP 対応は不要（core/achievements/ 側で同期する）。
+export interface GamificationStats {
+  correction: FeatureGamificationStats;
+  cloze: FeatureGamificationStats;
+  levelup: FeatureGamificationStats;
+  unlockedAchievements: Record<string, string>; // achievementId → 解除日時(ISO)
+}
+
+// ── LevelUpItemProgress: 穴あきタイピング1文分の進捗 ─────
 // セッション（日付）単位でまとめて保持し、途中再開・完了判定に使う。
 // maskLevel: 現在のマスク段階（0=全文表示 〜 maxLevel=全単語マスク）。completed: maxLevelで正解済みか。
 export interface LevelUpItemProgress {

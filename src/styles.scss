@@ -6,6 +6,12 @@
   --color-border: #e5e7eb;
   --color-text: #111827;
   --color-text-muted: #6b7280;
+  --color-success: #16a34a;
+  --color-success-bg: rgba(22, 163, 74, 0.12);
+  --color-error: #dc2626;
+  --color-error-bg: rgba(220, 38, 38, 0.12);
+  --color-warning: #f59e0b;
+  --color-warning-bg: rgba(245, 158, 11, 0.12);
 }
 
 [data-theme='dark'] {
@@ -16,6 +22,12 @@
   --color-border: #374151;
   --color-text: #f9fafb;
   --color-text-muted: #9ca3af;
+  --color-success: #4ade80;
+  --color-success-bg: rgba(74, 222, 128, 0.16);
+  --color-error: #f87171;
+  --color-error-bg: rgba(248, 113, 113, 0.16);
+  --color-warning: #fbbf24;
+  --color-warning-bg: rgba(251, 191, 36, 0.16);
 }
 
 * {
@@ -175,6 +187,43 @@ body {
   }
 }
 
+// ── ページ共通レイアウト（全feature共通、コンポーネントSCSSで重複定義しない） ─
+.page {
+  padding: 1rem;
+  max-width: 640px;
+  margin: 0 auto;
+}
+
+.page-title {
+  font-size: 1.5rem;
+  font-weight: 700;
+  margin: 0 0 1.5rem;
+  color: var(--color-text);
+}
+
+@media (min-width: 768px) {
+  .page {
+    max-width: 960px;
+    padding: 2rem;
+  }
+}
+
+// ── カード共通recipe（各ページの.quiz-card等の基底として使う） ─────
+.card {
+  background: var(--color-surface);
+  border: 1px solid var(--color-border);
+  border-radius: 0.75rem;
+  padding: 1rem;
+}
+
+// ── サブセクション見出し共通 ─────────────────────────────────────
+.section-title {
+  font-size: 1.125rem;
+  font-weight: 700;
+  margin: 1.25rem 0 0.75rem;
+  color: var(--color-text);
+}
+
 // ── キーボードフォーカスの可視化（全ページ共通） ───────────────────
 // コンポーネントごとの :focus スタイルに頼らず、ここ1箇所で全ボタン/リンク/tabindex要素に適用する。
 // :focus-visible はブラウザがキーボード操作由来と判定した時だけ効くため、マウスクリックでは表示されない。
@@ -292,7 +341,7 @@ body {
 
   // 誤答時にどの選択肢が正解だったかを強調する（waiting-quiz で使用）。
   &.correct {
-    border-color: #16a34a;
-    background: rgba(22, 163, 74, 0.12);
+    border-color: var(--color-success);
+    background: var(--color-success-bg);
   }
 }
