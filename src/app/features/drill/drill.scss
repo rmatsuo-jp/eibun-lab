@@ -49,15 +49,19 @@
   }
 
   strong {
-    display: block;
     font-size: 1.0625rem;
     color: var(--color-text);
-    margin-bottom: 0.5rem;
   }
 
   p {
     margin: 0 0 0.5rem;
   }
+}
+
+.mode-card-header {
+  display: flex;
+  align-items: center;
+  margin-bottom: 0.5rem;
 }
 
 .mode-number {
@@ -116,8 +120,15 @@
 
 // 笏笏 遨ｴ縺ゅ″繧ｿ繧､繝斐Φ繧ｰ: 譌･莉倬∈謚樒判髱｢ 笏笏笏笏笏笏笏笏笏笏笏笏笏笏笏笏笏笏笏笏笏笏笏笏
 .date-select-header {
+  display: flex;
+  gap: 0.5rem;
   text-align: left;
   margin-bottom: 1rem;
+
+  .btn-secondary {
+    padding: 0.375rem 0.75rem;
+    font-size: 0.8125rem;
+  }
 }
 
 .date-select {
@@ -164,6 +175,13 @@
   }
 }
 
+.date-card-meta {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-end;
+  gap: 0.25rem;
+}
+
 .date-card-count {
   font-size: 0.8125rem;
   color: var(--color-text-muted);
@@ -172,6 +190,12 @@
     color: var(--color-success);
     font-weight: 700;
   }
+}
+
+.date-card-perfect {
+  font-size: 0.75rem;
+  color: var(--color-primary);
+  font-weight: 700;
 }
 
 .result-score {
@@ -191,23 +215,6 @@
   font-weight: 600;
   color: var(--color-text-muted);
   margin-bottom: 0.75rem;
-}
-
-.quiz-card {
-  background: var(--color-surface);
-  border: 1px solid var(--color-border);
-  border-radius: 0.75rem;
-  padding: 1.25rem;
-}
-
-.category-badge {
-  display: inline-block;
-  background: var(--color-primary-light);
-  color: var(--color-primary);
-  font-size: 0.7rem;
-  font-weight: 700;
-  padding: 0.15rem 0.5rem;
-  border-radius: 999px;
 }
 
 // 笏笏 遨ｴ縺ゅ″繧ｿ繧､繝斐Φ繧ｰ縺ｮ繝槭せ繧ｯ谿ｵ髫手｡ｨ遉ｺ 笏笏笏笏笏笏笏笏笏笏笏笏笏笏笏笏笏笏笏笏笏笏
@@ -301,6 +308,64 @@
 .correct-text {
   color: var(--color-success);
   font-weight: 600;
+}
+
+// クローズ4択（choice-list）は回答前後で同じ縦1列の並びにし、選択→結果表示の対応がずれないようにする
+// （src/styles.scss の共通定義は2列グリッドだが、waiting-quiz側は選択後も配置を変えないため
+// このページ限定でDrillのcloze選択肢だけ上書きする。Angularのコンポーネントスコープにより
+// waiting-quiz 等の他画面には影響しない）。
+.choice-list {
+  grid-template-columns: 1fr;
+}
+
+// 4択の正誤理由リスト（回答確定後、choice-list を置き換えて表示）。
+// choice-list は2列グリッドだが、理由文で横幅が足りないため各行を全幅にする。
+.choice-result {
+  grid-column: 1 / -1;
+  display: flex;
+  align-items: baseline;
+  gap: 0.5rem;
+  border: 2px solid var(--color-border);
+  border-radius: 0.5rem;
+  padding: 0.625rem 0.875rem;
+
+  &.correct {
+    border-color: var(--color-success);
+    background: var(--color-success-bg);
+  }
+
+  &.wrong {
+    opacity: 0.85;
+  }
+}
+
+.choice-mark {
+  flex-shrink: 0;
+  font-weight: 700;
+
+  .choice-result.correct & {
+    color: var(--color-success);
+  }
+
+  .choice-result.wrong & {
+    color: var(--color-error);
+  }
+}
+
+.choice-text {
+  font-weight: 600;
+  flex-shrink: 0;
+}
+
+.choice-explanation {
+  color: var(--color-text-muted);
+  font-size: 0.9rem;
+}
+
+// ── 4択モードの「ヒントを見る」ボタン: 選択肢との間隔確保のため高さを抑える ──
+.quiz-card .btn-secondary {
+  padding: 0.5rem 1rem;
+  margin-bottom: 0.75rem;
 }
 
 // 笏笏 PC 繝ｬ繧､繧｢繧ｦ繝茨ｼ・68px 莉･荳奇ｼ俄楳笏笏笏笏笏笏笏笏笏笏笏笏笏笏笏笏笏笏笏笏笏笏笏笏笏笏笏笏笏笏笏笏笏笏笏

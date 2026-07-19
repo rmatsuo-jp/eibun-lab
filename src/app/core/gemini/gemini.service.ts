@@ -315,6 +315,7 @@ export class GeminiService {
   // ── レスポンス解析: <review>...</review> タグから復習カードを抽出 ─
   // 必須フィールドが揃い、choices が4要素かつ正解(answer)を含む項目だけを採用する。
   // 不正な項目は除外し、1件も残らなければ undefined を返す（保存・同期では undefined を持たせない）。
+  // choiceExplanations/choiceExplanationsEn は任意フィールドのため、choices と要素数が一致しない場合のみ削除する。
   private parseReview(
     text: string,
     onError: (stage: ParseFailureStage, detail: unknown) => void,
@@ -336,6 +337,22 @@ export class GeminiService {
             r.choices.length === 4 &&
             r.choices.includes(r.answer),
         );
+        // choiceExplanations/choiceExplanationsEn は任意。choices と要素数が一致しない場合のみ取り除く
+        // （理由が生成されないだけで、他のフィールドが有効ならカード自体は採用する）。
+        for (const r of valid) {
+          if (
+            !Array.isArray(r.choiceExplanations) ||
+            r.choiceExplanations.length !== r.choices.length
+          ) {
+            delete r.choiceExplanations;
+          }
+          if (
+            !Array.isArray(r.choiceExplanationsEn) ||
+            r.choiceExplanationsEn.length !== r.choices.length
+          ) {
+            delete r.choiceExplanationsEn;
+          }
+        }
         return valid.length > 0 ? valid : undefined;
       },
       onError,

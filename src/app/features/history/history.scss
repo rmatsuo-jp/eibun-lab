@@ -120,23 +120,14 @@
   font-weight: 600;
 }
 
-// ── 総合スコア/CEFRバッジ（折りたたみ表示のセッションカードで独立表示） ──
-.score-badge {
-  font-size: 0.75rem;
-  font-weight: 700;
-  background: var(--color-primary-light, #ede9fe);
-  color: var(--color-primary);
-  padding: 0.15rem 0.5rem;
-  border-radius: 999px;
-}
-
+// ── CEFRバッジ（折りたたみ表示のセッションカードで独立表示） ──
 .score-cefr {
   font-size: 0.75rem;
   font-weight: 700;
-  color: #fff;
+  color: var(--color-on-primary);
   background: var(--color-primary);
   padding: 0.15rem 0.5rem;
-  border-radius: 999px;
+  border-radius: var(--radius-pill);
 }
 
 .delete-selected-btn {
@@ -307,13 +298,7 @@
   }
 }
 
-.category-badge {
-  background: var(--color-primary-light);
-  color: var(--color-primary);
-  font-size: 0.7rem;
-  font-weight: 700;
-  padding: 0.15rem 0.5rem;
-  border-radius: 999px;
+.mini-mistake > app-badge {
   white-space: nowrap;
 }
 

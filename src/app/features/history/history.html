@@ -122,7 +122,7 @@
         }
         <span class="session-date">{{ state.formatDate(session.date) }}</span>
         @if (session.evaluation; as ev) {
-          <span class="score-badge">{{ ev.overallScore }}</span>
+          <app-badge>{{ ev.overallScore }}</app-badge>
           <span class="score-cefr">{{ ev.overallCefr }}</span>
         }
         @if (session.mistakes.length > 0) {
@@ -197,7 +197,7 @@
           <h3 class="detail-title">{{ i18n.t('history.detailMistakes') }}</h3>
           @for (m of session.mistakes; track m.original) {
             <div class="mini-mistake">
-              <span class="category-badge">{{ state.categoryText(m) }}</span>
+              <app-badge>{{ state.categoryText(m) }}</app-badge>
               <span class="mistake-original">{{ m.original }}</span>
               <span class="arrow">→</span>
               <span class="mistake-corrected">{{ m.corrected }}</span>

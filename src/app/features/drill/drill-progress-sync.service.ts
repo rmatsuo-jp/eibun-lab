@@ -3,10 +3,10 @@
  * core/sessions/firestore-sync.service.ts と同じパターン（ログイン監視→自動同期、
  * 書き込み直後の fire-and-forget push）を Drill 機能専用に適用する。
  * DrillProgressService の signal を直接は書き換えず、allDrillProgress() / allLevelUpProgress() /
- * persist() 経由で読み書きする。Drill ページ（drill.ts）はこのサービスを窓口として使い、
+ * allPerfectCounts() / persist() 経由で読み書きする。Drill ページ（drill.ts）はこのサービスを窓口として使い、
  * DrillProgressService を直接 inject しない。
  * ドリル進捗には「削除」概念がないため tombstone は不要。競合は各値の新しさ（lastAttemptAt /
- * maskLevel）で解決する。
+ * maskLevel）、パーフェクト達成数は大きい方（Math.max）で解決する。
  * 同期失敗は syncError signal（読み取り専用）にメッセージを流し、app.ts がグローバルバナーで
  * ユーザーに知らせる（次回の同期成功時に自動でクリアされる）。
  */
@@ -20,6 +20,7 @@ import { DrillProgressService } from './drill-progress.service';
 interface DrillProgressDoc {
   drillProgress?: Record<string, DrillProgress>;
   levelUpProgress?: Record<string, Record<string, LevelUpItemProgress>>;
+  perfectCounts?: Record<string, number>;
 }
 
 @Injectable({ providedIn: 'root' })
@@ -74,6 +75,15 @@ export class DrillProgressSyncService {
     this.pushProgress();
   }
 
+  getPerfectCount(sessionKey: string): number {
+    return this.store.getPerfectCount(sessionKey);
+  }
+
+  incrementPerfectCount(sessionKey: string): void {
+    this.store.incrementPerfectCount(sessionKey);
+    this.pushProgress();
+  }
+
   // apps/eibun_lab/users/{uid}/drillProgress/data の単一ドキュメント参照を返す。
   // セッションと異なり件数の多い配列ではないため、1ドキュメントに両方のマップをまとめて保存する。
   private progressDoc(uid: string) {
@@ -87,6 +97,7 @@ export class DrillProgressSyncService {
     const data: DrillProgressDoc = {
       drillProgress: this.store.allDrillProgress(),
       levelUpProgress: this.store.allLevelUpProgress(),
+      perfectCounts: this.store.allPerfectCounts(),
     };
     setDoc(this.progressDoc(uid), data)
       .then(() => this._syncError.set(null))
@@ -108,22 +119,40 @@ export class DrillProgressSyncService {
 
     const localDrill = this.store.allDrillProgress();
     const localLevelUp = this.store.allLevelUpProgress();
+    const localPerfect = this.store.allPerfectCounts();
     const cloudDrill = cloud.drillProgress ?? {};
     const cloudLevelUp = cloud.levelUpProgress ?? {};
+    const cloudPerfect = cloud.perfectCounts ?? {};
 
     const mergedDrill = this.mergeDrillProgress(localDrill, cloudDrill);
     const mergedLevelUp = this.mergeLevelUpProgress(localLevelUp, cloudLevelUp);
-    this.store.persist(mergedDrill, mergedLevelUp);
+    const mergedPerfect = this.mergePerfectCounts(localPerfect, cloudPerfect);
+    this.store.persist(mergedDrill, mergedLevelUp, mergedPerfect);
 
     const changed =
       JSON.stringify(mergedDrill) !== JSON.stringify(cloudDrill) ||
-      JSON.stringify(mergedLevelUp) !== JSON.stringify(cloudLevelUp);
+      JSON.stringify(mergedLevelUp) !== JSON.stringify(cloudLevelUp) ||
+      JSON.stringify(mergedPerfect) !== JSON.stringify(cloudPerfect);
     if (changed) {
       await setDoc(this.progressDoc(uid), {
         drillProgress: mergedDrill,
         levelUpProgress: mergedLevelUp,
+        perfectCounts: mergedPerfect,
       });
     }
+  }
+
+  // sessionKeyごとに大きい方（累積回数が多い方）を採用する。
+  private mergePerfectCounts(
+    local: Record<string, number>,
+    cloud: Record<string, number>,
+  ): Record<string, number> {
+    const keys = new Set([...Object.keys(local), ...Object.keys(cloud)]);
+    const merged: Record<string, number> = {};
+    for (const key of keys) {
+      merged[key] = Math.max(local[key] ?? 0, cloud[key] ?? 0);
+    }
+    return merged;
   }
 
   // キーごとに lastAttemptAt が新しい方を採用する。

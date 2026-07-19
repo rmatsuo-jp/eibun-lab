@@ -144,13 +144,21 @@ CEFRはCEFR公式ディスクリプタ（実際に「その言語で何ができ
 2. 語彙（Vocabulary）: 現在のCEFR帯を踏まえ、次のレベルで覚えるべき語彙・コロケーションのジャンルやレベル帯（例: B1なら日常語彙の言い換え表現、B2ならアカデミック語彙 等）と、インプット方法（多読の教材レベル、単語帳の種類等）を具体的に挙げる。
 3. 内容・構成（Coherence & Cohesion）: 論理構成上の弱点（例: 接続詞不足、段落構成の欠如等）に対する具体的な改善トレーニング方法を挙げる。
 
-最後に、上記3項目のうち今回最優先で取り組むべき1つを明示し、1日あたりの学習時間の目安（分単位）を添えてください。
+最後に、上記3項目のうち今回最優先で取り組むべき1つを「最優先課題: 〜」の形で1行にまとめ、続けて空行を1つ挟んでから「1日あたりの学習時間の目安: 〜分（内訳）」を別の1行にまとめてください。この2行は必ず空行（改行2つ分）で区切り、直前の3観点の説明文とも空行で区切ってください。
 日本語版と英語版をそれぞれ独立して次のタグで囲んで出力してください（Markdown可、JSON化しないこと）。
 <study-plan-ja>
-（この項目の日本語での説明）
+（3観点それぞれの説明）
+
+最優先課題: （この項目の説明）
+
+1日あたりの学習時間の目安: （この項目の説明）
 </study-plan-ja>
 <study-plan-en>
-（この項目の英語での説明）
+（English explanation of each of the 3 points）
+
+Top priority: (explanation)
+
+Recommended daily study time: (explanation)
 </study-plan-en>`,
   },
   {
@@ -170,9 +178,10 @@ CEFRはCEFR公式ディスクリプタ（実際に「その言語で何ができ
   {
     id: 'cloze-review',
     text: `【復習用カードの生成】
-上で指摘した各ミスを復習できる穴埋めカードを作成してください。添削後の正しい文の中で、訂正した語・句を ___ で隠し、誤りやすい誤答を交えた4択（正解を1つ含む計4個）にします。ヒント（日本語）と日本語訳も添えてください。ミスが無い場合は、添削後の文の重要表現を題材にしてください。hintEn/translationEnにはhint/translationと同じ内容の英語版を入れてください。回答末尾（evaluationの後）に次のJSON形式で出力してください。
+上で指摘した各ミスを復習できる穴埋めカードを作成してください。添削後の正しい文の中で、訂正した語・句を ___ で隠し、誤りやすい誤答を交えた4択（正解を1つ含む計4個）にします。ヒント（日本語）と日本語訳も添えてください。ミスが無い場合は、添削後の文の重要表現を題材にしてください。hintEn/translationEnにはhint/translationと同じ内容の英語版を入れてください。
+さらに、choices の各語について「なぜ正解／不正解なのか」を choices と同じ順番で choiceExplanations に入れてください。各理由は日本語1文・20〜30字程度で簡潔にし、choiceExplanationsEn には同内容の簡潔な英語1文を入れてください。回答末尾（evaluationの後）に次のJSON形式で出力してください。
 <review>
-{"reviewItems":[{"sentence":"I ___ to school every day.","answer":"go","hint":"主語がIの現在形","hintEn":"Present tense with subject I","translation":"私は毎日学校へ行く。","translationEn":"I go to school every day.","choices":["go","goes","went","going"]}]}
+{"reviewItems":[{"sentence":"I ___ to school every day.","answer":"go","hint":"主語がIの現在形","hintEn":"Present tense with subject I","translation":"私は毎日学校へ行く。","translationEn":"I go to school every day.","choices":["go","goes","went","going"],"choiceExplanations":["主語がIの現在形なので正解","3人称単数現在の-sが不要","過去形は文意（every day）に合わない","進行形にする助動詞がない"],"choiceExplanationsEn":["Correct: present tense with subject I","Wrong: no -s needed for subject I","Wrong: past tense clashes with 'every day'","Wrong: missing auxiliary for progressive form"]}]}
 </review>`,
   },
 ];

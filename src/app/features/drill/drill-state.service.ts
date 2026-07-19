@@ -1,12 +1,12 @@
 /**
- * @file 弱点克服ドリルの状態を保持するシングルトンサービス。
+ * @file 弱点克服ドリルの状態を保持するシングルトンサービス（オーケストレーター）。
  * 2 つの出題モードを持つ:
  *  - 'cloze'    穴埋めクイズ（getSessionsWithReviewItems）: まず日付（＝1回の添削セッション）を選び、
  *               その日の reviewItems だけで出題する（selectClozeDate）。既定は入力、
  *               「ヒント（4択）」ボタンで類似4択に切り替えて答えられる。4択モードはクリック/タップで
  *               即採点する。日付選択画面では各日付ごとに達成数/全体数の
  *               進捗バッジ（progressForClozeSession、判定基準は1回でも正解したか＝everCorrect）を表示する。
- *               出題の重み付け（weightFor、既に習熟した問題を出にくくする）は別基準で、
+ *               出題の重み付け（既に習熟した問題を出にくくする）は別基準で、
  *               引き続き DRILL_MASTERY_STREAK（3回連続正解）を使う。
  *  - 'levelup'  穴あきタイピング（getSessionsWithLevelUp）: まず日付（＝1回の添削セッション）を選び、
  *               次にその日の文一覧から取り組みたい1文を選んで出題する（セッション横断のシャッフルはしない。
@@ -26,11 +26,24 @@
  * ただし全単語マスクの状態（maskLevel === maxLevel）で正答し習熟達成した瞬間だけは、この2ボタンの代わりに
  * 「文一覧に戻る」1ボタンのみを表示する（判定・遷移先はテンプレート側の条件分岐のみで完結し、
  * ロジック側の変更は不要。習熟の記録自体は checkTyping() が既に行う）。
+ *
+ * ── ファイル分割方針 ──
+ * cloze/levelup それぞれのモード固有データ・純粋ロジック（対象セッション一覧・達成度・進捗集計・
+ * Quiz/LevelUpQuiz構築・マスク文字列生成）は DrillClozeState（drill-cloze-state.ts）/
+ * DrillLevelUpState（drill-levelup-state.ts）に切り出した。一方、出題中の共有UI状態
+ * （quiz/levelUpQuiz/index/userAnswer/revealed/currentCorrect/choiceMode/hintShown/maskLevel/
+ * mistakeKind/score/masteredCount/currentSessionId 等）と、check()/checkTyping()/next()/retry()/
+ * start()/restart() のような両モードにまたがる状態遷移メソッドは、このファイル（オーケストレーター）に
+ * 残している。これらは cloze の grade() と levelup の checkTyping() が同じ signal 群（revealed・
+ * currentCorrect・userAnswer 等）を読み書きする一つの状態機械であり、モードごとに機械的に分割すると
+ * 逆に見通しが悪くなるための判断（cloze/levelup 双方の「日付・文の一覧を取得してQuizを構築する」
+ * データ層はモードごとに独立して編集できるようにしつつ、「出題→回答→採点→次へ」という共有の
+ * 状態遷移だけはここに一元化する設計）。
  * signal状態に依存しない純粋ロジック（重み付きシャッフル・回答正規化・マスク順生成・マスク対象計算・
  * Quiz/LevelUpQuiz構築・不正解分類）は core/quiz/quiz.util.ts に切り出しており、単体テスト可能
  * （添削待機中クイズと共用するため core に置く）。
  * Quiz/LevelUpQuiz/MistakeKind の型定義も同ファイルへ移し、このサービスは状態管理と
- * 3モードのオーケストレーションに専念する（DOM操作・フォーカス制御は drill.ts 側に残す）。
+ * 2モードのオーケストレーションに専念する（DOM操作・フォーカス制御は drill.ts 側に残す）。
  * Quiz/LevelUpQuiz の hint/badge/translation は buildXxxQuiz に i18n.lang() を渡して生成した
  * 時点の言語で固定される（スナップショット方式。出題順の固定と同じ設計）。
  * これまで添削したことがない新規ユーザー（isNewUser、セッション0件）は日付選択をスキップし、
@@ -44,34 +57,38 @@
  * recordSessionComplete() でセッション完了（パーフェクト判定含む）を記録する。両者とも記録直後に
  * core/achievements/achievement-engine.util.ts の evaluateNewlyUnlocked() で新規解除を判定し、
  * newlyUnlocked signal に積んで drill.html のトースト表示に渡す（dismissNewlyUnlocked()で消去）。
+ * パーフェクト達成数（perfectCountForSession/perfectCountForClozeSession）: 「クリア済み」バッジとは別に、
+ * 満点（全問正解）で完了するたびに加算する累積カウンタを DrillProgressService.incrementPerfectCount で
+ * 記録し、日付選択画面に表示する（クリア後も繰り返し練習する動機付け）。cloze は next() が最終問題を
+ * 抜けるたびに毎回加算される。levelup は完了済みの文が既に多い日程を再訪しても checkLevelUpSessionComplete
+ * を毎回呼ぶ必要があるため、代わりに「1回の訪問（selectLevelUpDate〜次にselectLevelUpDateするまで）で
+ * 最大1回、訪問中に一度でも不正解があれば加算しない」という訪問単位のガード
+ * （levelUpVisitHadMistake/levelUpPerfectRecordedForVisit、selectLevelUpDate()でリセット）で
+ * 重複加算を防ぐ。
  */
 import { Injectable, computed, inject, signal } from '@angular/core';
 import { SessionRepositoryService } from '@core/sessions/session-repository.service';
-import {
-  getSessionsWithLevelUp,
-  getSessionsWithReviewItems,
-  normalizeDrillKey,
-} from '@core/stats/session-stats.util';
-import { DRILL_MASTERY_STREAK } from './drill-progress.service';
+import { normalizeDrillKey } from '@core/stats/session-stats.util';
 import { DrillProgressSyncService } from './drill-progress-sync.service';
-import { CorrectionSession, ReviewItem } from '@core/models/session.model';
+import { CorrectionSession } from '@core/models/session.model';
 import { SAMPLE_LEVELUP_ITEMS, SAMPLE_REVIEW_ITEMS } from '@core/quiz/sample-data';
 import { I18nService } from '@core/i18n/i18n.service';
 import { AchievementId } from '@core/achievements/achievement.model';
 import { evaluateNewlyUnlocked } from '@core/achievements/achievement-engine.util';
 import { GamificationSyncService } from '@core/achievements/gamification-sync.service';
+import { FEATURE_ID_CLOZE, FEATURE_ID_LEVELUP } from '@core/achievements/gamification-feature-id';
 import { TranslationKey } from '@core/i18n/translations';
 import {
-  buildClozeQuiz,
   buildLevelUpQuiz,
   classifyMistake,
   LevelUpQuiz,
-  maskedIndices,
   MistakeKind,
   normalizeAnswer,
   Quiz,
   shuffleByWeight,
 } from '@core/quiz/quiz.util';
+import { DrillClozeState } from './drill-cloze-state';
+import { DrillLevelUpState } from './drill-levelup-state';
 
 // 出題モード。null は未選択（スタート画面）。
 export type DrillMode = 'cloze' | 'levelup';
@@ -82,6 +99,8 @@ export class DrillState {
   private drillProgress = inject(DrillProgressSyncService);
   private i18n = inject(I18nService);
   private gamification = inject(GamificationSyncService);
+  private clozeState = inject(DrillClozeState);
+  private levelUpState = inject(DrillLevelUpState);
 
   // 1プレイ内の連続正解数（自己ベスト判定用）。start() でリセットする。
   private sessionCorrectStreak = signal(0);
@@ -91,43 +110,29 @@ export class DrillState {
   gamificationStats = this.gamification.stats;
 
   // ── 出題元（モードごとの件数をスタート画面で表示） ───────────────
-  // 穴埋めクイズ・穴あきタイピングともに日付選択方式のため、件数ではなく「対象セッション一覧」を保持する。
-  clozeDates = computed(() => getSessionsWithReviewItems(this.repository.sessions()));
-  clozeCount = computed(() => this.clozeDates().length);
-  levelUpDates = computed(() => getSessionsWithLevelUp(this.repository.sessions()));
-  levelUpCount = computed(() => this.levelUpDates().length);
+  // データ本体（対象セッション一覧・達成度）は DrillClozeState/DrillLevelUpState が保持する。
+  clozeDates = this.clozeState.clozeDates;
+  clozeCount = this.clozeState.clozeCount;
+  clozeAchievement = this.clozeState.clozeAchievement;
+  levelUpDates = this.levelUpState.levelUpDates;
+  levelUpCount = this.levelUpState.levelUpCount;
+  levelUpAchievement = this.levelUpState.levelUpAchievement;
 
   // これまで添削したことがない新規ユーザー（セッション0件）かどうか。
   // 新規ユーザーには復習カード・レベルアップ例文が存在しないため、静的サンプル問題で体験させる。
   isNewUser = computed(() => this.repository.sessions().length === 0);
 
-  // スタート画面のモード選択カードに表示する達成度（完了数/全体数の合算）。
-  levelUpAchievement = computed(() => {
-    const totals = this.levelUpDates().map((s) => this.progressForSession(s));
-    return {
-      done: totals.reduce((a, t) => a + t.done, 0),
-      total: totals.reduce((a, t) => a + t.total, 0),
-    };
-  });
-  clozeAchievement = computed(() => {
-    const totals = this.clozeDates().map((s) => this.progressForClozeSession(s));
-    return {
-      done: totals.reduce((a, t) => a + t.done, 0),
-      total: totals.reduce((a, t) => a + t.total, 0),
-    };
-  });
-
   // ── 進行状態（signal） ────────────────────────────────────────────
   mode = signal<DrillMode>('cloze');
   started = signal(false);
   finished = signal(false);
-  quiz = signal<Quiz[]>([]); // 出題順を固定したスナップショット（mistakes/cloze用）
+  quiz = signal<Quiz[]>([]); // 出題順を固定したスナップショット（cloze用）
   levelUpQuiz = signal<LevelUpQuiz[]>([]); // 出題順を固定したスナップショット（levelup用）
   index = signal(0);
   userAnswer = signal('');
   revealed = signal(false);
   currentCorrect = signal(false); // 現在の問題が正解扱いか
-  choiceMode = signal(false); // 4択 UI で出題中か（cloze は常に true、mistakes は常に false）
+  choiceMode = signal(false); // 4択 UI で出題中か（cloze は常に true、levelup は常に false）
   score = signal(0);
   hintShown = signal(false); // 日本語訳をヒントボタンで表示中か（デフォルト非表示）
 
@@ -136,6 +141,10 @@ export class DrillState {
   mistakeKind = signal<MistakeKind | null>(null); // 直近の不正解の分類（結果メッセージ用）
   // 穴あきタイピングは「maxLevelで正解」した問題数を結果サマリーの分子として使う。
   masteredCount = signal(0);
+  // パーフェクト達成数の「訪問」単位ガード。selectLevelUpDate() で日程を開くたびにリセットする
+  // （既に習熟済みの文が多い日程を再訪しても、この訪問中に一度も間違えなければ1回だけ加算するため）。
+  private levelUpVisitHadMistake = signal(false);
+  private levelUpPerfectRecordedForVisit = signal(false);
   // levelup モードは 日付選択 → 文一覧選択 → 出題 の3段階。
   // levelUpDateChosen=false: 日付選択画面。true & levelUpSentenceChosen=false: 文一覧選択画面。両方true: 出題画面。
   levelUpDateChosen = signal(false);
@@ -183,7 +192,7 @@ export class DrillState {
     this.sampleMode.set(this.isNewUser());
     if (this.isNewUser()) {
       if (mode === 'cloze') {
-        this.quiz.set(shuffleByWeight(this.buildClozeQuizzes(SAMPLE_REVIEW_ITEMS)));
+        this.quiz.set(shuffleByWeight(this.clozeState.buildQuizzes(SAMPLE_REVIEW_ITEMS)));
         this.clozeDateChosen.set(true);
       } else {
         this.levelUpQuiz.set(
@@ -202,7 +211,7 @@ export class DrillState {
 
   // ── 日付選択（穴埋めクイズ）: 選んだセッションの reviewItems だけを重み付きシャッフルして出題する ─
   selectClozeDate(session: CorrectionSession) {
-    this.quiz.set(shuffleByWeight(this.buildClozeQuizzes(session.reviewItems ?? [])));
+    this.quiz.set(shuffleByWeight(this.clozeState.buildQuizzes(session.reviewItems ?? [])));
     this.currentSessionId.set(session.id);
     this.index.set(0);
     this.score.set(0);
@@ -216,14 +225,8 @@ export class DrillState {
   }
 
   // 選択中セッションの進捗サマリー（達成数/全体数）。穴埋めクイズの日付選択画面のバッジ表示に使う。
-  // 達成は「1回でも正解したか（everCorrect）」で判定する（後で間違えても達成は取り消さない）。
   progressForClozeSession(session: CorrectionSession): { done: number; total: number } {
-    const items = session.reviewItems ?? [];
-    const done = items.filter((r) => {
-      const key = normalizeDrillKey(`${r.sentence}${r.answer}`);
-      return this.drillProgress.getDrillProgress(key)?.everCorrect ?? false;
-    }).length;
-    return { done, total: items.length };
+    return this.clozeState.progressForClozeSession(session);
   }
 
   // 日付選択画面に戻る（cloze/levelup 共通。出題中に日付を選び直したい場合）。
@@ -245,13 +248,11 @@ export class DrillState {
   // シャッフルは一切行わない（その日の文章の並びのまま、どれからでも選べるようにするため）。
   // ここでは特定の文へ自動ジャンプせず、levelUpSentenceChosen は false のまま文一覧を表示させる。
   selectLevelUpDate(session: CorrectionSession) {
-    const progress = this.drillProgress.getLevelUpProgress(session.id);
-    const items = (session.levelUpItems ?? []).map((item) =>
-      buildLevelUpQuiz(item, normalizeDrillKey(item.leveledUp), this.i18n.lang()),
-    );
-    this.levelUpQuiz.set(items);
+    this.levelUpQuiz.set(this.levelUpState.buildQuizItems(session));
     this.currentSessionId.set(session.id);
-    this.masteredCount.set(Object.values(progress).filter((p) => p.completed).length);
+    this.masteredCount.set(this.levelUpState.masteredCountFor(session.id));
+    this.levelUpVisitHadMistake.set(false);
+    this.levelUpPerfectRecordedForVisit.set(false);
 
     this.levelUpDateChosen.set(true);
     this.levelUpSentenceChosen.set(false);
@@ -261,13 +262,9 @@ export class DrillState {
   selectLevelUpSentence(index: number) {
     const item = this.levelUpQuiz()[index];
     if (!item) return;
-    const sessionId = this.currentSessionId();
-    const saved = sessionId
-      ? this.drillProgress.getLevelUpProgress(sessionId)[item.key]
-      : undefined;
 
     this.index.set(index);
-    this.maskLevel.set(saved?.maskLevel ?? 0);
+    this.maskLevel.set(this.levelUpState.savedMaskLevel(this.currentSessionId(), item));
     this.userAnswer.set('');
     this.revealed.set(false);
     this.currentCorrect.set(false);
@@ -283,49 +280,16 @@ export class DrillState {
 
   // 選択中セッションの進捗サマリー（完了数/全体数）。日付選択画面のバッジ表示に使う。
   progressForSession(session: CorrectionSession): { done: number; total: number } {
-    const items = session.levelUpItems ?? [];
-    const progress = this.drillProgress.getLevelUpProgress(session.id);
-    const done = items.filter(
-      (item) => progress[normalizeDrillKey(item.leveledUp)]?.completed,
-    ).length;
-    return { done, total: items.length };
+    return this.levelUpState.progressForSession(session);
   }
 
   // 文一覧の1文分の進捗表示用（未着手/マスク段階/習熟済み）を返す。
-  progressForItem(item: LevelUpQuiz): { maskLevel: number; completed: boolean } {
-    const sessionId = this.currentSessionId();
-    const saved = sessionId
-      ? this.drillProgress.getLevelUpProgress(sessionId)[item.key]
-      : undefined;
-    return { maskLevel: saved?.maskLevel ?? 0, completed: saved?.completed ?? false };
-  }
-
-  // 復習カード → Quiz へ正規化。基準重みは一律1とし、習熟度による減衰をかける。
-  private buildClozeQuizzes(reviewItems: ReviewItem[]): Quiz[] {
-    return reviewItems.map((r: ReviewItem) => {
-      const key = normalizeDrillKey(`${r.sentence}${r.answer}`);
-      return buildClozeQuiz(r, key, this.weightFor(key, 1), this.i18n.lang());
-    });
-  }
-
-  // 習熟済み（連続正解が DRILL_MASTERY_STREAK 以上）なら重みを大きく減衰させ、出題頻度を下げる。
-  // （levelup モードは日付選択後に元の順番のまま出題するため使わない。mistakes/cloze 用。）
-  private weightFor(key: string, baseWeight: number): number {
-    const streak = this.drillProgress.getDrillProgress(key)?.correctStreak ?? 0;
-    return streak >= DRILL_MASTERY_STREAK ? baseWeight * 0.2 : baseWeight;
-  }
-
-  // 現在の maskLevel で隠れている単語インデックスの集合を返す。
-  private maskedIndicesFor(item: LevelUpQuiz, level: number): Set<number> {
-    return maskedIndices(item.hideOrder, item.words.length, item.maxLevel, level);
-  }
+  progressForItem = (item: LevelUpQuiz): { maskLevel: number; completed: boolean } =>
+    this.levelUpState.progressForItem(item, this.currentSessionId());
 
   // ── 表示用: maskLevel に応じて隠れた単語を同じ視覚幅のアンダースコアに置換した文を返す ─
   maskedSentence(item: LevelUpQuiz): string {
-    const hidden = this.maskedIndicesFor(item, this.maskLevel());
-    return item.words
-      .map((w, i) => (hidden.has(i) ? '_'.repeat(Math.max(w.length, 3)) : w))
-      .join(' ');
+    return this.levelUpState.maskedSentence(item, this.maskLevel());
   }
 
   // ヒント（日本語訳）の表示切り替え。答え合わせ後は自動表示されるため、その前にだけ使う。
@@ -377,8 +341,10 @@ export class DrillState {
 
   private evaluateAchievements(): void {
     const ids = evaluateNewlyUnlocked(this.gamification.stats(), {
-      clozeAchievement: this.clozeAchievement(),
-      levelUpAchievement: this.levelUpAchievement(),
+      masteryProgress: {
+        [FEATURE_ID_CLOZE]: this.clozeAchievement(),
+        [FEATURE_ID_LEVELUP]: this.levelUpAchievement(),
+      },
     });
     if (ids.length === 0) return;
     this.gamification.markUnlocked(ids);
@@ -420,8 +386,14 @@ export class DrillState {
       this.mistakeKind.set(null);
       const level = this.maskLevel();
       if (level >= cur.maxLevel) {
+        // masteredCount（結果表示の自己ベスト）は既に習熟済みの文の再正解では加算しないが、
+        // セッション完了判定（checkLevelUpSessionComplete）は再挑戦のたびに必ず行う。
+        // パーフェクト達成数はそちら側で「訪問」単位に重複防止するため、ここではガードしない。
+        const alreadyMastered = sessionId
+          ? (this.drillProgress.getLevelUpProgress(sessionId)[cur.key]?.completed ?? false)
+          : false;
         if (sessionId) this.drillProgress.setLevelUpItemProgress(sessionId, cur.key, level, true);
-        this.masteredCount.update((c) => c + 1);
+        if (!alreadyMastered) this.masteredCount.update((c) => c + 1);
         if (sessionId && !this.sampleMode()) this.checkLevelUpSessionComplete(sessionId);
       } else {
         const nextLevel = level + 1;
@@ -434,6 +406,7 @@ export class DrillState {
 
     const kind = classifyMistake(cur, this.userAnswer(), this.maskLevel());
     this.mistakeKind.set(kind);
+    this.levelUpVisitHadMistake.set(true);
     if (kind === 'gap') {
       const lowered = Math.max(0, this.maskLevel() - 1);
       this.maskLevel.set(lowered);
@@ -446,13 +419,29 @@ export class DrillState {
   // 該当日程の全文が完了（maxLevelで正解済み）したかを判定し、完了していれば
   // levelup版の「セッション完了」として統計に記録する（levelupに「不完全パーフェクト」はなく、
   // 全文完了＝パーフェクト扱い）。重複カウントは GamificationStatsService.completedSessionKeys で防止する。
+  // パーフェクト達成数（perfectCounts）は、既に習熟済みの文が多い日程を再訪した場合でも
+  // 正解のたびに毎回この判定を行う必要があるため、alreadyMastered に関係なく呼ばれる。
+  // その代わり「1回の訪問で最大1回」「訪問中に一度でも不正解があれば加算しない」という
+  // 訪問単位のガード（levelUpVisitHadMistake/levelUpPerfectRecordedForVisit）でここだけ重複防止する。
   private checkLevelUpSessionComplete(sessionId: string): void {
     const session = this.repository.sessions().find((s) => s.id === sessionId);
     if (!session) return;
-    const { done, total } = this.progressForSession(session);
-    if (total > 0 && done === total) {
-      this.recordSessionCompleteForGamification(`levelup-${sessionId}`, true);
+    if (!this.levelUpState.isSessionComplete(session)) return;
+    this.recordSessionCompleteForGamification(`levelup-${sessionId}`, true);
+    if (!this.levelUpVisitHadMistake() && !this.levelUpPerfectRecordedForVisit()) {
+      this.drillProgress.incrementPerfectCount(`levelup-${sessionId}`);
+      this.levelUpPerfectRecordedForVisit.set(true);
     }
+  }
+
+  // 選択中セッションのパーフェクト達成数（穴あきタイピング）。日付選択画面のバッジ表示に使う。
+  perfectCountForSession(session: CorrectionSession): number {
+    return this.levelUpState.perfectCountForSession(session);
+  }
+
+  // 選択中セッションのパーフェクト達成数（穴埋めクイズ）。日付選択画面のバッジ表示に使う。
+  perfectCountForClozeSession(session: CorrectionSession): number {
+    return this.clozeState.perfectCountForClozeSession(session);
   }
 
   // 同じ問題にもう一度挑戦する（mistakesの「もう一度」／levelupの「次へ」の実体。
@@ -466,16 +455,15 @@ export class DrillState {
     this.hintShown.set(false);
   }
 
-  // mistakes/cloze 専用: 次の問題（配列の次要素）に進む。
+  // cloze 専用: 次の問題（配列の次要素）に進む。
   next() {
     const nextIndex = this.index() + 1;
     if (nextIndex >= this.total()) {
       this.finished.set(true);
       if (!this.sampleMode() && this.currentSessionId()) {
-        this.recordSessionCompleteForGamification(
-          `cloze-${this.currentSessionId()}`,
-          this.score() === this.total(),
-        );
+        const perfect = this.score() === this.total();
+        this.recordSessionCompleteForGamification(`cloze-${this.currentSessionId()}`, perfect);
+        if (perfect) this.drillProgress.incrementPerfectCount(`cloze-${this.currentSessionId()}`);
       }
       return;
     }

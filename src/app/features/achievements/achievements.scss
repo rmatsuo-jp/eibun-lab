@@ -1,6 +1,10 @@
 // ── 実績一覧ページ ─────────────────────────────────────────────
 .achievements-summary {
   color: var(--color-text-muted);
+}
+
+.achievements-overall-progress-bar {
+  display: block;
   margin-bottom: 1.5rem;
 }
 
@@ -54,16 +58,6 @@
 }
 
 .achievement-progress-bar {
+  display: block;
   margin-top: 0.375rem;
-  height: 6px;
-  border-radius: 3px;
-  background: var(--color-border);
-  overflow: hidden;
-}
-
-.achievement-progress-fill {
-  height: 100%;
-  background: var(--color-success);
-  border-radius: 3px;
-  transition: width 0.2s ease;
 }

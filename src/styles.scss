@@ -12,6 +12,20 @@
   --color-error-bg: rgba(220, 38, 38, 0.12);
   --color-warning: #f59e0b;
   --color-warning-bg: rgba(245, 158, 11, 0.12);
+  --color-on-primary: #fff;
+
+  // ── スペーシングスケール ──
+  --space-1: 0.25rem;
+  --space-2: 0.5rem;
+  --space-3: 0.75rem;
+  --space-4: 1rem;
+  --space-5: 1.25rem;
+  --space-6: 1.5rem;
+
+  // ── 角丸スケール ──
+  --radius-sm: 0.5rem;
+  --radius-md: 0.75rem;
+  --radius-pill: 999px;
 }
 
 [data-theme='dark'] {
@@ -212,8 +226,8 @@ body {
 .card {
   background: var(--color-surface);
   border: 1px solid var(--color-border);
-  border-radius: 0.75rem;
-  padding: 1rem;
+  border-radius: var(--radius-md);
+  padding: var(--space-4);
 }
 
 // ── サブセクション見出し共通 ─────────────────────────────────────
@@ -234,23 +248,14 @@ body {
 }
 
 // ── 強調ボタン（次に押すボタン）＝Enterで進められることを明示 ─────
+// ドリル系（drill / waiting-quiz）共通。主操作（答え合わせ・次へ・結果を見る）用。
+// 行内で常に1つ、右端に置く。
 .btn-primary {
   position: relative;
-}
-.btn-primary::after {
-  content: '⏎';
-  margin-left: 0.4em;
-  opacity: 0.7;
-  font-size: 0.9em;
-}
-
-// ── ドリル系（drill / waiting-quiz）共通ボタン ─────────────────────
-// 主操作（答え合わせ・次へ・結果を見る）用。行内で常に1つ、右端に置く。
-.btn-primary {
   background: var(--color-primary);
-  color: #fff;
+  color: var(--color-on-primary);
   border: none;
-  border-radius: 0.75rem;
+  border-radius: var(--radius-md);
   padding: 0.75rem 1.5rem;
   font-size: 1rem;
   font-weight: 600;
@@ -260,6 +265,13 @@ body {
   &:disabled {
     opacity: 0.5;
     cursor: not-allowed;
+  }
+
+  &::after {
+    content: '⏎';
+    margin-left: 0.4em;
+    opacity: 0.7;
+    font-size: 0.9em;
   }
 }
 

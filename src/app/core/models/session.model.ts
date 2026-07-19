@@ -29,6 +29,7 @@ export interface Mistake {
 // ── ReviewItem: Gemini が返す穴埋め（クローズ）復習カード 1 件 ─────
 // Drill ページの「穴埋めクイズ」モードで出題する。既定は answer をタイピング入力、
 // ヒント押下時は choices（正解含む4択）に切り替えて出題する。
+// choiceExplanations は choices と同順の正誤理由（回答確定後にDrillページで選択肢ごとに表示）。
 export interface ReviewItem {
   sentence: string; // ___（半角アンダースコア3つ）で空所を作った英文
   answer: string; // 空所に入る正解の語/句
@@ -37,6 +38,8 @@ export interface ReviewItem {
   translation: string; // 英文の日本語訳
   translationEn?: string; // 任意。translation の英語版
   choices: string[]; // 4択（正解を1つ含む）
+  choiceExplanations?: string[]; // 任意。choices と同順、各選択肢の正誤理由（日本語1文）
+  choiceExplanationsEn?: string[]; // 任意。choiceExplanations の英語版
 }
 
 // ── LevelUpItem: Gemini が返す「CEFR一段階上のレベルアップ」1文分の例文 ─────
@@ -88,15 +91,14 @@ export interface FeatureGamificationStats {
   completedSessionKeys: Record<string, true>; // levelup日程完了の重複防止
 }
 
-// ── GamificationStats: 実績判定の元データ。添削／穴埋めクイズ／穴あきタイピングの
-// 対象機能別に統計を持つ（実績の分類も対象機能単位）。
+// ── GamificationStats: 実績判定の元データ。featureId（'correction'/'cloze'/'levelup'等）をキーにした
+// 汎用マップで対象機能別に統計を持つ（実績の分類も対象機能単位）。新しいゲーミフィケーション対象機能を
+// 追加する場合も、この型自体の変更は不要（新しいfeatureId文字列を決めるだけでよい。詳細はdocs/data-design.md §6参照）。
 // 既存データの遡及集計は行わず、本機能リリース以降のプレイ・添削から集計を開始する方針
 // （docs/todo.md 参照）。CorrectionSession とは独立のモデルのため
 // firestore-sync.service.ts の OPTIONAL_FIELDS_MAP 対応は不要（core/achievements/ 側で同期する）。
 export interface GamificationStats {
-  correction: FeatureGamificationStats;
-  cloze: FeatureGamificationStats;
-  levelup: FeatureGamificationStats;
+  features: Record<string, FeatureGamificationStats>; // featureIdごとの累積統計（例: 'correction'/'cloze'/'levelup'）
   unlockedAchievements: Record<string, string>; // achievementId → 解除日時(ISO)
 }
 

@@ -108,14 +108,8 @@
   flex-shrink: 0;
 }
 
-.log-model {
+app-badge {
   flex-shrink: 0;
-  padding: 0.125rem 0.5rem;
-  border-radius: 999px;
-  background: var(--color-primary-light, #ede9fe);
-  color: var(--color-primary);
-  font-size: 0.6875rem;
-  font-weight: 600;
 }
 
 .log-preview {

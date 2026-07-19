@@ -15,7 +15,7 @@
 | [README.md](../README.md)             | プロジェクト概要・セットアップ最短手順・ビルド/テスト/Lint・セキュリティ運用・プロジェクト構成。技術スタック詳細や機能紹介は[overview.md](overview.md)、操作方法は[manual.md](manual.md)を参照 |
 | [ARCHITECTURE.md](../ARCHITECTURE.md) | レイヤー構成（features → core → shared）、データフロー、データモデル、ルーティング設計                                                                                                         |
 | [SECURITY.md](../SECURITY.md)         | サポート対象バージョンと脆弱性報告方法（GitHub Private Vulnerability Reporting）                                                                                                               |
-| [CHANGELOG.md](../CHANGELOG.md)       | semantic-releaseによる自動生成の変更履歴。リリース内容の確認に使う                                                                                                                             |
+| [CHANGELOG.md](../CHANGELOG.md)       | semantic-releaseによる自動生成のリリースノート。リリース内容の確認に使う                                                                                                                       |
 | [overview.md](overview.md)            | システム構成、機能概要、ディレクトリ構成、データフロー、データ型、LocalStorageキー。各画面の操作方法は[manual.md](manual.md)を参照                                                             |
 | [setup.md](setup.md)                  | ローカル開発環境構築手順（clone、Node/npmバージョン、APIキー設定、テスト・lint・ビルド）                                                                                                       |
 

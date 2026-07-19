@@ -18,10 +18,11 @@ features/ ──▶ core/ ──▶ shared/
 graph TD
     subgraph Features["features/（遅延ロード。1フォルダ = 1拡張機能）"]
         Practice["practice\n英文入力・添削\n(+ practice-state.service\n+ bulk-import.util\n+ waiting-quiz)"]
-        Drill["drill\n弱点克服ドリル\n(+ drill-state.service\n+ drill-progress.service\n+ drill-progress-sync.service\n+ sentence-list)"]
+        Drill["drill\n弱点克服ドリル\n(+ drill-state.service（オーケストレーター）\n+ drill-cloze-state / drill-levelup-state\n+ drill-progress.service\n+ drill-progress-sync.service\n+ sentence-list)"]
         History["history\n履歴・検索・入出力\n(+ history-calendar)"]
         Mistakes["mistakes\n統計ダッシュボード\n(+ mistakes-state.service)"]
-        Settings["settings\nAPIキー・テーマ\n(+ settings.guard)"]
+        Achievements["achievements\n実績（バッジ・達成条件）\n表示"]
+        Settings["settings\nテーマ・言語・法的情報\n(+ settings.guard\n+ api-key-panel / model-priority-panel\n+ release-notes-panel / account-panel)"]
         Dev["dev（本番非搭載）\nGeminiログ閲覧\n(+ dev-log.service)"]
     end
 
@@ -32,6 +33,8 @@ graph TD
         Gemini["gemini\nGeminiService\n+ prompt/parse/evaluation\n/stream-progress util"]
         Quiz["quiz\nquiz.util（出題ロジック純粋関数。\ndrill と practice の待機中クイズが共用）"]
         Stats["stats\nsession-stats.util（純粋関数）"]
+        AchievementsCore["achievements\nGamificationStatsService\n+ achievement-engine.util\n+ achievement-definitions/（featureId別に分割）\n+ gamification-feature-id"]
+        ReleaseNotes["release-notes\nReleaseNotesService\n（CHANGELOG.mdを取得・解析）"]
         I18n["i18n\nI18nService（lang signal）\n+ translations\n+ localized-session.util\n+ prose-fields.util"]
         Firebase["firebase\nAuthService / firebase.init"]
         Logging["logging\nGEMINI_LOGGER トークン"]
@@ -49,14 +52,15 @@ graph TD
 
 ### 各 feature が inject する core サービス
 
-| feature  | 使用する core                                                                                                               |
-| -------- | --------------------------------------------------------------------------------------------------------------------------- |
-| practice | GeminiService / SessionRepositoryService / SettingsStoreService（+ feature 内 PracticeState）                               |
-| drill    | SessionRepositoryService / stats / I18nService（+ feature 内 DrillState / DrillProgressService / DrillProgressSyncService） |
-| history  | SessionRepositoryService / I18nService（+ feature 内 HistoryState / HistoryCalendar）                                       |
-| mistakes | SessionRepositoryService / stats / I18nService（+ feature 内 MistakesState）                                                |
-| settings | SettingsStoreService / AuthService / gemini-models.constants                                                                |
-| dev      | SessionRepositoryService / SettingsStoreService / prompt.util（+ feature 内 DevLogService）                                 |
+| feature      | 使用する core                                                                                                                                                                               |
+| ------------ | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| practice     | GeminiService / SessionRepositoryService / SettingsStoreService（+ feature 内 PracticeState）                                                                                               |
+| drill        | SessionRepositoryService / stats / I18nService / GamificationSyncService（+ feature 内 DrillState / DrillClozeState / DrillLevelUpState / DrillProgressService / DrillProgressSyncService） |
+| history      | SessionRepositoryService / I18nService（+ feature 内 HistoryState / HistoryCalendar）                                                                                                       |
+| mistakes     | SessionRepositoryService / stats / I18nService（+ feature 内 MistakesState）                                                                                                                |
+| achievements | GamificationStatsService / achievement-definitions / I18nService                                                                                                                            |
+| settings     | SettingsStoreService / AuthService / ReleaseNotesService / gemini-models.constants                                                                                                          |
+| dev          | SessionRepositoryService / SettingsStoreService / prompt.util（+ feature 内 DevLogService）                                                                                                 |
 
 ### 状態分離パターン（practice / drill / history / mistakes 共通）
 
@@ -167,6 +171,20 @@ graph LR
     T -.->|"本番ビルド: デフォルト factory"| N["no-op"]
 ```
 
+### 汎用パターン: core→feature オプショナルフック
+
+上記の `GEMINI_LOGGER` は「core が feature に依存せず、feature 側の実装をオプショナルに呼び出したい」
+というニーズに対する再利用可能な雛形である。今後同様の要件（例: core の別サービスから feature 固有の
+処理を呼びたい）が出た場合は、この形をそのまま踏襲する：
+
+1. `core/` 側にインターフェースと `InjectionToken`（既定値はno-op factory）を定義する。
+2. 呼び出したい feature 側でそのインターフェースを実装するサービスを作る。
+3. `app.config.ts` で、条件（環境・ビルド種別等）に応じて `useExisting`/`useClass` でfeature側の実装を
+   provide する。条件を満たさない場合は何もprovideせず、既定のno-opのままにする。
+
+この形により、core は feature の存在を一切知らずに済み（`import`しない）、`features → core` の
+一方向依存を崩さずに「coreからfeatureへの通知・委譲」を実現できる。
+
 ---
 
 ## 4. Firestore 同期フロー
@@ -208,39 +226,46 @@ sequenceDiagram
 
 ## 5. ドリル機能のデータフロー
 
-`Drill`（features/drill）は「頻出ミス出題」「穴埋めクイズ」「穴あきタイピング」の3モードを持つ。
-状態とロジックは `DrillState`（features/drill、singleton）に集約されており、出題元データは core の
-`SessionRepositoryService.sessions` を `session-stats.util`（core/stats）と `quiz.util`（core/quiz）の
-純粋関数で集計・整形し、習熟度は同じく feature 内の `DrillProgressService` が管理する。`drill.ts` 自体は
-`DrillState` を inject するだけの薄いコンポーネントで、フォーカス制御など DOM 操作のみを行う。
-出題画面は `sentence-list`（レベルアップの文一覧選択）などのサブコンポーネントに分割されている。
+`Drill`（features/drill）は「穴埋めクイズ（cloze）」「穴あきタイピング（levelup）」の2モードを持つ。
+状態とロジックは3つの `providedIn: 'root'` singletonに分かれる: `DrillState`（オーケストレーター。
+モード選択・両モード共通のUI状態〔`userAnswer`/`revealed`等〕・採点・実績連携を担当）が
+`DrillClozeState`（clozeモード専用のデータ・純粋ロジック）と `DrillLevelUpState`（levelupモード専用の
+データ・純粋ロジック）を inject して委譲する。この3分割により、各モードのロジックはお互いを
+読まずに独立して編集できる。出題元データは core の `SessionRepositoryService.sessions` を
+`session-stats.util`（core/stats）と `quiz.util`（core/quiz）の純粋関数で集計・整形し、習熟度は
+feature内の `DrillProgressService` が管理する。`drill.ts` 自体は `DrillState` を inject するだけの
+薄いコンポーネントで、フォーカス制御など DOM 操作のみを行う。出題画面は `sentence-list`
+（レベルアップの文一覧選択）などのサブコンポーネントに分割されている。
 
 ```mermaid
 flowchart TD
     Sessions[("SessionRepository.sessions\n(過去のCorrectionSession[])")]
 
     subgraph Stats["core/stats + core/quiz（純粋関数）"]
-        FreqMistakes["getFrequentMistakes()"]
-        ReviewItems["getReviewItems()"]
+        ReviewItems["getSessionsWithReviewItems()"]
         LevelUpSessions["getSessionsWithLevelUp()"]
         QuizUtil["quiz.util\n(出題整形・正誤判定)"]
     end
 
-    subgraph Progress["features/drill: DrillState + DrillProgressService"]
-        DrillState["DrillState\n(状態集約・computed)"]
-        DrillKey["正規化キー（normalizeDrillKey）ごとの\ncorrectStreak管理"]
-        LevelUpProg["セッション単位のmaskLevel/completed管理"]
+    subgraph Progress["features/drill"]
+        ClozeState["DrillClozeState\n(clozeモード専用データ・ロジック)"]
+        LevelUpState["DrillLevelUpState\n(levelupモード専用データ・ロジック)"]
+        DrillState["DrillState\n(オーケストレーター。共通UI状態・採点・実績連携)"]
+        DrillKey["正規化キー（normalizeDrillKey）ごとの\ncorrectStreak管理（DrillProgressService）"]
+        LevelUpProg["セッション単位のmaskLevel/completed管理（DrillProgressService）"]
         Sync["DrillProgressSyncService\n(クラウド同期)"]
     end
 
-    Sessions --> FreqMistakes --> Weighting
-    Sessions --> ReviewItems --> Weighting
-    Sessions --> LevelUpSessions --> LevelUpProg
-    QuizUtil --> DrillState
+    Sessions --> ReviewItems --> ClozeState
+    Sessions --> LevelUpSessions --> LevelUpState
+    QuizUtil --> ClozeState
+    QuizUtil --> LevelUpState
 
     DrillKey --> Weighting["出題重み付け\n(correctStreak高いほど出現率を下げる)"]
-    Weighting --> DrillState
-    LevelUpProg --> DrillState
+    Weighting --> ClozeState
+    LevelUpProg --> LevelUpState
+    ClozeState --> DrillState
+    LevelUpState --> DrillState
     DrillState --> Quiz["Drill / SentenceList コンポーネント出題"]
 
     Quiz -->|正誤を記録| DrillState
@@ -323,7 +348,9 @@ Firestore側は `apps/eibun_lab/users/{uid}/sessions/{sessionId}` のパスに `
 `CorrectionSession` に optional フィールドを追加/削除してこちらの更新を忘れるとコンパイルエラーになる
 （型による機械的な同期保証。CLAUDE.md 参照）。
 
-そのほか LocalStorage には、ドリル進捗（`DrillProgressService`）・Gemini 送受信ログ
+そのほか LocalStorage には、ドリル進捗（`DrillProgressService`）・実績/ゲーミフィケーション統計
+（`GamificationStatsService`、キー `eibun-lab-gamification-stats`）・既読リリースノート
+（`ReleaseNotesService`、キー `release_notes_seen`）・Gemini 送受信ログ
 （`DevLogService`、開発ビルドのみ）が独立キーで保存される。
 
 ---
@@ -338,6 +365,7 @@ graph LR
     Root --> Drill["/drill"]
     Root --> History["/history"]
     Root --> Mistakes["/mistakes"]
+    Root --> Achievements["/achievements"]
     Root --> Settings["/settings\n(canDeactivate guard)"]
     Root --> Legal["/legal/:doc"]
     Root -.->|開発ビルドのみ| Dev["/dev"]
@@ -369,7 +397,28 @@ flowchart TD
 
 ---
 
-## 9. i18n（多言語表示）
+## 9. リリースノート（CHANGELOG.md駆動）
+
+`ReleaseNotesService`（core/release-notes）はビルド資産として配置された `CHANGELOG.md` を実行時に
+`fetch()` し、`# [x.y.z](...) (date)` 見出しと `### Features` / `### Bug Fixes` セクションを正規表現で
+`ReleaseNoteEntry[]` へ解析する。**専用の JSON データファイルは持たず、CHANGELOG.md 自体が唯一の
+データソース**（`src/version.ts` はバージョン番号・リリース日のみを保持し、本文は持たない）。
+
+```mermaid
+flowchart LR
+    Changelog[("CHANGELOG.md\n(ビルド資産として同梱)")] -->|fetch + 正規表現解析| RNS["ReleaseNotesService (core)"]
+    RNS -->|"lastSeenVersionより新しい\nエントリのみ抽出"| Modal["起動時「新機能」モーダル\n(app.ts)"]
+    RNS -->|"getAllNotes()"| SettingsViewer["設定ページの\n「リリースノートを見る」"]
+    RNS -->|既読バージョンを保存| Seen[("LocalStorage\nrelease_notes_seen")]
+```
+
+起動時、`lastSeenVersion`（`release_notes_seen`）より新しいバージョンのエントリが1件でもあれば
+「新機能」モーダルを表示し、モーダルを閉じると `lastSeenVersion` が現在のバージョンに更新される。
+設定ページでは `getAllNotes()` により全バージョンの履歴をいつでも閲覧できる。
+
+---
+
+## 10. i18n（多言語表示）
 
 `I18nService`（core/i18n）が `lang` signal（`'ja' | 'en'`）を保持し、UI文言は `translations.ts` の
 `TRANSLATIONS` 辞書から `t()` で引く。`mistakes`/`drill`/`history` の state service はいずれもこの

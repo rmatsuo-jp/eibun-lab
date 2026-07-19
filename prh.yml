@@ -88,3 +88,8 @@ rules:
   - expected: CEFR
     patterns:
       - セファール
+
+  - expected: リリースノート
+    patterns:
+      - 更新情報
+      - 変更履歴

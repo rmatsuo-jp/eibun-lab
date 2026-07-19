@@ -1,8 +1,9 @@
 /**
- * @file 実績（バッジ）の型定義。実績は対象機能（添削／穴埋めクイズ／穴あきタイピング）ごとに分類する。
- * AchievementDef.isUnlocked は GamificationStats（該当グループの FeatureGamificationStats を参照）と
- * AchievementContext（モード制覇判定用の集計）を受け取り、解除条件を満たすか判定する純粋関数。
- * 実際の定義一覧は achievement-definitions.ts、判定ロジックは achievement-engine.util.ts に置く。
+ * @file 実績（バッジ）の型定義。実績は対象機能（featureId。現在は添削／穴埋めクイズ／穴あきタイピング）
+ * ごとに分類する。AchievementDef.isUnlocked は GamificationStats（該当featureIdのFeatureGamificationStats
+ * を stats.features['<featureId>'] で参照）と AchievementContext（モード制覇判定用の集計）を受け取り、
+ * 解除条件を満たすか判定する純粋関数。実際の定義一覧は achievement-definitions/（featureId別に分割）、
+ * 判定ロジックは achievement-engine.util.ts に置く。
  */
 import { GamificationStats } from '@core/models/session.model';
 
@@ -50,14 +51,13 @@ export type AchievementId =
   | 'levelup-perfect-streak-3'
   | 'levelup-mastery';
 
-// 実績の分類軸＝対象機能（性質軸は持たない）。
-export type AchievementGroup = 'correction' | 'cloze' | 'levelup';
+// 実績の分類軸＝対象機能（性質軸は持たない）。表示上のグルーピング単位で、現状は featureId と同じ値を使う。
+export type AchievementGroup = string;
 
-// モード制覇（cloze-mastery/levelup-mastery）判定に使う、日程横断の達成数/全体数
+// モード制覇（cloze-mastery/levelup-mastery）判定に使う、featureIdごとの日程横断の達成数/全体数
 // （DrillState.clozeAchievement/levelUpAchievement と同じ形）。
 export interface AchievementContext {
-  clozeAchievement: { done: number; total: number };
-  levelUpAchievement: { done: number; total: number };
+  masteryProgress: Record<string, { done: number; total: number }>;
 }
 
 export interface AchievementDef {

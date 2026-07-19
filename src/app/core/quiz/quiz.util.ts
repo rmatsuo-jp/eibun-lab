@@ -22,6 +22,7 @@ export interface Quiz {
   weight: number; // 出題優先度（頻度 × 習熟度による重み）
   translation?: string; // クローズのみ: 日本語訳
   choices?: string[]; // クローズのみ: 4択
+  choiceExplanations?: string[]; // クローズのみ: choices と同順の正誤理由
 }
 
 // 穴あきタイピング専用の出題型。Quiz とは形が異なる（マスク段階を持つ）ため独立させる。
@@ -106,6 +107,8 @@ export function buildClozeQuiz(
     weight,
     translation: lang === 'en' && r.translationEn ? r.translationEn : r.translation,
     choices: r.choices,
+    choiceExplanations:
+      lang === 'en' && r.choiceExplanationsEn ? r.choiceExplanationsEn : r.choiceExplanations,
   };
 }
 

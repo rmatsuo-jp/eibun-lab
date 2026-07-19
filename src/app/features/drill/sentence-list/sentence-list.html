@@ -1,5 +1,10 @@
 <!-- @file 穴あきタイピングの文一覧選択画面。drill.html から切り出し。 -->
 <div class="intro">
+  <div class="date-select-header">
+    <button class="btn-secondary" (click)="back.emit()">
+      {{ i18n.t('drill.backToDateSelect') }}
+    </button>
+  </div>
   <p>{{ i18n.t('drill.chooseSentence') }}</p>
   <div class="date-select">
     @for (item of items(); track item.key; let i = $index) {
@@ -19,7 +24,4 @@
       }
     }
   </div>
-  <button class="btn-secondary" (click)="back.emit()">
-    {{ i18n.t('drill.backToDateSelect') }}
-  </button>
 </div>

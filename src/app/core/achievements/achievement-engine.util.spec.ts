@@ -30,16 +30,20 @@ function baseStats(
   } = {},
 ): GamificationStats {
   return {
-    correction: emptyFeatureStats(overrides.correction),
-    cloze: emptyFeatureStats(overrides.cloze),
-    levelup: emptyFeatureStats(overrides.levelup),
+    features: {
+      correction: emptyFeatureStats(overrides.correction),
+      cloze: emptyFeatureStats(overrides.cloze),
+      levelup: emptyFeatureStats(overrides.levelup),
+    },
     unlockedAchievements: overrides.unlockedAchievements ?? {},
   };
 }
 
 const emptyCtx: AchievementContext = {
-  clozeAchievement: { done: 0, total: 0 },
-  levelUpAchievement: { done: 0, total: 0 },
+  masteryProgress: {
+    cloze: { done: 0, total: 0 },
+    levelup: { done: 0, total: 0 },
+  },
 };
 
 describe('evaluateNewlyUnlocked', () => {
@@ -69,8 +73,10 @@ describe('evaluateNewlyUnlocked', () => {
 
   it('穴埋めクイズの全日程クリアでcloze-masteryが解除される', () => {
     const ctx: AchievementContext = {
-      clozeAchievement: { done: 5, total: 5 },
-      levelUpAchievement: { done: 0, total: 0 },
+      masteryProgress: {
+        cloze: { done: 5, total: 5 },
+        levelup: { done: 0, total: 0 },
+      },
     };
     const result = evaluateNewlyUnlocked(baseStats(), ctx);
     expect(result).toContain('cloze-mastery');

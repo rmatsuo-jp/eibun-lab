@@ -15,7 +15,13 @@
      実績解除時は画面上部にトーストを表示し（state.newlyUnlocked()）、結果サマリー（clozeのみ）には
      現在の連続正解自己ベスト・継続日数（state.gamificationStats()）を表示する。 -->
 <div class="page">
-  <h1 class="page-title">{{ i18n.t('drill.title') }}</h1>
+  <h1 class="page-title">
+    {{
+      state.started()
+        ? i18n.t(state.mode() === 'levelup' ? 'drill.levelup.name' : 'drill.cloze.name')
+        : i18n.t('drill.title')
+    }}
+  </h1>
 
   @if (state.newlyUnlocked().length > 0) {
     <!-- ── 実績解除トースト（ドリル画面内のみ表示） ── -->
@@ -40,8 +46,10 @@
         (click)="state.start('cloze')"
         [disabled]="state.clozeCount() === 0 && !state.isNewUser()"
       >
-        <span class="mode-number">1</span>
-        <strong>{{ i18n.t('drill.cloze.name') }}</strong>
+        <div class="mode-card-header">
+          <span class="mode-number">1</span>
+          <strong>{{ i18n.t('drill.cloze.name') }}</strong>
+        </div>
         <p>{{ i18n.t('drill.cloze.desc') }}</p>
         @if (state.clozeCount() === 0 && state.isNewUser()) {
           <p class="empty-note">{{ i18n.t('drill.cloze.sampleNote') }}</p>
@@ -65,8 +73,10 @@
         (click)="state.start('levelup')"
         [disabled]="state.levelUpCount() === 0 && !state.isNewUser()"
       >
-        <span class="mode-number">2</span>
-        <strong>{{ i18n.t('drill.levelup.name') }}</strong>
+        <div class="mode-card-header">
+          <span class="mode-number">2</span>
+          <strong>{{ i18n.t('drill.levelup.name') }}</strong>
+        </div>
         <p>{{ i18n.t('drill.levelup.desc') }}</p>
         @if (state.levelUpCount() === 0 && state.isNewUser()) {
           <p class="empty-note">{{ i18n.t('drill.levelup.sampleNote') }}</p>
@@ -98,18 +108,25 @@
         @for (s of state.levelUpDates(); track s.id) {
           <button class="date-card" (click)="state.selectLevelUpDate(s)">
             <span class="date-card-date">{{ s.date | date: 'yyyy/MM/dd' }}</span>
-            @if (state.progressForSession(s); as p) {
-              <span
-                class="date-card-count"
-                [class.date-card-done]="p.done === p.total && p.total > 0"
-              >
-                {{
-                  p.done === p.total && p.total > 0
-                    ? i18n.t('drill.cleared')
-                    : i18n.t('drill.progressCount', { done: p.done, total: p.total })
-                }}
-              </span>
-            }
+            <div class="date-card-meta">
+              @if (state.progressForSession(s); as p) {
+                <span
+                  class="date-card-count"
+                  [class.date-card-done]="p.done === p.total && p.total > 0"
+                >
+                  {{
+                    p.done === p.total && p.total > 0
+                      ? i18n.t('drill.cleared')
+                      : i18n.t('drill.progressCount', { done: p.done, total: p.total })
+                  }}
+                </span>
+              }
+              @if (state.perfectCountForSession(s); as pc) {
+                <span class="date-card-perfect">
+                  {{ i18n.t('drill.perfectCount', { count: pc }) }}
+                </span>
+              }
+            </div>
           </button>
         }
         @if (state.levelUpDates().length === 0) {
@@ -130,18 +147,25 @@
         @for (s of state.clozeDates(); track s.id) {
           <button class="date-card" (click)="state.selectClozeDate(s)">
             <span class="date-card-date">{{ s.date | date: 'yyyy/MM/dd' }}</span>
-            @if (state.progressForClozeSession(s); as p) {
-              <span
-                class="date-card-count"
-                [class.date-card-done]="p.done === p.total && p.total > 0"
-              >
-                {{
-                  p.done === p.total && p.total > 0
-                    ? i18n.t('drill.cleared')
-                    : i18n.t('drill.progressCountCloze', { done: p.done, total: p.total })
-                }}
-              </span>
-            }
+            <div class="date-card-meta">
+              @if (state.progressForClozeSession(s); as p) {
+                <span
+                  class="date-card-count"
+                  [class.date-card-done]="p.done === p.total && p.total > 0"
+                >
+                  {{
+                    p.done === p.total && p.total > 0
+                      ? i18n.t('drill.cleared')
+                      : i18n.t('drill.progressCountCloze', { done: p.done, total: p.total })
+                  }}
+                </span>
+              }
+              @if (state.perfectCountForClozeSession(s); as pc) {
+                <span class="date-card-perfect">
+                  {{ i18n.t('drill.perfectCount', { count: pc }) }}
+                </span>
+              }
+            </div>
           </button>
         }
         @if (state.clozeDates().length === 0) {
@@ -184,14 +208,14 @@
       <p class="result-stats">
         {{
           i18n.t('drill.stats.bestStreak', {
-            streak: state.gamificationStats().cloze.bestInSessionCorrectStreak,
+            streak: state.gamificationStats().features['cloze'].bestInSessionCorrectStreak,
           })
         }}
       </p>
       <p class="result-stats">
         {{
           i18n.t('drill.stats.dailyStreak', {
-            days: state.gamificationStats().cloze.currentDailyStreak,
+            days: state.gamificationStats().features['cloze'].currentDailyStreak,
           })
         }}
       </p>
@@ -201,18 +225,18 @@
     </div>
   } @else if (state.mode() === 'levelup') {
     <!-- ── 穴あきタイピング出題中 ── -->
-    <div class="progress">
-      {{ state.index() + 1 }} / {{ state.total() }}
-      <button class="link-button" (click)="state.backToSentenceList()">
+    <div class="date-select-header">
+      <button class="btn-secondary" (click)="state.backToSentenceList()">
         {{ i18n.t('drill.backToSentenceList') }}
       </button>
-      <button class="link-button" (click)="state.backToDateSelect()">
+      <button class="btn-secondary" (click)="state.backToDateSelect()">
         {{ i18n.t('drill.backToDateSelect') }}
       </button>
     </div>
+    <div class="progress">{{ state.index() + 1 }} / {{ state.total() }}</div>
 
     @if (state.currentLevelUp(); as item) {
-      <div class="quiz-card">
+      <app-card class="quiz-card">
         @if (state.sampleMode()) {
           <span class="achievement-badge">{{ i18n.t('drill.sampleBadge') }}</span>
         }
@@ -293,20 +317,20 @@
             }
           </div>
         }
-      </div>
+      </app-card>
     }
   } @else {
     <!-- ── 出題中（穴埋めクイズ） ── -->
-    <div class="progress">
-      {{ state.index() + 1 }} / {{ state.total() }}
-      <button class="link-button" (click)="state.backToDateSelect()">
+    <div class="date-select-header">
+      <button class="btn-secondary" (click)="state.backToDateSelect()">
         {{ i18n.t('drill.backToDateSelect') }}
       </button>
     </div>
+    <div class="progress">{{ state.index() + 1 }} / {{ state.total() }}</div>
 
     @if (state.current(); as q) {
-      <div class="quiz-card">
-        <span class="category-badge">{{ q.badge }}</span>
+      <app-card class="quiz-card">
+        <app-badge>{{ q.badge }}</app-badge>
         @if (state.sampleMode()) {
           <span class="achievement-badge">{{ i18n.t('drill.sampleBadge') }}</span>
         }
@@ -350,10 +374,24 @@
             </button>
           }
           <div class="choice-list">
-            @for (c of q.choices; track c) {
-              <button class="choice-btn" [disabled]="state.revealed()" (click)="state.choose(c)">
-                {{ c }}
-              </button>
+            @for (c of q.choices; track c; let i = $index) {
+              @if (state.revealed() && q.choiceExplanations) {
+                <div
+                  class="choice-result"
+                  [class.correct]="c === q.answer"
+                  [class.wrong]="c !== q.answer"
+                >
+                  <span class="choice-mark">
+                    <app-icon [name]="c === q.answer ? 'correct' : 'incorrect'"></app-icon>
+                  </span>
+                  <span class="choice-text">{{ c }}</span>
+                  <span class="choice-explanation">{{ q.choiceExplanations[i] }}</span>
+                </div>
+              } @else {
+                <button class="choice-btn" [disabled]="state.revealed()" (click)="state.choose(c)">
+                  {{ c }}
+                </button>
+              }
             }
           </div>
         }
@@ -368,10 +406,12 @@
               state.currentCorrect() ? i18n.t('drill.resultCorrect') : i18n.t('drill.resultWrong')
             }}
           </div>
-          <div class="correct-answer">
-            <span class="correct-label">{{ i18n.t('drill.correctAnswer') }}</span>
-            <span class="correct-text">{{ q.answer }}</span>
-          </div>
+          @if (!q.choiceExplanations) {
+            <div class="correct-answer">
+              <span class="correct-label">{{ i18n.t('drill.correctAnswer') }}</span>
+              <span class="correct-text">{{ q.answer }}</span>
+            </div>
+          }
           @if (!state.choiceMode()) {
             <p class="quiz-hint">{{ i18n.t('drill.hintLabel', { hint: q.hint }) }}</p>
           }
@@ -385,7 +425,7 @@
             </button>
           </div>
         }
-      </div>
+      </app-card>
     }
   }
 </div>

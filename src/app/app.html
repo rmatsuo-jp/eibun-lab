@@ -18,6 +18,8 @@
      リロードなしで即座に切り替わる。
      初回起動時、および同意文言の改訂時（CONSENT_VERSION）は showConsent signal に応じて
      同意モーダルを最前面に表示する（app.ts 参照）。
+     新機能モーダル（whatsNewEntries）は同意モーダルの後に表示する（同時表示を避けるため
+     showConsent() が false の間のみ表示）。内容は CHANGELOG.md から取得した未読バージョン分。
      bottom-nav には #bottomNav 参照を付与し、app.ts が ResizeObserver で実高さを監視して
      --bottom-nav-height に反映することで、ラベル折り返し等による高さ変動時も
      .app-content の下端がタブバーに隠れないようにしている。 -->
@@ -35,6 +37,37 @@
         </p>
         <button class="btn-primary" type="button" (click)="acceptConsent()">
           {{ i18n.t('consent.accept') }}
+        </button>
+      </div>
+    </div>
+  } @else if (whatsNewEntries().length) {
+    <div class="consent-overlay">
+      <div class="consent-dialog">
+        <h2>{{ i18n.t('whatsNew.title') }}</h2>
+        @for (entry of whatsNewEntries(); track entry.version) {
+          <h3>
+            v{{ entry.version }}<span class="whats-new-date">（{{ entry.date }}）</span>
+          </h3>
+          @if (entry.features.length) {
+            <ul>
+              @for (f of entry.features; track f) {
+                <li>{{ f }}</li>
+              }
+            </ul>
+          }
+          @if (entry.fixes.length) {
+            <details>
+              <summary>{{ i18n.t('whatsNew.fixes') }}</summary>
+              <ul>
+                @for (f of entry.fixes; track f) {
+                  <li>{{ f }}</li>
+                }
+              </ul>
+            </details>
+          }
+        }
+        <button class="btn-primary" type="button" (click)="dismissWhatsNew()">
+          {{ i18n.t('whatsNew.close') }}
         </button>
       </div>
     </div>

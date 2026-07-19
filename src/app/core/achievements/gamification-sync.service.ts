@@ -5,10 +5,12 @@
  * GamificationStatsService の signal を直接は書き換えず、allStats() / persist() 経由で読み書きする。
  * カウンタ系フィールドはマージ時に大きい方を採用し、unlockedAchievements/completedSessionKeys は
  * キー和集合でマージする（一度解除された実績・完了済みセッションは失われない）。
- * lastActiveDate は新しい方を採用する。マージロジックは3機能（correction/cloze/levelup）で
- * 共通の mergeFeatureStats() を使い回す。
+ * lastActiveDate は新しい方を採用する。マージロジックは GamificationStats.features のキー（featureId）の
+ * 和集合に対して共通の mergeFeatureStats() を使い回す（featureId別に分岐しない汎用実装）。
  * 同期失敗は syncError signal（読み取り専用）にメッセージを流し、app.ts がグローバルバナーで
  * ユーザーに知らせる（次回の同期成功時に自動でクリアされる）。
+ * setDoc 直前は必ず stripUndefinedDeep() を通し、lastActiveDate 等 undefined になり得る任意
+ * フィールドを取り除く（Firestore は undefined を受け付けないため）。
  */
 import { effect, Injectable, inject, signal } from '@angular/core';
 import { doc, getDoc, setDoc } from 'firebase/firestore';
@@ -17,6 +19,27 @@ import { AuthService } from '@core/firebase/auth.service';
 import { firestore } from '@core/firebase/firebase.init';
 import { AchievementId } from './achievement.model';
 import { GamificationStatsService, isValidStats } from './gamification-stats.service';
+
+// Firestore は undefined を受け付けないため、setDoc 直前に再帰的に undefined フィールドを取り除く
+// （lastActiveDate は未着手の機能だと undefined になり得るため、jsonの往復で確実に落とす）。
+function stripUndefinedDeep<T>(value: T): T {
+  return JSON.parse(JSON.stringify(value)) as T;
+}
+
+// mergeFeatureStats() でどちらか一方にしかfeatureIdが存在しない場合のフォールバック初期値。
+const EMPTY_FEATURE_STATS: FeatureGamificationStats = {
+  totalAttempts: 0,
+  totalCorrect: 0,
+  totalWrong: 0,
+  sessionsCompleted: 0,
+  perfectSessionCount: 0,
+  currentPerfectStreak: 0,
+  longestPerfectStreak: 0,
+  currentDailyStreak: 0,
+  longestDailyStreak: 0,
+  bestInSessionCorrectStreak: 0,
+  completedSessionKeys: {},
+};
 
 @Injectable({ providedIn: 'root' })
 export class GamificationSyncService {
@@ -52,13 +75,13 @@ export class GamificationSyncService {
     this.pushStats();
   }
 
-  recordAnswer(mode: 'cloze' | 'levelup', correct: boolean, currentSessionStreak: number): void {
-    this.store.recordAnswer(mode, correct, currentSessionStreak);
+  recordAnswer(featureId: string, correct: boolean, currentSessionStreak: number): void {
+    this.store.recordAnswer(featureId, correct, currentSessionStreak);
     this.pushStats();
   }
 
-  recordSessionComplete(mode: 'cloze' | 'levelup', sessionKey: string, perfect: boolean): void {
-    this.store.recordSessionComplete(mode, sessionKey, perfect);
+  recordSessionComplete(featureId: string, sessionKey: string, perfect: boolean): void {
+    this.store.recordSessionComplete(featureId, sessionKey, perfect);
     this.pushStats();
   }
 
@@ -76,7 +99,7 @@ export class GamificationSyncService {
   private pushStats(): void {
     const uid = this.auth.user()?.uid;
     if (!uid) return;
-    setDoc(this.statsDoc(uid), this.store.allStats())
+    setDoc(this.statsDoc(uid), stripUndefinedDeep(this.store.allStats()))
       .then(() => this._syncError.set(null))
       .catch((err) => {
         console.error('[GamificationSyncService] 同期に失敗:', err);
@@ -100,24 +123,33 @@ export class GamificationSyncService {
     if (!cloud) return;
 
     const local = this.store.allStats();
+    const featureIds = new Set([...Object.keys(local.features), ...Object.keys(cloud.features)]);
+    const features: Record<string, FeatureGamificationStats> = {};
+    for (const featureId of featureIds) {
+      features[featureId] = this.mergeFeatureStats(
+        local.features[featureId],
+        cloud.features[featureId],
+      );
+    }
     const merged: GamificationStats = {
-      correction: this.mergeFeatureStats(local.correction, cloud.correction),
-      cloze: this.mergeFeatureStats(local.cloze, cloud.cloze),
-      levelup: this.mergeFeatureStats(local.levelup, cloud.levelup),
+      features,
       unlockedAchievements: { ...cloud.unlockedAchievements, ...local.unlockedAchievements },
     };
     this.store.persist(merged);
 
     if (JSON.stringify(merged) !== JSON.stringify(cloud)) {
-      await setDoc(this.statsDoc(uid), merged);
+      await setDoc(this.statsDoc(uid), stripUndefinedDeep(merged));
     }
   }
 
-  // 1機能分（添削／穴埋めクイズ／穴あきタイピング）の統計をローカル・クラウド間でマージする共通処理。
+  // 1機能分（featureIdごと）の統計をローカル・クラウド間でマージする共通処理。
+  // どちらか一方にしか存在しないfeatureId（新機能追加直後など）は初期値扱いでマージする。
   private mergeFeatureStats(
-    local: FeatureGamificationStats,
-    cloud: FeatureGamificationStats,
+    localIn: FeatureGamificationStats | undefined,
+    cloudIn: FeatureGamificationStats | undefined,
   ): FeatureGamificationStats {
+    const local = localIn ?? EMPTY_FEATURE_STATS;
+    const cloud = cloudIn ?? EMPTY_FEATURE_STATS;
     const lastActiveDate =
       !local.lastActiveDate || (cloud.lastActiveDate && cloud.lastActiveDate > local.lastActiveDate)
         ? cloud.lastActiveDate

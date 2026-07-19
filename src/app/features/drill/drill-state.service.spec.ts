@@ -22,6 +22,15 @@ function makeSession(partial: Partial<CorrectionSession>): CorrectionSession {
 class FakeDrillProgressSync {
   private drill = new Map<string, DrillProgress>();
   private levelUp = new Map<string, Record<string, LevelUpItemProgress>>();
+  private perfectCounts = new Map<string, number>();
+
+  getPerfectCount(sessionKey: string) {
+    return this.perfectCounts.get(sessionKey) ?? 0;
+  }
+
+  incrementPerfectCount(sessionKey: string) {
+    this.perfectCounts.set(sessionKey, (this.perfectCounts.get(sessionKey) ?? 0) + 1);
+  }
 
   getDrillProgress(key: string) {
     return this.drill.get(key);
@@ -267,6 +276,85 @@ describe('DrillState', () => {
         maskLevel: item.maxLevel,
         completed: true,
       });
+      expect(state.perfectCountForSession(session)).toBe(1);
+    });
+
+    it('既に習熟済みの日程を再訪して間違えずに解き直すと、パーフェクト達成数がさらに加算される', () => {
+      const session = makeSession({
+        id: 's1',
+        levelUpItems: [
+          { original: 'o', leveledUp: 'short text', keyPhrases: ['short'], translation: 't' },
+        ],
+      });
+      const { state } = setup([session]);
+
+      // 1回目の訪問: 満点で完了
+      state.selectLevelUpDate(session);
+      state.selectLevelUpSentence(0);
+      let item = state.levelUpQuiz()[0];
+      state.maskLevel.set(item.maxLevel);
+      state.userAnswer.set(item.leveledUp);
+      state.checkTyping();
+      expect(state.perfectCountForSession(session)).toBe(1);
+
+      // 2回目の訪問: 既に習熟済みの文を再度正解し直しても加算される
+      state.selectLevelUpDate(session);
+      state.selectLevelUpSentence(0);
+      item = state.levelUpQuiz()[0];
+      state.maskLevel.set(item.maxLevel);
+      state.userAnswer.set(item.leveledUp);
+      state.checkTyping();
+      expect(state.perfectCountForSession(session)).toBe(2);
+    });
+
+    it('同じ訪問内で完了済みの文に何度正解してもパーフェクト達成数は1回しか加算されない', () => {
+      const session = makeSession({
+        id: 's1',
+        levelUpItems: [
+          { original: 'o', leveledUp: 'short text', keyPhrases: ['short'], translation: 't' },
+        ],
+      });
+      const { state } = setup([session]);
+
+      state.selectLevelUpDate(session);
+      state.selectLevelUpSentence(0);
+      const item = state.levelUpQuiz()[0];
+      state.maskLevel.set(item.maxLevel);
+      state.userAnswer.set(item.leveledUp);
+      state.checkTyping();
+      expect(state.perfectCountForSession(session)).toBe(1);
+
+      // 同じ訪問中にもう一度同じ文へ正解し直す
+      state.selectLevelUpSentence(0);
+      state.maskLevel.set(item.maxLevel);
+      state.userAnswer.set(item.leveledUp);
+      state.checkTyping();
+      expect(state.perfectCountForSession(session)).toBe(1);
+    });
+
+    it('訪問中に一度でも不正解があると、その訪問ではパーフェクト達成数が加算されない', () => {
+      const session = makeSession({
+        id: 's1',
+        levelUpItems: [
+          { original: 'o', leveledUp: 'short text', keyPhrases: ['short'], translation: 't' },
+        ],
+      });
+      const { state } = setup([session]);
+
+      state.selectLevelUpDate(session);
+      state.selectLevelUpSentence(0);
+      const item = state.levelUpQuiz()[0];
+      state.maskLevel.set(item.maxLevel);
+      state.userAnswer.set('completely wrong answer');
+      state.checkTyping();
+
+      state.retry();
+      state.maskLevel.set(item.maxLevel);
+      state.userAnswer.set(item.leveledUp);
+      state.checkTyping();
+
+      expect(state.currentCorrect()).toBe(true);
+      expect(state.perfectCountForSession(session)).toBe(0);
     });
   });
 });
