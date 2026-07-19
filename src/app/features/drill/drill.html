@@ -98,18 +98,25 @@
         @for (s of state.levelUpDates(); track s.id) {
           <button class="date-card" (click)="state.selectLevelUpDate(s)">
             <span class="date-card-date">{{ s.date | date: 'yyyy/MM/dd' }}</span>
-            @if (state.progressForSession(s); as p) {
-              <span
-                class="date-card-count"
-                [class.date-card-done]="p.done === p.total && p.total > 0"
-              >
-                {{
-                  p.done === p.total && p.total > 0
-                    ? i18n.t('drill.cleared')
-                    : i18n.t('drill.progressCount', { done: p.done, total: p.total })
-                }}
-              </span>
-            }
+            <div class="date-card-meta">
+              @if (state.progressForSession(s); as p) {
+                <span
+                  class="date-card-count"
+                  [class.date-card-done]="p.done === p.total && p.total > 0"
+                >
+                  {{
+                    p.done === p.total && p.total > 0
+                      ? i18n.t('drill.cleared')
+                      : i18n.t('drill.progressCount', { done: p.done, total: p.total })
+                  }}
+                </span>
+              }
+              @if (state.perfectCountForSession(s); as pc) {
+                <span class="date-card-perfect">
+                  {{ i18n.t('drill.perfectCount', { count: pc }) }}
+                </span>
+              }
+            </div>
           </button>
         }
         @if (state.levelUpDates().length === 0) {
@@ -130,18 +137,25 @@
         @for (s of state.clozeDates(); track s.id) {
           <button class="date-card" (click)="state.selectClozeDate(s)">
             <span class="date-card-date">{{ s.date | date: 'yyyy/MM/dd' }}</span>
-            @if (state.progressForClozeSession(s); as p) {
-              <span
-                class="date-card-count"
-                [class.date-card-done]="p.done === p.total && p.total > 0"
-              >
-                {{
-                  p.done === p.total && p.total > 0
-                    ? i18n.t('drill.cleared')
-                    : i18n.t('drill.progressCountCloze', { done: p.done, total: p.total })
-                }}
-              </span>
-            }
+            <div class="date-card-meta">
+              @if (state.progressForClozeSession(s); as p) {
+                <span
+                  class="date-card-count"
+                  [class.date-card-done]="p.done === p.total && p.total > 0"
+                >
+                  {{
+                    p.done === p.total && p.total > 0
+                      ? i18n.t('drill.cleared')
+                      : i18n.t('drill.progressCountCloze', { done: p.done, total: p.total })
+                  }}
+                </span>
+              }
+              @if (state.perfectCountForClozeSession(s); as pc) {
+                <span class="date-card-perfect">
+                  {{ i18n.t('drill.perfectCount', { count: pc }) }}
+                </span>
+              }
+            </div>
           </button>
         }
         @if (state.clozeDates().length === 0) {

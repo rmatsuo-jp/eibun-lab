@@ -22,6 +22,15 @@ function makeSession(partial: Partial<CorrectionSession>): CorrectionSession {
 class FakeDrillProgressSync {
   private drill = new Map<string, DrillProgress>();
   private levelUp = new Map<string, Record<string, LevelUpItemProgress>>();
+  private perfectCounts = new Map<string, number>();
+
+  getPerfectCount(sessionKey: string) {
+    return this.perfectCounts.get(sessionKey) ?? 0;
+  }
+
+  incrementPerfectCount(sessionKey: string) {
+    this.perfectCounts.set(sessionKey, (this.perfectCounts.get(sessionKey) ?? 0) + 1);
+  }
 
   getDrillProgress(key: string) {
     return this.drill.get(key);

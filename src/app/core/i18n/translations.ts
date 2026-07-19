@@ -174,6 +174,7 @@ const ja = {
   'drill.noLevelUpSessions': 'レベルアップ例文を持つセッションがありません。',
   'drill.noClozeSessions': '復習カードを持つセッションがありません。',
   'drill.cleared': 'クリア済み',
+  'drill.perfectCount': 'パーフェクト {count}回',
   'drill.progressCount': '{done} / {total}文',
   'drill.progressCountCloze': '{done} / {total}問',
   'drill.chooseSentence':
@@ -512,6 +513,7 @@ const en: Record<TranslationKey, string> = {
   'drill.noLevelUpSessions': 'No sessions with level-up examples.',
   'drill.noClozeSessions': 'No sessions with review cards.',
   'drill.cleared': 'Cleared',
+  'drill.perfectCount': 'Perfect x{count}',
   'drill.progressCount': '{done} / {total} sentences',
   'drill.progressCountCloze': '{done} / {total} questions',
   'drill.chooseSentence':

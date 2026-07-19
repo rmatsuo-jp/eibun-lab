@@ -44,6 +44,12 @@
  * recordSessionComplete() でセッション完了（パーフェクト判定含む）を記録する。両者とも記録直後に
  * core/achievements/achievement-engine.util.ts の evaluateNewlyUnlocked() で新規解除を判定し、
  * newlyUnlocked signal に積んで drill.html のトースト表示に渡す（dismissNewlyUnlocked()で消去）。
+ * パーフェクト達成数（perfectCountForSession/perfectCountForClozeSession）: 「クリア済み」バッジとは別に、
+ * 満点（全問正解）で完了するたびに加算する累積カウンタを DrillProgressService.incrementPerfectCount で
+ * 記録し、日付選択画面に表示する（クリア後も繰り返し練習する動機付け）。cloze は next() が最終問題を
+ * 抜けるたびに毎回加算されるが、levelup は完了済みの文を再選択して正解してもチェック済み文一覧が変わらず
+ * done===totalが常にtrueのままのため、checkTyping() 側で「その文が既に習熟済みだったか」をガードし、
+ * 新規に習熟が完了した瞬間のみ checkLevelUpSessionComplete を呼んで二重加算を防ぐ。
  */
 import { Injectable, computed, inject, signal } from '@angular/core';
 import { SessionRepositoryService } from '@core/sessions/session-repository.service';
@@ -420,9 +426,16 @@ export class DrillState {
       this.mistakeKind.set(null);
       const level = this.maskLevel();
       if (level >= cur.maxLevel) {
+        // 既に習熟済みの文を再度正解しても masteredCount/セッション完了判定を重複加算しないためのガード
+        // （完了済みの文は文一覧から何度でも再選択・再回答できるため）。
+        const alreadyMastered = sessionId
+          ? (this.drillProgress.getLevelUpProgress(sessionId)[cur.key]?.completed ?? false)
+          : false;
         if (sessionId) this.drillProgress.setLevelUpItemProgress(sessionId, cur.key, level, true);
-        this.masteredCount.update((c) => c + 1);
-        if (sessionId && !this.sampleMode()) this.checkLevelUpSessionComplete(sessionId);
+        if (!alreadyMastered) {
+          this.masteredCount.update((c) => c + 1);
+          if (sessionId && !this.sampleMode()) this.checkLevelUpSessionComplete(sessionId);
+        }
       } else {
         const nextLevel = level + 1;
         this.maskLevel.set(nextLevel);
@@ -452,7 +465,18 @@ export class DrillState {
     const { done, total } = this.progressForSession(session);
     if (total > 0 && done === total) {
       this.recordSessionCompleteForGamification(`levelup-${sessionId}`, true);
+      this.drillProgress.incrementPerfectCount(`levelup-${sessionId}`);
     }
+  }
+
+  // 選択中セッションのパーフェクト達成数（穴あきタイピング）。日付選択画面のバッジ表示に使う。
+  perfectCountForSession(session: CorrectionSession): number {
+    return this.drillProgress.getPerfectCount(`levelup-${session.id}`);
+  }
+
+  // 選択中セッションのパーフェクト達成数（穴埋めクイズ）。日付選択画面のバッジ表示に使う。
+  perfectCountForClozeSession(session: CorrectionSession): number {
+    return this.drillProgress.getPerfectCount(`cloze-${session.id}`);
   }
 
   // 同じ問題にもう一度挑戦する（mistakesの「もう一度」／levelupの「次へ」の実体。
@@ -472,10 +496,9 @@ export class DrillState {
     if (nextIndex >= this.total()) {
       this.finished.set(true);
       if (!this.sampleMode() && this.currentSessionId()) {
-        this.recordSessionCompleteForGamification(
-          `cloze-${this.currentSessionId()}`,
-          this.score() === this.total(),
-        );
+        const perfect = this.score() === this.total();
+        this.recordSessionCompleteForGamification(`cloze-${this.currentSessionId()}`, perfect);
+        if (perfect) this.drillProgress.incrementPerfectCount(`cloze-${this.currentSessionId()}`);
       }
       return;
     }
