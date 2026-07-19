@@ -66,10 +66,7 @@ export class PracticeState {
   // 添削保存のたびに呼ぶ。添削の累積統計（回数・継続日数）を記録し、新規解除された実績があれば積む。
   private recordCorrectionForGamification(): void {
     this.gamification.recordCorrectionSaved();
-    const ids = evaluateNewlyUnlocked(this.gamification.stats(), {
-      clozeAchievement: { done: 0, total: 0 },
-      levelUpAchievement: { done: 0, total: 0 },
-    });
+    const ids = evaluateNewlyUnlocked(this.gamification.stats(), { masteryProgress: {} });
     if (ids.length === 0) return;
     this.gamification.markUnlocked(ids);
     this.newlyUnlocked.update((prev) => [...prev, ...ids]);

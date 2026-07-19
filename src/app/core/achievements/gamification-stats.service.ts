@@ -12,10 +12,13 @@ import { FeatureGamificationStats, GamificationStats } from '@core/models/sessio
 import { readJson, writeJson } from '@shared/utils/local-storage.util';
 import { toDayKey } from '@shared/utils/date.util';
 import { AchievementId } from './achievement.model';
+import {
+  FEATURE_ID_CLOZE,
+  FEATURE_ID_CORRECTION,
+  FEATURE_ID_LEVELUP,
+} from './gamification-feature-id';
 
 const GAMIFICATION_STATS_KEY = 'eibun-lab-gamification-stats';
-
-export type GamificationGroup = 'correction' | 'cloze' | 'levelup';
 
 function initialFeatureStats(): FeatureGamificationStats {
   return {
@@ -35,29 +38,23 @@ function initialFeatureStats(): FeatureGamificationStats {
 
 function initialStats(): GamificationStats {
   return {
-    correction: initialFeatureStats(),
-    cloze: initialFeatureStats(),
-    levelup: initialFeatureStats(),
+    features: {
+      [FEATURE_ID_CORRECTION]: initialFeatureStats(),
+      [FEATURE_ID_CLOZE]: initialFeatureStats(),
+      [FEATURE_ID_LEVELUP]: initialFeatureStats(),
+    },
     unlockedAchievements: {},
   };
 }
 
-// 実績のグルーピングを対象機能別（correction/cloze/levelup）に再設計した際、LocalStorage の
-// 保存キーはそのまま流用したため、再設計前の旧形状（3グループに分かれていないフラットな
-// GamificationStats）のデータが残っている端末では起動時に壊れる。読み込んだJSONが新形状かを
-// 検証し、一致しなければ初期値にフォールバックする（本番未リリースのため移行処理は不要な方針、
-// docs/todo.md 参照）。
+// GamificationStats の保存形状を変更した際、LocalStorage の保存キーはそのまま流用したため、
+// 旧形状（featuresマップに一般化する前のフラットな correction/cloze/levelup フィールド構造）の
+// データが残っている端末では起動時に壊れる。読み込んだJSONが新形状かを検証し、一致しなければ
+// 初期値にフォールバックする（マイグレーションは行わない方針、docs/data-design.md §6参照）。
 export function isValidStats(value: unknown): value is GamificationStats {
   if (!value || typeof value !== 'object') return false;
   const v = value as Partial<GamificationStats>;
-  return (
-    typeof v.correction === 'object' &&
-    v.correction !== null &&
-    typeof v.cloze === 'object' &&
-    v.cloze !== null &&
-    typeof v.levelup === 'object' &&
-    v.levelup !== null
-  );
+  return typeof v.features === 'object' && v.features !== null;
 }
 
 // 前回活動日からの日数差に応じて日次ストリークを更新する（対象機能を問わず共通のロジック）。
@@ -111,28 +108,37 @@ export class GamificationStatsService {
     this._stats.set(stats);
   }
 
+  // featureId の現在の統計を返す（未登録なら初期値）。
+  private featureStats(stats: GamificationStats, featureId: string): FeatureGamificationStats {
+    return stats.features[featureId] ?? initialFeatureStats();
+  }
+
   // 添削が保存されるたびに呼ぶ。添削回数を加算し、日次ストリークを更新する。
   recordCorrectionSaved(): void {
     const prev = this._stats();
+    const feature = this.featureStats(prev, FEATURE_ID_CORRECTION);
     const today = toDayKey(new Date().toISOString());
-    const { currentDailyStreak, longestDailyStreak } = nextDailyStreak(prev.correction, today);
+    const { currentDailyStreak, longestDailyStreak } = nextDailyStreak(feature, today);
     this.save({
       ...prev,
-      correction: {
-        ...prev.correction,
-        totalAttempts: prev.correction.totalAttempts + 1,
-        currentDailyStreak,
-        longestDailyStreak,
-        lastActiveDate: today,
+      features: {
+        ...prev.features,
+        [FEATURE_ID_CORRECTION]: {
+          ...feature,
+          totalAttempts: feature.totalAttempts + 1,
+          currentDailyStreak,
+          longestDailyStreak,
+          lastActiveDate: today,
+        },
       },
     });
   }
 
   // ドリル1問分の正誤を加算する。1プレイ内連続正解の自己ベスト更新は呼び出し元（DrillState）が
   // sessionCorrectStreak を管理し、bestInSessionCorrectStreak の更新のみここで行う。
-  recordAnswer(mode: 'cloze' | 'levelup', correct: boolean, currentSessionStreak: number): void {
+  recordAnswer(featureId: string, correct: boolean, currentSessionStreak: number): void {
     const prev = this._stats();
-    const feature = prev[mode];
+    const feature = this.featureStats(prev, featureId);
     const updated: FeatureGamificationStats = {
       ...feature,
       totalAttempts: feature.totalAttempts + 1,
@@ -143,13 +149,13 @@ export class GamificationStatsService {
         currentSessionStreak,
       ),
     };
-    this.save({ ...prev, [mode]: updated });
+    this.save({ ...prev, features: { ...prev.features, [featureId]: updated } });
   }
 
   // ドリルの1セッション（1回の出題セット/日程）完了時に呼ぶ。同じ sessionKey は重複カウントしない。
-  recordSessionComplete(mode: 'cloze' | 'levelup', sessionKey: string, perfect: boolean): void {
+  recordSessionComplete(featureId: string, sessionKey: string, perfect: boolean): void {
     const prev = this._stats();
-    const feature = prev[mode];
+    const feature = this.featureStats(prev, featureId);
     if (feature.completedSessionKeys[sessionKey]) return;
 
     const today = toDayKey(new Date().toISOString());
@@ -167,7 +173,7 @@ export class GamificationStatsService {
       lastActiveDate: today,
       completedSessionKeys: { ...feature.completedSessionKeys, [sessionKey]: true },
     };
-    this.save({ ...prev, [mode]: updated });
+    this.save({ ...prev, features: { ...prev.features, [featureId]: updated } });
   }
 
   // 新規解除された実績IDを解除済みとして記録する（解除日時はISO文字列で保存）。

@@ -1,0 +1,61 @@
+<!-- @file API キー入力パネル。入力欄の右に show/hide トグルと専用の保存ボタンを置き、未保存時はその下に警告を表示する。
+     API キー欄には課金が利用者負担である旨の注意ボックスを常時表示する。 -->
+<div class="form-group">
+  <label class="label">{{ i18n.t('settings.apiKey') }}</label>
+  <p class="hint">
+    <a href="https://aistudio.google.com/app/apikey" target="_blank" rel="noopener">Google AI Studio</a>
+    {{ i18n.t('settings.apiKeyHint') }}
+  </p>
+  <div class="key-input-wrap">
+    <!-- パスワードマネージャーの保存提案を抑止するための属性群（完全な保証はない） -->
+    <input
+      class="input"
+      [type]="showKey() ? 'text' : 'password'"
+      [value]="apiKeyDraft()"
+      (input)="updateApiKey($any($event.target).value)"
+      [placeholder]="i18n.t('settings.apiKeyPlaceholder')"
+      autocomplete="off"
+      data-lpignore="true"
+      data-1p-ignore="true"
+      data-bwignore="true"
+      data-form-type="other"
+    />
+    <button class="toggle-key" (click)="showKey.set(!showKey())" type="button">
+      {{ showKey() ? i18n.t('settings.hide') : i18n.t('settings.show') }}
+    </button>
+    <!-- API キーだけは入力途中の値を永続化しないよう、明示的な保存を要求する -->
+    <button
+      class="save-key"
+      [class.pending]="isDirty()"
+      [disabled]="!isDirty()"
+      (click)="saveApiKey()"
+      type="button"
+    >
+      @if (saved()) {
+        ✓
+      } @else {
+        {{ i18n.t('settings.save') }}
+      }
+    </button>
+  </div>
+  @if (isDirty()) {
+    <p class="unsaved-hint">{{ i18n.t('settings.unsavedHint') }}</p>
+  }
+
+  <!-- ── 課金に関する注意（免責事項と整合させること。「無料」と断定しない） ─────────── -->
+  <div class="key-warning">
+    <strong>{{ i18n.t('settings.billingTitle') }}</strong>
+    <ul>
+      <li>{{ i18n.t('settings.billing1') }}</li>
+      <li>{{ i18n.t('settings.billing2') }}</li>
+      <li>{{ i18n.t('settings.billing3') }}</li>
+    </ul>
+    <p class="hint">
+      <a href="https://ai.google.dev/pricing" target="_blank" rel="noopener">{{
+        i18n.t('settings.pricing')
+      }}</a>
+      ・
+      <a routerLink="/legal/disclaimer">{{ i18n.t('consent.disclaimer') }}</a>
+    </p>
+  </div>
+</div>

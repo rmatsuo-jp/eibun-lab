@@ -198,14 +198,14 @@
       <p class="result-stats">
         {{
           i18n.t('drill.stats.bestStreak', {
-            streak: state.gamificationStats().cloze.bestInSessionCorrectStreak,
+            streak: state.gamificationStats().features['cloze'].bestInSessionCorrectStreak,
           })
         }}
       </p>
       <p class="result-stats">
         {{
           i18n.t('drill.stats.dailyStreak', {
-            days: state.gamificationStats().cloze.currentDailyStreak,
+            days: state.gamificationStats().features['cloze'].currentDailyStreak,
           })
         }}
       </p>

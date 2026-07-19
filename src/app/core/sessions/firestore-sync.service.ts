@@ -4,7 +4,7 @@
  * ログイン状態（AuthService）を監視して、ログインした瞬間にクラウドと双方向同期する。
  * 削除は物理削除せず deleted フラグ（tombstone）で表現し、削除も多端末へ伝播させる。
  * mistakes/reviewItems/levelUpItems は配列要素自身にも optional フィールド（explanationEn 等）を
- * 持つため、トップレベルだけでなく配列要素内の undefined キーも stripUndefinedDeep() で除去する。
+ * 持つため、トップレベルだけでなく配列要素内の undefined キーも stripUndefinedShallow() で除去する。
  * 同期失敗は syncError signal（読み取り専用）にメッセージを流し、app.ts がグローバルバナーで
  * ユーザーに知らせる（次回の同期成功時に自動でクリアされる）。
  * push に失敗したセッションは pendingPush に保持し、オンライン復帰（window の online イベント）時に
