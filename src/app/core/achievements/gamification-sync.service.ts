@@ -9,6 +9,8 @@
  * 和集合に対して共通の mergeFeatureStats() を使い回す（featureId別に分岐しない汎用実装）。
  * 同期失敗は syncError signal（読み取り専用）にメッセージを流し、app.ts がグローバルバナーで
  * ユーザーに知らせる（次回の同期成功時に自動でクリアされる）。
+ * setDoc 直前は必ず stripUndefinedDeep() を通し、lastActiveDate 等 undefined になり得る任意
+ * フィールドを取り除く（Firestore は undefined を受け付けないため）。
  */
 import { effect, Injectable, inject, signal } from '@angular/core';
 import { doc, getDoc, setDoc } from 'firebase/firestore';
@@ -17,6 +19,12 @@ import { AuthService } from '@core/firebase/auth.service';
 import { firestore } from '@core/firebase/firebase.init';
 import { AchievementId } from './achievement.model';
 import { GamificationStatsService, isValidStats } from './gamification-stats.service';
+
+// Firestore は undefined を受け付けないため、setDoc 直前に再帰的に undefined フィールドを取り除く
+// （lastActiveDate は未着手の機能だと undefined になり得るため、jsonの往復で確実に落とす）。
+function stripUndefinedDeep<T>(value: T): T {
+  return JSON.parse(JSON.stringify(value)) as T;
+}
 
 // mergeFeatureStats() でどちらか一方にしかfeatureIdが存在しない場合のフォールバック初期値。
 const EMPTY_FEATURE_STATS: FeatureGamificationStats = {
@@ -91,7 +99,7 @@ export class GamificationSyncService {
   private pushStats(): void {
     const uid = this.auth.user()?.uid;
     if (!uid) return;
-    setDoc(this.statsDoc(uid), this.store.allStats())
+    setDoc(this.statsDoc(uid), stripUndefinedDeep(this.store.allStats()))
       .then(() => this._syncError.set(null))
       .catch((err) => {
         console.error('[GamificationSyncService] 同期に失敗:', err);
@@ -130,7 +138,7 @@ export class GamificationSyncService {
     this.store.persist(merged);
 
     if (JSON.stringify(merged) !== JSON.stringify(cloud)) {
-      await setDoc(this.statsDoc(uid), merged);
+      await setDoc(this.statsDoc(uid), stripUndefinedDeep(merged));
     }
   }
 
