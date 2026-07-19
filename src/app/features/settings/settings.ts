@@ -8,6 +8,7 @@
  * 未保存の API キーは isDirty で検知し、保存ボタンの強調表示と離脱時の確認ダイアログ（settings.guard.ts）に使う。
  * 選択可能なモデル一覧は gemini-models.constants.ts を共用する（settings-store.service.ts のデフォルト優先順位と同一ソース）。
  * 末尾に法的情報（プライバシーポリシー・利用規約・免責事項、pages/legal）への導線を持つ。
+ * バージョン情報の直下にGitHubリポジトリへの外部リンクを表示する（githubUrl）。
  * 表示言語（テーマの直下）も即時保存対象。updateLanguage() は I18nService.setLang() で即時反映しつつ
  * settings signal を更新して persist() する（updateTheme() と同じ即時保存パターン）。
  */
@@ -59,9 +60,10 @@ export class Settings {
     }
   }
 
-  // ── バージョン情報（version.ts はビルド時に自動生成） ──
+  // ── バージョン情報（version.ts はビルド時に自動生成）／GitHubリポジトリ導線 ──
   readonly version = APP_VERSION;
   readonly releaseDate = RELEASE_DATE;
+  readonly githubUrl = 'https://github.com/rmatsuo-jp/eibun-lab';
 
   readonly models = GEMINI_MODELS;
 

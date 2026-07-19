@@ -150,6 +150,14 @@
     <p class="hint">{{ i18n.t('settings.versionLine', { version, date: releaseDate }) }}</p>
   </div>
 
+  <!-- ── GitHubリポジトリ ─────────── -->
+  <div class="form-group">
+    <label class="label">{{ i18n.t('settings.github') }}</label>
+    <p class="hint">
+      <a [href]="githubUrl" target="_blank" rel="noopener">{{ githubUrl }}</a>
+    </p>
+  </div>
+
   <!-- ── アカウント（Google ログインでデータを複数端末で共有。参照頻度が低いためページ末尾に置く） ─────────── -->
   <div class="form-group">
     <label class="label">{{ i18n.t('settings.account') }}</label>
