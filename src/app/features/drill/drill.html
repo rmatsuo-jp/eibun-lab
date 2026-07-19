@@ -15,7 +15,13 @@
      実績解除時は画面上部にトーストを表示し（state.newlyUnlocked()）、結果サマリー（clozeのみ）には
      現在の連続正解自己ベスト・継続日数（state.gamificationStats()）を表示する。 -->
 <div class="page">
-  <h1 class="page-title">{{ i18n.t('drill.title') }}</h1>
+  <h1 class="page-title">
+    {{
+      state.started()
+        ? i18n.t(state.mode() === 'levelup' ? 'drill.levelup.name' : 'drill.cloze.name')
+        : i18n.t('drill.title')
+    }}
+  </h1>
 
   @if (state.newlyUnlocked().length > 0) {
     <!-- ── 実績解除トースト（ドリル画面内のみ表示） ── -->
@@ -40,8 +46,10 @@
         (click)="state.start('cloze')"
         [disabled]="state.clozeCount() === 0 && !state.isNewUser()"
       >
-        <span class="mode-number">1</span>
-        <strong>{{ i18n.t('drill.cloze.name') }}</strong>
+        <div class="mode-card-header">
+          <span class="mode-number">1</span>
+          <strong>{{ i18n.t('drill.cloze.name') }}</strong>
+        </div>
         <p>{{ i18n.t('drill.cloze.desc') }}</p>
         @if (state.clozeCount() === 0 && state.isNewUser()) {
           <p class="empty-note">{{ i18n.t('drill.cloze.sampleNote') }}</p>
@@ -65,8 +73,10 @@
         (click)="state.start('levelup')"
         [disabled]="state.levelUpCount() === 0 && !state.isNewUser()"
       >
-        <span class="mode-number">2</span>
-        <strong>{{ i18n.t('drill.levelup.name') }}</strong>
+        <div class="mode-card-header">
+          <span class="mode-number">2</span>
+          <strong>{{ i18n.t('drill.levelup.name') }}</strong>
+        </div>
         <p>{{ i18n.t('drill.levelup.desc') }}</p>
         @if (state.levelUpCount() === 0 && state.isNewUser()) {
           <p class="empty-note">{{ i18n.t('drill.levelup.sampleNote') }}</p>
@@ -215,14 +225,16 @@
     </div>
   } @else if (state.mode() === 'levelup') {
     <!-- ── 穴あきタイピング出題中 ── -->
-    <div class="progress">
-      {{ state.index() + 1 }} / {{ state.total() }}
-      <button class="link-button" (click)="state.backToSentenceList()">
+    <div class="date-select-header">
+      <button class="btn-secondary" (click)="state.backToSentenceList()">
         {{ i18n.t('drill.backToSentenceList') }}
       </button>
-      <button class="link-button" (click)="state.backToDateSelect()">
+      <button class="btn-secondary" (click)="state.backToDateSelect()">
         {{ i18n.t('drill.backToDateSelect') }}
       </button>
+    </div>
+    <div class="progress">
+      {{ state.index() + 1 }} / {{ state.total() }}
     </div>
 
     @if (state.currentLevelUp(); as item) {
@@ -311,11 +323,13 @@
     }
   } @else {
     <!-- ── 出題中（穴埋めクイズ） ── -->
-    <div class="progress">
-      {{ state.index() + 1 }} / {{ state.total() }}
-      <button class="link-button" (click)="state.backToDateSelect()">
+    <div class="date-select-header">
+      <button class="btn-secondary" (click)="state.backToDateSelect()">
         {{ i18n.t('drill.backToDateSelect') }}
       </button>
+    </div>
+    <div class="progress">
+      {{ state.index() + 1 }} / {{ state.total() }}
     </div>
 
     @if (state.current(); as q) {
