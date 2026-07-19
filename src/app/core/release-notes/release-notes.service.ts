@@ -6,6 +6,8 @@
  * 「前回既読バージョン」は localStorage に保存し、未読の全バージョン分をまとめて返す。
  * 初回起動（未読バージョンが未保存）時は、過去の全履歴が一度に表示されるのを避けるため、
  * 現在のバージョンを黙って既読として記録し、モーダルは表示しない。
+ * getAllNotes() は既読/未読を問わず全件を返す。設定ページの「リリースノートを見る」から
+ * ユーザーが能動的に過去の履歴を閲覧する用途で、既読状態には一切影響しない。
  */
 import { Injectable } from '@angular/core';
 import { readJson, writeJson } from '@shared/utils/local-storage.util';
@@ -46,6 +48,11 @@ export class ReleaseNotesService {
 
   markSeen(version: string): void {
     writeJson<StoredSeen>(SEEN_KEY, { lastSeenVersion: version });
+  }
+
+  // 既読/未読を問わず CHANGELOG.md の全バージョン分を返す（設定ページの手動閲覧用）。
+  async getAllNotes(): Promise<ReleaseNoteEntry[]> {
+    return this.fetchAndParse();
   }
 
   private async fetchAndParse(): Promise<ReleaseNoteEntry[]> {

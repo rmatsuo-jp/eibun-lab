@@ -337,6 +337,8 @@ const ja = {
     '上から順に試行します。API送信に失敗した場合、次のモデルに自動的に切り替わります。ドラッグして並び替えできます。',
   'settings.version': 'バージョン情報',
   'settings.versionLine': 'Ver {version}（リリース日 {date}）',
+  'settings.showReleaseNotes': 'リリースノートを見る',
+  'settings.hideReleaseNotes': '閉じる',
   'settings.github': 'GitHub',
   'settings.confirmLeave': 'API キーの変更が保存されていません。移動しますか？',
 } as const;
@@ -683,6 +685,8 @@ const en: Record<TranslationKey, string> = {
     'Tried from top to bottom. If a request fails, it automatically falls back to the next model. Drag to reorder.',
   'settings.version': 'Version Info',
   'settings.versionLine': 'Version {version} (released {date})',
+  'settings.showReleaseNotes': 'View Release Notes',
+  'settings.hideReleaseNotes': 'Close',
   'settings.github': 'GitHub',
   'settings.confirmLeave': 'Your API key changes have not been saved. Leave anyway?',
 };

@@ -9,6 +9,9 @@
  * 選択可能なモデル一覧は gemini-models.constants.ts を共用する（settings-store.service.ts のデフォルト優先順位と同一ソース）。
  * 末尾に法的情報（プライバシーポリシー・利用規約・免責事項、pages/legal）への導線を持つ。
  * バージョン情報の直下にGitHubリポジトリへの外部リンクを表示する（githubUrl）。
+ * バージョン情報のすぐ下に「リリースノートを見る」の開閉導線を持つ。ReleaseNotesService.getAllNotes()
+ * で CHANGELOG.md 全件を取得し、初回展開時のみ fetch して allNotes にキャッシュする
+ * （app.ts の新機能モーダルとは独立で、既読バージョンの状態には影響しない）。
  * 表示言語（テーマの直下）も即時保存対象。updateLanguage() は I18nService.setLang() で即時反映しつつ
  * settings signal を更新して persist() する（updateTheme() と同じ即時保存パターン）。
  */
@@ -20,6 +23,7 @@ import { normalizeApiKey } from '@core/settings/api-key.util';
 import { AuthService } from '@core/firebase/auth.service';
 import { GEMINI_MODELS } from '@core/gemini/gemini-models.constants';
 import { I18nService } from '@core/i18n/i18n.service';
+import { ReleaseNotesService, ReleaseNoteEntry } from '@core/release-notes/release-notes.service';
 import { APP_VERSION, RELEASE_DATE } from '../../../version';
 
 @Component({
@@ -33,6 +37,7 @@ export class Settings {
   private settingsStore = inject(SettingsStoreService);
   private auth = inject(AuthService);
   protected i18n = inject(I18nService);
+  private releaseNotes = inject(ReleaseNotesService);
 
   // ── アカウント（Google SSO） ──────────────────────────────────────
   readonly user = this.auth.user;
@@ -64,6 +69,17 @@ export class Settings {
   readonly version = APP_VERSION;
   readonly releaseDate = RELEASE_DATE;
   readonly githubUrl = 'https://github.com/rmatsuo-jp/eibun-lab';
+
+  // ── リリースノート一覧（開いたときのみ fetch し、以後はキャッシュする） ──
+  protected showAllNotes = signal(false);
+  protected allNotes = signal<ReleaseNoteEntry[] | null>(null);
+
+  async toggleAllNotes() {
+    this.showAllNotes.update((v) => !v);
+    if (this.showAllNotes() && this.allNotes() === null) {
+      this.allNotes.set(await this.releaseNotes.getAllNotes());
+    }
+  }
 
   readonly models = GEMINI_MODELS;
 

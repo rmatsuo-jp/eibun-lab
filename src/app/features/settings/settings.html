@@ -144,10 +144,41 @@
     </ul>
   </div>
 
-  <!-- ── バージョン情報（version.ts はビルド時に自動生成） ─────────── -->
+  <!-- ── バージョン情報（version.ts はビルド時に自動生成）。直下に過去のリリースノート一覧への開閉導線 ─── -->
   <div class="form-group">
     <label class="label">{{ i18n.t('settings.version') }}</label>
     <p class="hint">{{ i18n.t('settings.versionLine', { version, date: releaseDate }) }}</p>
+    <button type="button" class="link-button" (click)="toggleAllNotes()">
+      {{ showAllNotes() ? i18n.t('settings.hideReleaseNotes') : i18n.t('settings.showReleaseNotes') }}
+    </button>
+    @if (showAllNotes()) {
+      @if (allNotes(); as notes) {
+        <div class="release-notes-list">
+          @for (entry of notes; track entry.version) {
+            <h4>
+              v{{ entry.version }}<span class="whats-new-date">（{{ entry.date }}）</span>
+            </h4>
+            @if (entry.features.length) {
+              <ul>
+                @for (f of entry.features; track f) {
+                  <li>{{ f }}</li>
+                }
+              </ul>
+            }
+            @if (entry.fixes.length) {
+              <details>
+                <summary>{{ i18n.t('whatsNew.fixes') }}</summary>
+                <ul>
+                  @for (f of entry.fixes; track f) {
+                    <li>{{ f }}</li>
+                  }
+                </ul>
+              </details>
+            }
+          }
+        </div>
+      }
+    }
   </div>
 
   <!-- ── GitHubリポジトリ ─────────── -->
