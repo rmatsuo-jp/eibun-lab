@@ -5,18 +5,12 @@
   <p class="achievements-summary">
     {{ i18n.t('achievements.unlockedCount', { done: unlockedCount(), total: totalCount }) }}
   </p>
-  <div
+  <app-progress-bar
     class="achievements-overall-progress-bar"
-    role="progressbar"
-    [attr.aria-valuenow]="overallProgressPercent()"
-    aria-valuemin="0"
-    aria-valuemax="100"
-  >
-    <div
-      class="achievements-overall-progress-fill"
-      [style.width.%]="overallProgressPercent()"
-    ></div>
-  </div>
+    tone="success"
+    [value]="unlockedCount()"
+    [max]="totalCount"
+  ></app-progress-bar>
 
   @for (group of groups; track group) {
     <section class="achievement-category">
@@ -34,18 +28,13 @@
               <span class="achievement-status">
                 {{ i18n.t('achievements.progress', { progress: view.progressText }) }}
               </span>
-              <div
+              <app-progress-bar
                 class="achievement-progress-bar"
-                role="progressbar"
-                [attr.aria-valuenow]="view.progressRatio! * 100"
-                aria-valuemin="0"
-                aria-valuemax="100"
-              >
-                <div
-                  class="achievement-progress-fill"
-                  [style.width.%]="view.progressRatio! * 100"
-                ></div>
-              </div>
+                size="sm"
+                tone="success"
+                [value]="view.progressRatio!"
+                [max]="1"
+              ></app-progress-bar>
             } @else {
               <span class="achievement-status">{{ i18n.t('achievements.locked') }}</span>
             }

@@ -226,7 +226,7 @@
     </div>
 
     @if (state.currentLevelUp(); as item) {
-      <div class="quiz-card">
+      <app-card class="quiz-card">
         @if (state.sampleMode()) {
           <span class="achievement-badge">{{ i18n.t('drill.sampleBadge') }}</span>
         }
@@ -307,7 +307,7 @@
             }
           </div>
         }
-      </div>
+      </app-card>
     }
   } @else {
     <!-- ── 出題中（穴埋めクイズ） ── -->
@@ -319,8 +319,8 @@
     </div>
 
     @if (state.current(); as q) {
-      <div class="quiz-card">
-        <span class="category-badge">{{ q.badge }}</span>
+      <app-card class="quiz-card">
+        <app-badge>{{ q.badge }}</app-badge>
         @if (state.sampleMode()) {
           <span class="achievement-badge">{{ i18n.t('drill.sampleBadge') }}</span>
         }
@@ -371,7 +371,9 @@
                   [class.correct]="c === q.answer"
                   [class.wrong]="c !== q.answer"
                 >
-                  <span class="choice-mark">{{ c === q.answer ? '○' : '✕' }}</span>
+                  <span class="choice-mark">
+                    <app-icon [name]="c === q.answer ? 'correct' : 'incorrect'"></app-icon>
+                  </span>
                   <span class="choice-text">{{ c }}</span>
                   <span class="choice-explanation">{{ q.choiceExplanations[i] }}</span>
                 </div>
@@ -417,7 +419,7 @@
             </button>
           </div>
         }
-      </div>
+      </app-card>
     }
   }
 </div>

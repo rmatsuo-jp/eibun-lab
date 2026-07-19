@@ -124,7 +124,7 @@
       [disabled]="state.loading() || !state.userText().trim() || !settingsStore.hasApiKey()"
     >
       @if (state.loading()) {
-        <span class="spinner"></span> {{ i18n.t('practice.submitting') }}
+        <app-spinner></app-spinner> {{ i18n.t('practice.submitting') }}
       } @else {
         {{ i18n.t('practice.submit') }}
       }
@@ -201,7 +201,7 @@
         <div class="mistakes-list">
           @for (m of state.result()!.mistakes; track m.original) {
             <div class="mistake-card">
-              <span class="category-badge">{{ categoryText(m) }}</span>
+              <app-badge>{{ categoryText(m) }}</app-badge>
               <div class="mistake-row">
                 <span class="mistake-label">{{ i18n.t('practice.mistakeOriginal') }}</span>
                 <span class="mistake-original">{{ m.original }}</span>
@@ -261,7 +261,7 @@
             [disabled]="state.bulkRunning() || !settingsStore.hasApiKey()"
           >
             @if (state.bulkRunning()) {
-              <span class="spinner"></span> {{ i18n.t('practice.bulk.running') }}
+              <app-spinner></app-spinner> {{ i18n.t('practice.bulk.running') }}
             } @else {
               {{ i18n.t('practice.bulk.run') }}
             }
@@ -276,7 +276,7 @@
         @for (p of state.bulkProgress(); track p.date + p.text) {
           <div class="bulk-progress-item" [class]="'status-' + p.status">
             <span class="bulk-date">{{ p.date }}</span>
-            <span class="bulk-status-badge">
+            <app-badge [variant]="p.status === 'success' ? 'success' : p.status === 'error' ? 'error' : 'default'">
               @switch (p.status) {
                 @case ('pending') {
                   {{ i18n.t('practice.bulk.pending') }}
@@ -291,7 +291,7 @@
                   {{ i18n.t('practice.bulk.error') }}
                 }
               }
-            </span>
+            </app-badge>
             @if (p.errorMessage) {
               <span class="bulk-error-message">{{ p.errorMessage }}</span>
             }

@@ -187,20 +187,6 @@
   gap: 0.5rem;
 }
 
-.spinner {
-  width: 1rem;
-  height: 1rem;
-  border: 2px solid rgba(255, 255, 255, 0.4);
-  border-top-color: #fff;
-  border-radius: 50%;
-  animation: spin 0.7s linear infinite;
-}
-
-@keyframes spin {
-  to {
-    transform: rotate(360deg);
-  }
-}
 
 // ── 添削中の進捗バー（ストリーミング実測。mistakes.scss の .bar-wrap/.bar と同系統） ──
 .progress-row {
@@ -284,14 +270,8 @@
   padding: 0.875rem 1rem;
 }
 
-.category-badge {
+.mistake-card > app-badge {
   display: inline-block;
-  background: var(--color-primary-light);
-  color: var(--color-primary);
-  font-size: 0.75rem;
-  font-weight: 700;
-  padding: 0.2rem 0.6rem;
-  border-radius: 999px;
   margin-bottom: 0.5rem;
 }
 
@@ -449,25 +429,6 @@
   overflow: hidden;
   text-overflow: ellipsis;
   white-space: nowrap;
-}
-
-.bulk-status-badge {
-  font-size: 0.75rem;
-  font-weight: 700;
-  padding: 0.1rem 0.5rem;
-  border-radius: 999px;
-  background: var(--color-primary-light);
-  color: var(--color-primary);
-}
-
-.status-error .bulk-status-badge {
-  background: var(--color-error-bg);
-  color: var(--color-error);
-}
-
-.status-success .bulk-status-badge {
-  background: var(--color-success-bg);
-  color: var(--color-success);
 }
 
 .bulk-error-message {

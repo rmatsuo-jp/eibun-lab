@@ -1,0 +1,18 @@
+// ── カード共通recipe。styles.scss の .card と同一の見た目をコンポーネント化したもの ──
+:host {
+  display: block;
+}
+
+.card {
+  background: var(--color-surface);
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-md);
+}
+
+.card-md {
+  padding: var(--space-5);
+}
+
+.card-sm {
+  padding: var(--space-3) var(--space-5);
+}

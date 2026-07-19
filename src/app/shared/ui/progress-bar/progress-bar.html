@@ -1,0 +1,9 @@
+<div
+  class="progress-bar"
+  [class]="'progress-bar-' + size()"
+  role="progressbar"
+  [attr.aria-valuenow]="value()"
+  [attr.aria-valuemax]="max()"
+>
+  <div class="progress-bar-fill" [class]="'progress-bar-fill-' + tone()" [style.width.%]="percent()"></div>
+</div>

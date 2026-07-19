@@ -22,6 +22,8 @@ import { RouterLink } from '@angular/router';
 import { SettingsStoreService } from '@core/settings/settings-store.service';
 import { DomSanitizer, SafeHtml } from '@angular/platform-browser';
 import { renderSafeMarkdown } from '@shared/utils/markdown.util';
+import { Badge } from '@shared/ui/badge/badge';
+import { Spinner } from '@shared/ui/spinner/spinner';
 import { parseBulkImportJson } from './bulk-import.util';
 import { formatTimestampForFilename } from '@shared/utils/date.util';
 import { I18nService } from '@core/i18n/i18n.service';
@@ -39,7 +41,7 @@ import { WaitingQuiz } from './waiting-quiz/waiting-quiz';
 
 @Component({
   selector: 'app-practice',
-  imports: [FormsModule, RouterLink, WaitingQuiz],
+  imports: [FormsModule, RouterLink, WaitingQuiz, Badge, Spinner],
   templateUrl: './practice.html',
   styleUrl: './practice.scss',
   changeDetection: ChangeDetectionStrategy.OnPush,

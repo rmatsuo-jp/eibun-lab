@@ -206,23 +206,6 @@
   margin-bottom: 0.75rem;
 }
 
-.quiz-card {
-  background: var(--color-surface);
-  border: 1px solid var(--color-border);
-  border-radius: 0.75rem;
-  padding: 1.25rem;
-}
-
-.category-badge {
-  display: inline-block;
-  background: var(--color-primary-light);
-  color: var(--color-primary);
-  font-size: 0.7rem;
-  font-weight: 700;
-  padding: 0.15rem 0.5rem;
-  border-radius: 999px;
-}
-
 // 笏笏 遨ｴ縺ゅ″繧ｿ繧､繝斐Φ繧ｰ縺ｮ繝槭せ繧ｯ谿ｵ髫手｡ｨ遉ｺ 笏笏笏笏笏笏笏笏笏笏笏笏笏笏笏笏笏笏笏笏笏笏
 .mask-progress {
   font-size: 0.8125rem;
@@ -369,7 +352,7 @@
 }
 
 // ── 4択モードの「ヒントを見る」ボタン: 選択肢との間隔確保のため高さを抑える ──
-.quiz-card > .btn-secondary {
+.quiz-card .btn-secondary {
   padding: 0.5rem 1rem;
   margin-bottom: 0.75rem;
 }

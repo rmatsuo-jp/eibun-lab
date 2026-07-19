@@ -4,18 +4,8 @@
 }
 
 .achievements-overall-progress-bar {
-  height: 10px;
-  border-radius: 5px;
-  background: var(--color-border);
-  overflow: hidden;
+  display: block;
   margin-bottom: 1.5rem;
-}
-
-.achievements-overall-progress-fill {
-  height: 100%;
-  background: var(--color-success);
-  border-radius: 5px;
-  transition: width 0.2s ease;
 }
 
 .achievement-category {
@@ -68,16 +58,6 @@
 }
 
 .achievement-progress-bar {
+  display: block;
   margin-top: 0.375rem;
-  height: 6px;
-  border-radius: 3px;
-  background: var(--color-border);
-  overflow: hidden;
-}
-
-.achievement-progress-fill {
-  height: 100%;
-  background: var(--color-success);
-  border-radius: 3px;
-  transition: width 0.2s ease;
 }

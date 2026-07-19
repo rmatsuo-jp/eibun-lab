@@ -14,6 +14,7 @@ import { AchievementGroup } from '@core/achievements/achievement.model';
 import { GamificationSyncService } from '@core/achievements/gamification-sync.service';
 import { I18nService } from '@core/i18n/i18n.service';
 import { TranslationKey } from '@core/i18n/translations';
+import { ProgressBar } from '@shared/ui/progress-bar/progress-bar';
 
 // AchievementDef.titleKey/descKey は core 層（i18n非依存）のため string 型で定義されている。
 // ここで i18n の TranslationKey へキャストする（core/i18n/localized-session.util.ts と同じ方針）。
@@ -31,7 +32,7 @@ const GROUP_ORDER: AchievementGroup[] = ['correction', 'cloze', 'levelup'];
 
 @Component({
   selector: 'app-achievements',
-  imports: [DatePipe],
+  imports: [DatePipe, ProgressBar],
   templateUrl: './achievements.html',
   styleUrl: './achievements.scss',
   changeDetection: ChangeDetectionStrategy.OnPush,
@@ -78,8 +79,4 @@ export class Achievements {
   );
 
   protected totalCount = ACHIEVEMENTS.length;
-
-  protected overallProgressPercent = computed(
-    () => (this.unlockedCount() / this.totalCount) * 100,
-  );
 }
