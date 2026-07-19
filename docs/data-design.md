@@ -12,78 +12,78 @@
 
 ### Mistake（1件のミス情報）
 
-| フィールド    | 型     | 任意 | 意味                                                                                                     |
-| ------------- | ------ | ---- | ---------------------------------------------------------------------------------------------------------- |
-| category      | string | 必須 | ミスのカテゴリ（日本語固定文字列）                                                                       |
+| フィールド    | 型     | 任意 | 意味                                                                                                                      |
+| ------------- | ------ | ---- | ------------------------------------------------------------------------------------------------------------------------- |
+| category      | string | 必須 | ミスのカテゴリ（日本語固定文字列）                                                                                        |
 | categoryKey   | string | 任意 | UI表示用の翻訳キー（`grammar`/`vocabulary`/`spelling`/`collocation`/`usage`/`syntax`/`word-order`）。旧データは欠落し得る |
-| original      | string | 必須 | 元の誤った表現                                                                                            |
-| corrected     | string | 必須 | 正しい表現                                                                                                |
-| explanation   | string | 必須 | 日本語解説                                                                                                |
-| explanationEn | string | 任意 | explanation の英語版                                                                                     |
+| original      | string | 必須 | 元の誤った表現                                                                                                            |
+| corrected     | string | 必須 | 正しい表現                                                                                                                |
+| explanation   | string | 必須 | 日本語解説                                                                                                                |
+| explanationEn | string | 任意 | explanation の英語版                                                                                                      |
 
 ### ReviewItem（穴埋めクイズカード。Drillの「穴埋めクイズ」モードで出題）
 
-| フィールド    | 型       | 任意 | 意味                                          |
-| ------------- | -------- | ---- | --------------------------------------------- |
-| sentence      | string   | 必須 | `___` で空所を作った英文                      |
-| answer        | string   | 必須 | 空所に入る正解の語/句                         |
-| hint          | string   | 必須 | 日本語ヒント                                  |
-| hintEn        | string   | 任意 | hint の英語版                                 |
-| translation   | string   | 必須 | 英文の日本語訳                                |
-| translationEn | string   | 任意 | translation の英語版                          |
-| choices       | string[] | 必須 | 4択（正解を1つ含む）                          |
+| フィールド    | 型       | 任意 | 意味                     |
+| ------------- | -------- | ---- | ------------------------ |
+| sentence      | string   | 必須 | `___` で空所を作った英文 |
+| answer        | string   | 必須 | 空所に入る正解の語/句    |
+| hint          | string   | 必須 | 日本語ヒント             |
+| hintEn        | string   | 任意 | hint の英語版            |
+| translation   | string   | 必須 | 英文の日本語訳           |
+| translationEn | string   | 任意 | translation の英語版     |
+| choices       | string[] | 必須 | 4択（正解を1つ含む）     |
 
 ### LevelUpItem（レベルアップ例文タイピング用、1文単位。Drillの「穴あきタイピング」モードで使用）
 
-| フィールド    | 型       | 任意 | 意味                                                             |
-| ------------- | -------- | ---- | ----------------------------------------------------------------- |
-| original      | string   | 必須 | 元の（レベルアップ前の）1文                                     |
-| leveledUp     | string   | 必須 | CEFR一段階上のレベルで書き直した1文                              |
-| keyPhrases    | string[] | 必須 | `leveledUp` 内に出現する、穴埋め対象の完全一致部分文字列          |
-| translation   | string   | 必須 | leveledUp の日本語訳                                             |
-| translationEn | string   | 任意 | translation の英語版                                             |
+| フィールド    | 型       | 任意 | 意味                                                     |
+| ------------- | -------- | ---- | -------------------------------------------------------- |
+| original      | string   | 必須 | 元の（レベルアップ前の）1文                              |
+| leveledUp     | string   | 必須 | CEFR一段階上のレベルで書き直した1文                      |
+| keyPhrases    | string[] | 必須 | `leveledUp` 内に出現する、穴埋め対象の完全一致部分文字列 |
+| translation   | string   | 必須 | leveledUp の日本語訳                                     |
+| translationEn | string   | 任意 | translation の英語版                                     |
 
 ### WritingEvaluation（1回の添削の定量評価）
 
-| フィールド      | 型     | 任意 | 意味                          |
-| --------------- | ------ | ---- | ----------------------------- |
-| grammarScore    | number | 必須 | 文法 0〜10（0.5刻み）         |
-| vocabularyScore | number | 必須 | 語彙 0〜10                    |
-| contentScore    | number | 必須 | 内容 0〜10                    |
-| overallScore    | number | 必須 | 総合平均 0〜10                |
-| errorDensity    | number | 必須 | 100語あたりのエラー数         |
-| grammarCefr     | string | 必須 | 文法の暫定CEFR（A1〜C2）      |
-| vocabularyCefr  | string | 必須 | 語彙の暫定CEFR                |
-| contentCefr     | string | 必須 | 内容の暫定CEFR                |
-| overallCefr     | string | 必須 | 総合の暫定CEFR                |
+| フィールド      | 型     | 任意 | 意味                     |
+| --------------- | ------ | ---- | ------------------------ |
+| grammarScore    | number | 必須 | 文法 0〜10（0.5刻み）    |
+| vocabularyScore | number | 必須 | 語彙 0〜10               |
+| contentScore    | number | 必須 | 内容 0〜10               |
+| overallScore    | number | 必須 | 総合平均 0〜10           |
+| errorDensity    | number | 必須 | 100語あたりのエラー数    |
+| grammarCefr     | string | 必須 | 文法の暫定CEFR（A1〜C2） |
+| vocabularyCefr  | string | 必須 | 語彙の暫定CEFR           |
+| contentCefr     | string | 必須 | 内容の暫定CEFR           |
+| overallCefr     | string | 必須 | 総合の暫定CEFR           |
 
 ### CorrectionSession（1回の添削セッション。LocalStorage保存の最小単位）
 
-| フィールド            | 型                | 任意 | 意味                                                                                          |
-| --------------------- | ----------------- | ---- | ----------------------------------------------------------------------------------------------- |
-| id                    | string            | 必須 | 一意ID（日付非依存、`Date.now()+random`）                                                     |
-| date                  | string             | 必須 | ISO 8601（選択日付）                                                                           |
-| original              | string             | 必須 | ユーザーが入力した英文                                                                          |
-| corrected             | string             | 必須 | 添削解説プローズ（`grammarNotes`等5項目を結合した後方互換フィールド）                          |
-| correctedEn           | string             | 任意 | corrected の英語版                                                                              |
-| correctedText         | string             | 任意 | 添削後の完成版の全文（後方互換）                                                                |
-| grammarNotes          | string             | 任意 | 文法・語法のミスの指摘                                                                          |
-| grammarNotesEn        | string             | 任意 | grammarNotes の英語版                                                                           |
-| naturalExpressions    | string             | 任意 | 自然な表現の提案                                                                                |
-| naturalExpressionsEn  | string             | 任意 | naturalExpressions の英語版                                                                     |
-| grammarTendency       | string             | 任意 | 文法のミスの傾向                                                                                |
-| grammarTendencyEn     | string             | 任意 | grammarTendency の英語版                                                                        |
-| cefrRationale         | string             | 任意 | CEFR評価の根拠                                                                                  |
-| cefrRationaleEn       | string             | 任意 | cefrRationale の英語版                                                                          |
-| studyPlan             | string             | 任意 | 学習法の提案                                                                                    |
-| studyPlanEn           | string             | 任意 | studyPlan の英語版                                                                              |
-| mistakes              | Mistake[]          | 必須 | ミス一覧                                                                                        |
-| evaluation            | WritingEvaluation  | 任意 | 定量評価が有効なセッションのみ                                                                  |
-| reviewItems           | ReviewItem[]       | 任意 | 復習カード生成が有効なセッションのみ（後方互換）                                                |
-| levelUpItems          | LevelUpItem[]      | 任意 | レベルアップ例文タイピング用（Drill専用、後方互換）                                             |
-| levelUpText           | string             | 任意 | レベルアップ後の全文（後方互換）                                                                |
-| deleted               | boolean            | 任意 | 論理削除フラグ（tombstone）。多端末同期のため物理削除しない                                     |
-| model                 | string             | 任意 | 添削に実際に使用されたGeminiモデルID（modelPriorityフォールバック後の最終選択）                 |
+| フィールド           | 型                | 任意 | 意味                                                                            |
+| -------------------- | ----------------- | ---- | ------------------------------------------------------------------------------- |
+| id                   | string            | 必須 | 一意ID（日付非依存、`Date.now()+random`）                                       |
+| date                 | string            | 必須 | ISO 8601（選択日付）                                                            |
+| original             | string            | 必須 | ユーザーが入力した英文                                                          |
+| corrected            | string            | 必須 | 添削解説プローズ（`grammarNotes`等5項目を結合した後方互換フィールド）           |
+| correctedEn          | string            | 任意 | corrected の英語版                                                              |
+| correctedText        | string            | 任意 | 添削後の完成版の全文（後方互換）                                                |
+| grammarNotes         | string            | 任意 | 文法・語法のミスの指摘                                                          |
+| grammarNotesEn       | string            | 任意 | grammarNotes の英語版                                                           |
+| naturalExpressions   | string            | 任意 | 自然な表現の提案                                                                |
+| naturalExpressionsEn | string            | 任意 | naturalExpressions の英語版                                                     |
+| grammarTendency      | string            | 任意 | 文法のミスの傾向                                                                |
+| grammarTendencyEn    | string            | 任意 | grammarTendency の英語版                                                        |
+| cefrRationale        | string            | 任意 | CEFR評価の根拠                                                                  |
+| cefrRationaleEn      | string            | 任意 | cefrRationale の英語版                                                          |
+| studyPlan            | string            | 任意 | 学習法の提案                                                                    |
+| studyPlanEn          | string            | 任意 | studyPlan の英語版                                                              |
+| mistakes             | Mistake[]         | 必須 | ミス一覧                                                                        |
+| evaluation           | WritingEvaluation | 任意 | 定量評価が有効なセッションのみ                                                  |
+| reviewItems          | ReviewItem[]      | 任意 | 復習カード生成が有効なセッションのみ（後方互換）                                |
+| levelUpItems         | LevelUpItem[]     | 任意 | レベルアップ例文タイピング用（Drill専用、後方互換）                             |
+| levelUpText          | string            | 任意 | レベルアップ後の全文（後方互換）                                                |
+| deleted              | boolean           | 任意 | 論理削除フラグ（tombstone）。多端末同期のため物理削除しない                     |
+| model                | string            | 任意 | 添削に実際に使用されたGeminiモデルID（modelPriorityフォールバック後の最終選択） |
 
 `corrected`/`correctedEn`（添削解説プローズ）は、`grammarNotes`/`naturalExpressions`/`grammarTendency`/`cefrRationale`/`studyPlan`
 の5項目（各Geminiレスポンスの専用タグから独立抽出）を結合した後方互換フィールド。1項目のタグ抽出が失敗しても
@@ -92,20 +92,20 @@
 
 ### DrillProgress（ドリルの1問ごとの習熟度）
 
-| フィールド    | 型      | 任意 | 意味                                                                                     |
-| ------------- | ------- | ---- | ------------------------------------------------------------------------------------------ |
-| correctStreak | number  | 必須 | 連続正解数                                                                                |
+| フィールド    | 型      | 任意 | 意味                                                                                                |
+| ------------- | ------- | ---- | --------------------------------------------------------------------------------------------------- |
+| correctStreak | number  | 必須 | 連続正解数                                                                                          |
 | everCorrect   | boolean | 任意 | 1回でも正解したことがあるか（永続的な達成フラグ、穴埋めクイズの日付選択画面の達成バッジ判定に使用） |
-| lastAttemptAt | string  | 必須 | 直近に解答した日時（ISO 8601）                                                            |
+| lastAttemptAt | string  | 必須 | 直近に解答した日時（ISO 8601）                                                                      |
 
 `correctStreak`が一定数（`DRILL_MASTERY_STREAK`＝3）以上になると出題の重みを下げ、既に習熟した問題の再出題頻度を減らす。
 
 ### LevelUpItemProgress（穴あきタイピング1文分の進捗）
 
-| フィールド | 型      | 任意 | 意味                                             |
-| ---------- | ------- | ---- | -------------------------------------------------- |
+| フィールド | 型      | 任意 | 意味                                                    |
+| ---------- | ------- | ---- | ------------------------------------------------------- |
 | maskLevel  | number  | 必須 | 現在のマスク段階（0=全文表示 〜 maxLevel=全単語マスク） |
-| completed  | boolean | 必須 | maxLevelで正解済みか                              |
+| completed  | boolean | 必須 | maxLevelで正解済みか                                    |
 
 セッション（日付）単位でまとめて保持し、途中再開・完了判定に使う。
 
@@ -117,14 +117,14 @@
 
 正典: [settings-store.service.ts](../src/app/core/settings/settings-store.service.ts)
 
-| フィールド        | 型                | 任意 | 意味                                                              |
-| ------------------ | ----------------- | ---- | -------------------------------------------------------------------- |
-| apiKey             | string             | 必須 | Gemini APIキー（**LocalStorageには平文で保存しない**。§3参照）    |
-| modelPriority      | string[]           | 必須 | 使用モデルのフォールバック順（先頭優先）                            |
-| theme              | `'light'\|'dark'`  | 必須 | テーマ                                                              |
-| language           | Lang（`'ja'\|'en'`）| 必須 | UI表示言語・添削結果表示言語                                       |
-| consentAcceptedAt  | string             | 任意 | 同意日時（ISO 8601）。未同意なら`undefined`                        |
-| consentVersion     | number             | 任意 | 同意した規約のバージョン。未設定は`1`とみなす（現行`CONSENT_VERSION = 2`） |
+| フィールド        | 型                   | 任意 | 意味                                                                       |
+| ----------------- | -------------------- | ---- | -------------------------------------------------------------------------- |
+| apiKey            | string               | 必須 | Gemini APIキー（**LocalStorageには平文で保存しない**。§3参照）             |
+| modelPriority     | string[]             | 必須 | 使用モデルのフォールバック順（先頭優先）                                   |
+| theme             | `'light'\|'dark'`    | 必須 | テーマ                                                                     |
+| language          | Lang（`'ja'\|'en'`） | 必須 | UI表示言語・添削結果表示言語                                               |
+| consentAcceptedAt | string               | 任意 | 同意日時（ISO 8601）。未同意なら`undefined`                                |
+| consentVersion    | number               | 任意 | 同意した規約のバージョン。未設定は`1`とみなす（現行`CONSENT_VERSION = 2`） |
 
 LocalStorage実際の保存形は `StoredSettings = Partial<AppSettings> & { model?: string; apiKeyEnc?: string }`。
 `apiKey`はキーそのものとしては保存されず、代わりに暗号化済みの`apiKeyEnc`が保存される（§3参照）。
@@ -138,18 +138,18 @@ LocalStorage実際の保存形は `StoredSettings = Partial<AppSettings> & { mod
 （旧データ・生成失敗時）は表示側（[localized-session.util.ts](../src/app/core/i18n/localized-session.util.ts)）が
 自動で日本語にフォールバックする。
 
-| 日本語フィールド                       | 英語フィールド                          | 所属                |
-| --------------------------------------- | ----------------------------------------- | ------------------- |
-| `Mistake.explanation`                   | `Mistake.explanationEn`                   | Mistake              |
-| `ReviewItem.hint`                       | `ReviewItem.hintEn`                       | ReviewItem           |
-| `ReviewItem.translation`                | `ReviewItem.translationEn`                | ReviewItem           |
-| `LevelUpItem.translation`               | `LevelUpItem.translationEn`               | LevelUpItem          |
-| `CorrectionSession.corrected`           | `CorrectionSession.correctedEn`           | CorrectionSession（後方互換） |
-| `CorrectionSession.grammarNotes`        | `CorrectionSession.grammarNotesEn`        | CorrectionSession    |
-| `CorrectionSession.naturalExpressions`  | `CorrectionSession.naturalExpressionsEn`  | CorrectionSession    |
-| `CorrectionSession.grammarTendency`     | `CorrectionSession.grammarTendencyEn`     | CorrectionSession    |
-| `CorrectionSession.cefrRationale`       | `CorrectionSession.cefrRationaleEn`       | CorrectionSession    |
-| `CorrectionSession.studyPlan`           | `CorrectionSession.studyPlanEn`           | CorrectionSession    |
+| 日本語フィールド                       | 英語フィールド                           | 所属                          |
+| -------------------------------------- | ---------------------------------------- | ----------------------------- |
+| `Mistake.explanation`                  | `Mistake.explanationEn`                  | Mistake                       |
+| `ReviewItem.hint`                      | `ReviewItem.hintEn`                      | ReviewItem                    |
+| `ReviewItem.translation`               | `ReviewItem.translationEn`               | ReviewItem                    |
+| `LevelUpItem.translation`              | `LevelUpItem.translationEn`              | LevelUpItem                   |
+| `CorrectionSession.corrected`          | `CorrectionSession.correctedEn`          | CorrectionSession（後方互換） |
+| `CorrectionSession.grammarNotes`       | `CorrectionSession.grammarNotesEn`       | CorrectionSession             |
+| `CorrectionSession.naturalExpressions` | `CorrectionSession.naturalExpressionsEn` | CorrectionSession             |
+| `CorrectionSession.grammarTendency`    | `CorrectionSession.grammarTendencyEn`    | CorrectionSession             |
+| `CorrectionSession.cefrRationale`      | `CorrectionSession.cefrRationaleEn`      | CorrectionSession             |
+| `CorrectionSession.studyPlan`          | `CorrectionSession.studyPlanEn`          | CorrectionSession             |
 
 添削解説プローズ系5項目（`grammarNotes`/`naturalExpressions`/`grammarTendency`/`cefrRationale`/`studyPlan`とその`*En`）は
 [prose-fields.util.ts](../src/app/core/i18n/prose-fields.util.ts)の`PROSE_FIELDS`配列で一元管理され、
@@ -165,16 +165,16 @@ i18n翻訳キーであり、旧データには存在しないため任意。
 
 ## 3. LocalStorageキー一覧
 
-| キー                              | 定数名                     | 定義ファイル                                                                                     | 保存型                                                                 | 読み書きサービス                                          |
-| ---------------------------------- | -------------------------- | -------------------------------------------------------------------------------------------------- | ------------------------------------------------------------------------ | ------------------------------------------------------------ |
-| `correction_sessions`              | `SESSIONS_KEY`              | [session-store.service.ts](../src/app/core/sessions/session-store.service.ts)                     | `CorrectionSession[]`                                                    | `SessionStoreService`（CRUD、`deleted`フラグで論理削除）。`FirestoreSyncService`が同期 |
-| `app_settings`                     | `SETTINGS_KEY`               | [settings-store.service.ts](../src/app/core/settings/settings-store.service.ts)                    | `StoredSettings`（`Partial<AppSettings> & { model?, apiKeyEnc? }`）      | `SettingsStoreService`のみ。クラウド同期なし                |
-| `eibun-lab-drill-progress`         | `DRILL_PROGRESS_KEY`        | [drill-progress.service.ts](../src/app/features/drill/drill-progress.service.ts)                   | `Record<string, DrillProgress>`（キー=`normalizeDrillKey(...)`）        | `DrillProgressService`。`DrillProgressSyncService`が同期     |
-| `eibun-lab-levelup-progress`       | `LEVELUP_PROGRESS_KEY`      | 同上                                                                                                | `Record<string, Record<string, LevelUpItemProgress>>`（sessionId→itemKey→進捗） | 同上                                                          |
-| `eibun-lab-drill-perfect-count`    | `PERFECT_COUNT_KEY`         | 同上                                                                                                | `Record<string, number>`（キー=`` `cloze-${id}` `` / `` `levelup-${id}` ``） | 同上                                                          |
-| `eibun-lab-gamification-stats`     | `GAMIFICATION_STATS_KEY`    | [gamification-stats.service.ts](../src/app/core/achievements/gamification-stats.service.ts)        | `GamificationStats`（§6参照）                                            | `GamificationStatsService`。`GamificationSyncService`が同期  |
-| `release_notes_seen`               | `SEEN_KEY`                  | [release-notes.service.ts](../src/app/core/release-notes/release-notes.service.ts)                 | `{ lastSeenVersion?: string }`                                           | `ReleaseNotesService`のみ。クラウド同期なし                  |
-| `dev_logs`                         | `LOGS_KEY`                  | [dev-log.service.ts](../src/app/features/dev/dev-log.service.ts)                                   | `DevLogEntry[]`（最大20件）                                              | `DevLogService`のみ。開発ビルドのみ記録                      |
+| キー                            | 定数名                   | 定義ファイル                                                                                | 保存型                                                                          | 読み書きサービス                                                                       |
+| ------------------------------- | ------------------------ | ------------------------------------------------------------------------------------------- | ------------------------------------------------------------------------------- | -------------------------------------------------------------------------------------- |
+| `correction_sessions`           | `SESSIONS_KEY`           | [session-store.service.ts](../src/app/core/sessions/session-store.service.ts)               | `CorrectionSession[]`                                                           | `SessionStoreService`（CRUD、`deleted`フラグで論理削除）。`FirestoreSyncService`が同期 |
+| `app_settings`                  | `SETTINGS_KEY`           | [settings-store.service.ts](../src/app/core/settings/settings-store.service.ts)             | `StoredSettings`（`Partial<AppSettings> & { model?, apiKeyEnc? }`）             | `SettingsStoreService`のみ。クラウド同期なし                                           |
+| `eibun-lab-drill-progress`      | `DRILL_PROGRESS_KEY`     | [drill-progress.service.ts](../src/app/features/drill/drill-progress.service.ts)            | `Record<string, DrillProgress>`（キー=`normalizeDrillKey(...)`）                | `DrillProgressService`。`DrillProgressSyncService`が同期                               |
+| `eibun-lab-levelup-progress`    | `LEVELUP_PROGRESS_KEY`   | 同上                                                                                        | `Record<string, Record<string, LevelUpItemProgress>>`（sessionId→itemKey→進捗） | 同上                                                                                   |
+| `eibun-lab-drill-perfect-count` | `PERFECT_COUNT_KEY`      | 同上                                                                                        | `Record<string, number>`（キー=`` `cloze-${id}` `` / `` `levelup-${id}` ``）    | 同上                                                                                   |
+| `eibun-lab-gamification-stats`  | `GAMIFICATION_STATS_KEY` | [gamification-stats.service.ts](../src/app/core/achievements/gamification-stats.service.ts) | `GamificationStats`（§6参照）                                                   | `GamificationStatsService`。`GamificationSyncService`が同期                            |
+| `release_notes_seen`            | `SEEN_KEY`               | [release-notes.service.ts](../src/app/core/release-notes/release-notes.service.ts)          | `{ lastSeenVersion?: string }`                                                  | `ReleaseNotesService`のみ。クラウド同期なし                                            |
+| `dev_logs`                      | `LOGS_KEY`               | [dev-log.service.ts](../src/app/features/dev/dev-log.service.ts)                            | `DevLogEntry[]`（最大20件）                                                     | `DevLogService`のみ。開発ビルドのみ記録                                                |
 
 `DevLogEntry`は`GeminiLogRecord`（[gemini-log.token.ts](../src/app/core/logging/gemini-log.token.ts)）を拡張し、
 `id`・`timestamp`を追加したもの。`GeminiLogRecord`は`model`/`fullPrompt`/`userText`/`rawResponse`/`parsed`/`parseWarnings?`を持つ。
@@ -218,11 +218,11 @@ service cloud.firestore {
 
 すべて `apps/eibun_lab/users/{uid}/` 配下（`apps/eibun_lab`は他アプリとのFirebaseプロジェクト共有を想定した名前空間）。
 
-| パス                                                    | 内容                                                            | ドキュメント粒度                     |
-| --------------------------------------------------------- | ------------------------------------------------------------------ | --------------------------------------- |
-| `sessions/{sessionId}`                                    | `CorrectionSession`をそのまま保存                                  | セッション単位（1セッション=1ドキュメント） |
-| `drillProgress/data`                                      | `{ drillProgress?, levelUpProgress?, perfectCounts? }`             | 固定ID`data`の単一ドキュメント          |
-| `gamification/data`                                       | `GamificationStats`相当                                           | 固定ID`data`の単一ドキュメント          |
+| パス                   | 内容                                                   | ドキュメント粒度                            |
+| ---------------------- | ------------------------------------------------------ | ------------------------------------------- |
+| `sessions/{sessionId}` | `CorrectionSession`をそのまま保存                      | セッション単位（1セッション=1ドキュメント） |
+| `drillProgress/data`   | `{ drillProgress?, levelUpProgress?, perfectCounts? }` | 固定ID`data`の単一ドキュメント              |
+| `gamification/data`    | `GamificationStats`相当                                | 固定ID`data`の単一ドキュメント              |
 
 ### sessions の同期・マージ（`FirestoreSyncService`）
 

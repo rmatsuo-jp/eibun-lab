@@ -50,7 +50,9 @@ export class DrillLevelUpState {
     item: LevelUpQuiz,
     sessionId: string | null,
   ): { maskLevel: number; completed: boolean } {
-    const saved = sessionId ? this.drillProgress.getLevelUpProgress(sessionId)[item.key] : undefined;
+    const saved = sessionId
+      ? this.drillProgress.getLevelUpProgress(sessionId)[item.key]
+      : undefined;
     return { maskLevel: saved?.maskLevel ?? 0, completed: saved?.completed ?? false };
   }
 
@@ -75,7 +77,9 @@ export class DrillLevelUpState {
 
   // 保存済みの進捗（あれば）から maskLevel を復元する。文選択時に使う。
   savedMaskLevel(sessionId: string | null, item: LevelUpQuiz): number {
-    const saved = sessionId ? this.drillProgress.getLevelUpProgress(sessionId)[item.key] : undefined;
+    const saved = sessionId
+      ? this.drillProgress.getLevelUpProgress(sessionId)[item.key]
+      : undefined;
     return saved?.maskLevel ?? 0;
   }
 

@@ -76,10 +76,7 @@ import { I18nService } from '@core/i18n/i18n.service';
 import { AchievementId } from '@core/achievements/achievement.model';
 import { evaluateNewlyUnlocked } from '@core/achievements/achievement-engine.util';
 import { GamificationSyncService } from '@core/achievements/gamification-sync.service';
-import {
-  FEATURE_ID_CLOZE,
-  FEATURE_ID_LEVELUP,
-} from '@core/achievements/gamification-feature-id';
+import { FEATURE_ID_CLOZE, FEATURE_ID_LEVELUP } from '@core/achievements/gamification-feature-id';
 import { TranslationKey } from '@core/i18n/translations';
 import {
   buildLevelUpQuiz,

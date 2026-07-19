@@ -137,16 +137,16 @@ src/
 
 ## ルーティング
 
-| パス        | 内容                                               |
-| ----------- | -------------------------------------------------- |
-| `/`         | `/practice` へリダイレクト                         |
-| `/practice` | 英文入力・添削結果表示                             |
-| `/drill`    | 弱点克服ドリル                                     |
-| `/history`  | 履歴一覧・検索・インポート/エクスポート            |
-| `/mistakes` | 学習統計ダッシュボード                             |
-| `/achievements` | 実績（バッジ・達成条件）一覧                   |
-| `/settings` | 設定（`canDeactivate` ガードで未保存変更を検知）   |
-| `/dev`      | 開発者用ページ（本番ビルドではルート自体が非搭載） |
+| パス            | 内容                                               |
+| --------------- | -------------------------------------------------- |
+| `/`             | `/practice` へリダイレクト                         |
+| `/practice`     | 英文入力・添削結果表示                             |
+| `/drill`        | 弱点克服ドリル                                     |
+| `/history`      | 履歴一覧・検索・インポート/エクスポート            |
+| `/mistakes`     | 学習統計ダッシュボード                             |
+| `/achievements` | 実績（バッジ・達成条件）一覧                       |
+| `/settings`     | 設定（`canDeactivate` ガードで未保存変更を検知）   |
+| `/dev`          | 開発者用ページ（本番ビルドではルート自体が非搭載） |
 
 ---
 
@@ -232,15 +232,15 @@ interface CorrectionSession {
 
 ## LocalStorage キー
 
-| キー                         | 内容                                                                  |
-| ---------------------------- | --------------------------------------------------------------------- |
-| `correction_sessions`        | `CorrectionSession[]` の JSON 配列（論理削除済みも含む）              |
-| `app_settings`               | `AppSettings` の JSON オブジェクト                                    |
-| `eibun-lab-drill-progress`   | ドリルの正規化キーごとの正解ストリーク（`DrillProgress`）             |
-| `eibun-lab-levelup-progress` | レベルアップドリルのセッション単位マスク進捗（`LevelUpItemProgress`） |
-| `eibun-lab-gamification-stats` | 実績判定用の正解数・パーフェクト数・連続正解等の集計統計          |
-| `release_notes_seen`         | 既読済みの最終バージョン（`lastSeenVersion`）。未読分のみ起動時モーダルに表示 |
-| `dev_logs`                   | Gemini 送受信ログ（最大20件、本番ビルドでは記録されない）             |
+| キー                           | 内容                                                                          |
+| ------------------------------ | ----------------------------------------------------------------------------- |
+| `correction_sessions`          | `CorrectionSession[]` の JSON 配列（論理削除済みも含む）                      |
+| `app_settings`                 | `AppSettings` の JSON オブジェクト                                            |
+| `eibun-lab-drill-progress`     | ドリルの正規化キーごとの正解ストリーク（`DrillProgress`）                     |
+| `eibun-lab-levelup-progress`   | レベルアップドリルのセッション単位マスク進捗（`LevelUpItemProgress`）         |
+| `eibun-lab-gamification-stats` | 実績判定用の正解数・パーフェクト数・連続正解等の集計統計                      |
+| `release_notes_seen`           | 既読済みの最終バージョン（`lastSeenVersion`）。未読分のみ起動時モーダルに表示 |
+| `dev_logs`                     | Gemini 送受信ログ（最大20件、本番ビルドでは記録されない）                     |
 
 ログイン中は、上記のうち `correction_sessions` に相当するデータが `apps/eibun_lab/users/{uid}/sessions` パスの Cloud Firestore とも双方向同期される。
 

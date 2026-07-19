@@ -5,5 +5,9 @@
   [attr.aria-valuenow]="value()"
   [attr.aria-valuemax]="max()"
 >
-  <div class="progress-bar-fill" [class]="'progress-bar-fill-' + tone()" [style.width.%]="percent()"></div>
+  <div
+    class="progress-bar-fill"
+    [class]="'progress-bar-fill-' + tone()"
+    [style.width.%]="percent()"
+  ></div>
 </div>

@@ -233,9 +233,7 @@
         {{ i18n.t('drill.backToDateSelect') }}
       </button>
     </div>
-    <div class="progress">
-      {{ state.index() + 1 }} / {{ state.total() }}
-    </div>
+    <div class="progress">{{ state.index() + 1 }} / {{ state.total() }}</div>
 
     @if (state.currentLevelUp(); as item) {
       <app-card class="quiz-card">
@@ -328,9 +326,7 @@
         {{ i18n.t('drill.backToDateSelect') }}
       </button>
     </div>
-    <div class="progress">
-      {{ state.index() + 1 }} / {{ state.total() }}
-    </div>
+    <div class="progress">{{ state.index() + 1 }} / {{ state.total() }}</div>
 
     @if (state.current(); as q) {
       <app-card class="quiz-card">
@@ -392,11 +388,7 @@
                   <span class="choice-explanation">{{ q.choiceExplanations[i] }}</span>
                 </div>
               } @else {
-                <button
-                  class="choice-btn"
-                  [disabled]="state.revealed()"
-                  (click)="state.choose(c)"
-                >
+                <button class="choice-btn" [disabled]="state.revealed()" (click)="state.choose(c)">
                   {{ c }}
                 </button>
               }

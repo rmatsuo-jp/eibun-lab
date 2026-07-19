@@ -32,7 +32,10 @@ export const CLOZE_ACHIEVEMENTS: AchievementDef[] = [
     titleKey: 'achievements.cloze-attempts-200.title',
     descKey: 'achievements.cloze-attempts-200.desc',
     isUnlocked: (s) => (s.features[FEATURE_ID_CLOZE]?.totalAttempts ?? 0) >= 200,
-    progress: { target: 200, currentValue: (s) => s.features[FEATURE_ID_CLOZE]?.totalAttempts ?? 0 },
+    progress: {
+      target: 200,
+      currentValue: (s) => s.features[FEATURE_ID_CLOZE]?.totalAttempts ?? 0,
+    },
   },
   {
     id: 'cloze-correct-10',
@@ -64,7 +67,10 @@ export const CLOZE_ACHIEVEMENTS: AchievementDef[] = [
     titleKey: 'achievements.cloze-streak-5.title',
     descKey: 'achievements.cloze-streak-5.desc',
     isUnlocked: (s) => (s.features[FEATURE_ID_CLOZE]?.bestInSessionCorrectStreak ?? 0) >= 5,
-    progress: { target: 5, currentValue: (s) => s.features[FEATURE_ID_CLOZE]?.bestInSessionCorrectStreak ?? 0 },
+    progress: {
+      target: 5,
+      currentValue: (s) => s.features[FEATURE_ID_CLOZE]?.bestInSessionCorrectStreak ?? 0,
+    },
   },
   {
     id: 'cloze-streak-10',
@@ -72,7 +78,10 @@ export const CLOZE_ACHIEVEMENTS: AchievementDef[] = [
     titleKey: 'achievements.cloze-streak-10.title',
     descKey: 'achievements.cloze-streak-10.desc',
     isUnlocked: (s) => (s.features[FEATURE_ID_CLOZE]?.bestInSessionCorrectStreak ?? 0) >= 10,
-    progress: { target: 10, currentValue: (s) => s.features[FEATURE_ID_CLOZE]?.bestInSessionCorrectStreak ?? 0 },
+    progress: {
+      target: 10,
+      currentValue: (s) => s.features[FEATURE_ID_CLOZE]?.bestInSessionCorrectStreak ?? 0,
+    },
   },
   {
     id: 'cloze-streak-20',
@@ -80,7 +89,10 @@ export const CLOZE_ACHIEVEMENTS: AchievementDef[] = [
     titleKey: 'achievements.cloze-streak-20.title',
     descKey: 'achievements.cloze-streak-20.desc',
     isUnlocked: (s) => (s.features[FEATURE_ID_CLOZE]?.bestInSessionCorrectStreak ?? 0) >= 20,
-    progress: { target: 20, currentValue: (s) => s.features[FEATURE_ID_CLOZE]?.bestInSessionCorrectStreak ?? 0 },
+    progress: {
+      target: 20,
+      currentValue: (s) => s.features[FEATURE_ID_CLOZE]?.bestInSessionCorrectStreak ?? 0,
+    },
   },
   {
     id: 'cloze-daily-3',
@@ -88,7 +100,10 @@ export const CLOZE_ACHIEVEMENTS: AchievementDef[] = [
     titleKey: 'achievements.cloze-daily-3.title',
     descKey: 'achievements.cloze-daily-3.desc',
     isUnlocked: (s) => (s.features[FEATURE_ID_CLOZE]?.longestDailyStreak ?? 0) >= 3,
-    progress: { target: 3, currentValue: (s) => s.features[FEATURE_ID_CLOZE]?.longestDailyStreak ?? 0 },
+    progress: {
+      target: 3,
+      currentValue: (s) => s.features[FEATURE_ID_CLOZE]?.longestDailyStreak ?? 0,
+    },
   },
   {
     id: 'cloze-daily-7',
@@ -96,7 +111,10 @@ export const CLOZE_ACHIEVEMENTS: AchievementDef[] = [
     titleKey: 'achievements.cloze-daily-7.title',
     descKey: 'achievements.cloze-daily-7.desc',
     isUnlocked: (s) => (s.features[FEATURE_ID_CLOZE]?.longestDailyStreak ?? 0) >= 7,
-    progress: { target: 7, currentValue: (s) => s.features[FEATURE_ID_CLOZE]?.longestDailyStreak ?? 0 },
+    progress: {
+      target: 7,
+      currentValue: (s) => s.features[FEATURE_ID_CLOZE]?.longestDailyStreak ?? 0,
+    },
   },
   {
     id: 'cloze-daily-30',
@@ -104,7 +122,10 @@ export const CLOZE_ACHIEVEMENTS: AchievementDef[] = [
     titleKey: 'achievements.cloze-daily-30.title',
     descKey: 'achievements.cloze-daily-30.desc',
     isUnlocked: (s) => (s.features[FEATURE_ID_CLOZE]?.longestDailyStreak ?? 0) >= 30,
-    progress: { target: 30, currentValue: (s) => s.features[FEATURE_ID_CLOZE]?.longestDailyStreak ?? 0 },
+    progress: {
+      target: 30,
+      currentValue: (s) => s.features[FEATURE_ID_CLOZE]?.longestDailyStreak ?? 0,
+    },
   },
   {
     id: 'cloze-perfect-1',
@@ -112,7 +133,10 @@ export const CLOZE_ACHIEVEMENTS: AchievementDef[] = [
     titleKey: 'achievements.cloze-perfect-1.title',
     descKey: 'achievements.cloze-perfect-1.desc',
     isUnlocked: (s) => (s.features[FEATURE_ID_CLOZE]?.perfectSessionCount ?? 0) >= 1,
-    progress: { target: 1, currentValue: (s) => s.features[FEATURE_ID_CLOZE]?.perfectSessionCount ?? 0 },
+    progress: {
+      target: 1,
+      currentValue: (s) => s.features[FEATURE_ID_CLOZE]?.perfectSessionCount ?? 0,
+    },
   },
   {
     id: 'cloze-perfect-5',
@@ -120,7 +144,10 @@ export const CLOZE_ACHIEVEMENTS: AchievementDef[] = [
     titleKey: 'achievements.cloze-perfect-5.title',
     descKey: 'achievements.cloze-perfect-5.desc',
     isUnlocked: (s) => (s.features[FEATURE_ID_CLOZE]?.perfectSessionCount ?? 0) >= 5,
-    progress: { target: 5, currentValue: (s) => s.features[FEATURE_ID_CLOZE]?.perfectSessionCount ?? 0 },
+    progress: {
+      target: 5,
+      currentValue: (s) => s.features[FEATURE_ID_CLOZE]?.perfectSessionCount ?? 0,
+    },
   },
   {
     id: 'cloze-perfect-streak-3',
@@ -128,7 +155,10 @@ export const CLOZE_ACHIEVEMENTS: AchievementDef[] = [
     titleKey: 'achievements.cloze-perfect-streak-3.title',
     descKey: 'achievements.cloze-perfect-streak-3.desc',
     isUnlocked: (s) => (s.features[FEATURE_ID_CLOZE]?.longestPerfectStreak ?? 0) >= 3,
-    progress: { target: 3, currentValue: (s) => s.features[FEATURE_ID_CLOZE]?.longestPerfectStreak ?? 0 },
+    progress: {
+      target: 3,
+      currentValue: (s) => s.features[FEATURE_ID_CLOZE]?.longestPerfectStreak ?? 0,
+    },
   },
   {
     id: 'cloze-mastery',

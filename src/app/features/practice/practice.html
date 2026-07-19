@@ -276,7 +276,11 @@
         @for (p of state.bulkProgress(); track p.date + p.text) {
           <div class="bulk-progress-item" [class]="'status-' + p.status">
             <span class="bulk-date">{{ p.date }}</span>
-            <app-badge [variant]="p.status === 'success' ? 'success' : p.status === 'error' ? 'error' : 'default'">
+            <app-badge
+              [variant]="
+                p.status === 'success' ? 'success' : p.status === 'error' ? 'error' : 'default'
+              "
+            >
               @switch (p.status) {
                 @case ('pending') {
                   {{ i18n.t('practice.bulk.pending') }}

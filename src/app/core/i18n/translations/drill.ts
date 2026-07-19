@@ -68,7 +68,8 @@ export const drill = {
     'drill.title': 'Drill',
     'drill.cloze.name': 'Cloze Review',
     'drill.cloze.desc': 'Review with cloze cards generated from your corrections.',
-    'drill.cloze.empty': 'Enable "auto-generate review cards" when correcting to get questions here.',
+    'drill.cloze.empty':
+      'Enable "auto-generate review cards" when correcting to get questions here.',
     'drill.cloze.sampleNote':
       'This is a sample question. Once you submit a correction, questions will be based on your own weak points.',
     'drill.levelup.name': 'Level-Up Typing',

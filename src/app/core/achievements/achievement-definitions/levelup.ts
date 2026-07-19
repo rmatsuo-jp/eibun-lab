@@ -16,7 +16,10 @@ export const LEVELUP_ACHIEVEMENTS: AchievementDef[] = [
     titleKey: 'achievements.levelup-attempts-10.title',
     descKey: 'achievements.levelup-attempts-10.desc',
     isUnlocked: (s) => (s.features[FEATURE_ID_LEVELUP]?.totalAttempts ?? 0) >= 10,
-    progress: { target: 10, currentValue: (s) => s.features[FEATURE_ID_LEVELUP]?.totalAttempts ?? 0 },
+    progress: {
+      target: 10,
+      currentValue: (s) => s.features[FEATURE_ID_LEVELUP]?.totalAttempts ?? 0,
+    },
   },
   {
     id: 'levelup-attempts-50',
@@ -24,7 +27,10 @@ export const LEVELUP_ACHIEVEMENTS: AchievementDef[] = [
     titleKey: 'achievements.levelup-attempts-50.title',
     descKey: 'achievements.levelup-attempts-50.desc',
     isUnlocked: (s) => (s.features[FEATURE_ID_LEVELUP]?.totalAttempts ?? 0) >= 50,
-    progress: { target: 50, currentValue: (s) => s.features[FEATURE_ID_LEVELUP]?.totalAttempts ?? 0 },
+    progress: {
+      target: 50,
+      currentValue: (s) => s.features[FEATURE_ID_LEVELUP]?.totalAttempts ?? 0,
+    },
   },
   {
     id: 'levelup-attempts-200',
@@ -32,7 +38,10 @@ export const LEVELUP_ACHIEVEMENTS: AchievementDef[] = [
     titleKey: 'achievements.levelup-attempts-200.title',
     descKey: 'achievements.levelup-attempts-200.desc',
     isUnlocked: (s) => (s.features[FEATURE_ID_LEVELUP]?.totalAttempts ?? 0) >= 200,
-    progress: { target: 200, currentValue: (s) => s.features[FEATURE_ID_LEVELUP]?.totalAttempts ?? 0 },
+    progress: {
+      target: 200,
+      currentValue: (s) => s.features[FEATURE_ID_LEVELUP]?.totalAttempts ?? 0,
+    },
   },
   {
     id: 'levelup-correct-10',
@@ -40,7 +49,10 @@ export const LEVELUP_ACHIEVEMENTS: AchievementDef[] = [
     titleKey: 'achievements.levelup-correct-10.title',
     descKey: 'achievements.levelup-correct-10.desc',
     isUnlocked: (s) => (s.features[FEATURE_ID_LEVELUP]?.totalCorrect ?? 0) >= 10,
-    progress: { target: 10, currentValue: (s) => s.features[FEATURE_ID_LEVELUP]?.totalCorrect ?? 0 },
+    progress: {
+      target: 10,
+      currentValue: (s) => s.features[FEATURE_ID_LEVELUP]?.totalCorrect ?? 0,
+    },
   },
   {
     id: 'levelup-correct-100',
@@ -48,7 +60,10 @@ export const LEVELUP_ACHIEVEMENTS: AchievementDef[] = [
     titleKey: 'achievements.levelup-correct-100.title',
     descKey: 'achievements.levelup-correct-100.desc',
     isUnlocked: (s) => (s.features[FEATURE_ID_LEVELUP]?.totalCorrect ?? 0) >= 100,
-    progress: { target: 100, currentValue: (s) => s.features[FEATURE_ID_LEVELUP]?.totalCorrect ?? 0 },
+    progress: {
+      target: 100,
+      currentValue: (s) => s.features[FEATURE_ID_LEVELUP]?.totalCorrect ?? 0,
+    },
   },
   {
     id: 'levelup-correct-500',
@@ -56,7 +71,10 @@ export const LEVELUP_ACHIEVEMENTS: AchievementDef[] = [
     titleKey: 'achievements.levelup-correct-500.title',
     descKey: 'achievements.levelup-correct-500.desc',
     isUnlocked: (s) => (s.features[FEATURE_ID_LEVELUP]?.totalCorrect ?? 0) >= 500,
-    progress: { target: 500, currentValue: (s) => s.features[FEATURE_ID_LEVELUP]?.totalCorrect ?? 0 },
+    progress: {
+      target: 500,
+      currentValue: (s) => s.features[FEATURE_ID_LEVELUP]?.totalCorrect ?? 0,
+    },
   },
   {
     id: 'levelup-streak-5',
@@ -97,7 +115,10 @@ export const LEVELUP_ACHIEVEMENTS: AchievementDef[] = [
     titleKey: 'achievements.levelup-daily-3.title',
     descKey: 'achievements.levelup-daily-3.desc',
     isUnlocked: (s) => (s.features[FEATURE_ID_LEVELUP]?.longestDailyStreak ?? 0) >= 3,
-    progress: { target: 3, currentValue: (s) => s.features[FEATURE_ID_LEVELUP]?.longestDailyStreak ?? 0 },
+    progress: {
+      target: 3,
+      currentValue: (s) => s.features[FEATURE_ID_LEVELUP]?.longestDailyStreak ?? 0,
+    },
   },
   {
     id: 'levelup-daily-7',
@@ -105,7 +126,10 @@ export const LEVELUP_ACHIEVEMENTS: AchievementDef[] = [
     titleKey: 'achievements.levelup-daily-7.title',
     descKey: 'achievements.levelup-daily-7.desc',
     isUnlocked: (s) => (s.features[FEATURE_ID_LEVELUP]?.longestDailyStreak ?? 0) >= 7,
-    progress: { target: 7, currentValue: (s) => s.features[FEATURE_ID_LEVELUP]?.longestDailyStreak ?? 0 },
+    progress: {
+      target: 7,
+      currentValue: (s) => s.features[FEATURE_ID_LEVELUP]?.longestDailyStreak ?? 0,
+    },
   },
   {
     id: 'levelup-daily-30',
@@ -113,7 +137,10 @@ export const LEVELUP_ACHIEVEMENTS: AchievementDef[] = [
     titleKey: 'achievements.levelup-daily-30.title',
     descKey: 'achievements.levelup-daily-30.desc',
     isUnlocked: (s) => (s.features[FEATURE_ID_LEVELUP]?.longestDailyStreak ?? 0) >= 30,
-    progress: { target: 30, currentValue: (s) => s.features[FEATURE_ID_LEVELUP]?.longestDailyStreak ?? 0 },
+    progress: {
+      target: 30,
+      currentValue: (s) => s.features[FEATURE_ID_LEVELUP]?.longestDailyStreak ?? 0,
+    },
   },
   {
     id: 'levelup-perfect-1',
@@ -121,7 +148,10 @@ export const LEVELUP_ACHIEVEMENTS: AchievementDef[] = [
     titleKey: 'achievements.levelup-perfect-1.title',
     descKey: 'achievements.levelup-perfect-1.desc',
     isUnlocked: (s) => (s.features[FEATURE_ID_LEVELUP]?.perfectSessionCount ?? 0) >= 1,
-    progress: { target: 1, currentValue: (s) => s.features[FEATURE_ID_LEVELUP]?.perfectSessionCount ?? 0 },
+    progress: {
+      target: 1,
+      currentValue: (s) => s.features[FEATURE_ID_LEVELUP]?.perfectSessionCount ?? 0,
+    },
   },
   {
     id: 'levelup-perfect-5',
@@ -129,7 +159,10 @@ export const LEVELUP_ACHIEVEMENTS: AchievementDef[] = [
     titleKey: 'achievements.levelup-perfect-5.title',
     descKey: 'achievements.levelup-perfect-5.desc',
     isUnlocked: (s) => (s.features[FEATURE_ID_LEVELUP]?.perfectSessionCount ?? 0) >= 5,
-    progress: { target: 5, currentValue: (s) => s.features[FEATURE_ID_LEVELUP]?.perfectSessionCount ?? 0 },
+    progress: {
+      target: 5,
+      currentValue: (s) => s.features[FEATURE_ID_LEVELUP]?.perfectSessionCount ?? 0,
+    },
   },
   {
     id: 'levelup-perfect-streak-3',
@@ -137,7 +170,10 @@ export const LEVELUP_ACHIEVEMENTS: AchievementDef[] = [
     titleKey: 'achievements.levelup-perfect-streak-3.title',
     descKey: 'achievements.levelup-perfect-streak-3.desc',
     isUnlocked: (s) => (s.features[FEATURE_ID_LEVELUP]?.longestPerfectStreak ?? 0) >= 3,
-    progress: { target: 3, currentValue: (s) => s.features[FEATURE_ID_LEVELUP]?.longestPerfectStreak ?? 0 },
+    progress: {
+      target: 3,
+      currentValue: (s) => s.features[FEATURE_ID_LEVELUP]?.longestPerfectStreak ?? 0,
+    },
   },
   {
     id: 'levelup-mastery',

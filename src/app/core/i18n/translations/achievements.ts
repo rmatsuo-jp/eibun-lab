@@ -131,7 +131,8 @@ export const achievements = {
     'achievements.cloze-correct-500.title': 'Answer Expert',
     'achievements.cloze-correct-500.desc': 'Answer 500 cloze review questions correctly in total.',
     'achievements.cloze-streak-5.title': 'Hot Streak',
-    'achievements.cloze-streak-5.desc': 'Answer 5 cloze questions correctly in a row in one session.',
+    'achievements.cloze-streak-5.desc':
+      'Answer 5 cloze questions correctly in a row in one session.',
     'achievements.cloze-streak-10.title': 'On Fire',
     'achievements.cloze-streak-10.desc':
       'Answer 10 cloze questions correctly in a row in one session.',
@@ -160,7 +161,8 @@ export const achievements = {
     'achievements.levelup-attempts-200.title': 'Path of Discipline',
     'achievements.levelup-attempts-200.desc': 'Attempt 200 level-up typing questions.',
     'achievements.levelup-correct-10.title': 'First Correct Streak',
-    'achievements.levelup-correct-10.desc': 'Answer 10 level-up typing questions correctly in total.',
+    'achievements.levelup-correct-10.desc':
+      'Answer 10 level-up typing questions correctly in total.',
     'achievements.levelup-correct-100.title': 'Answer Master',
     'achievements.levelup-correct-100.desc':
       'Answer 100 level-up typing questions correctly in total.',

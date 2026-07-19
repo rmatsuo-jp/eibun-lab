@@ -42,7 +42,10 @@ export class ApiKeyPanel {
   }
 
   saveApiKey() {
-    const updated: AppSettings = { ...this.settingsStore.getSettings(), apiKey: this.apiKeyDraft() };
+    const updated: AppSettings = {
+      ...this.settingsStore.getSettings(),
+      apiKey: this.apiKeyDraft(),
+    };
     this.settingsStore.saveSettings(updated);
     this.apiKey.set(this.apiKeyDraft());
     this.saved.set(true);
