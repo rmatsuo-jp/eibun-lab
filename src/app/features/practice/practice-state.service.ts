@@ -85,10 +85,25 @@ export class PracticeState {
   result = signal<({ original: string } & CorrectionResult) | null>(null);
 
   // ── グローバル通知（ルートのバナーが購読） ────────────────────────
-  // null = 非表示。完了/エラーはユーザーが閉じるか添削タブ遷移で消す。
+  // null = 非表示。success は NOTICE_AUTO_DISMISS_MS 後に自動で消える。error はユーザーが閉じるか
+  // 添削タブ遷移で消す（見落とし防止のため自動では消さない）。
+  private static readonly NOTICE_AUTO_DISMISS_MS = 4000;
   notice = signal<{ status: 'loading' | 'success' | 'error'; message: string } | null>(null);
+  private noticeTimer?: ReturnType<typeof setTimeout>;
+
+  private setNotice(notice: { status: 'loading' | 'success' | 'error'; message: string }) {
+    clearTimeout(this.noticeTimer);
+    this.notice.set(notice);
+    if (notice.status === 'success') {
+      this.noticeTimer = setTimeout(
+        () => this.notice.set(null),
+        PracticeState.NOTICE_AUTO_DISMISS_MS,
+      );
+    }
+  }
 
   dismissNotice() {
+    clearTimeout(this.noticeTimer);
     this.notice.set(null);
   }
 
@@ -116,7 +131,7 @@ export class PracticeState {
     const settings = this.settingsStore.getSettings();
     if (!settings.apiKey) {
       this.error.set('設定ページで Gemini API キーを入力してください。');
-      this.notice.set({ status: 'error', message: this.error() });
+      this.setNotice({ status: 'error', message: this.error() });
       return;
     }
 
@@ -124,7 +139,7 @@ export class PracticeState {
     this.progress.set(0);
     this.showQuiz.set(true);
     this.error.set('');
-    this.notice.set({ status: 'loading', message: '添削中…' });
+    this.setNotice({ status: 'loading', message: '添削中…' });
     // 注: ここで result はクリアしない（新しい結果を受信して初めて置き換える）。
 
     try {
@@ -138,7 +153,7 @@ export class PracticeState {
       this.progress.set(100);
       this.result.set({ original: text, ...res });
       this.showQuiz.set(false);
-      this.notice.set({ status: 'success', message: '添削が完了しました' });
+      this.setNotice({ status: 'success', message: '添削が完了しました' });
 
       const session = this.buildSession(this.selectedDate(), text, res);
       this.repository.saveSession(session);
@@ -148,7 +163,7 @@ export class PracticeState {
     } catch (e) {
       this.error.set(toUserMessage(e));
       this.showQuiz.set(false);
-      this.notice.set({ status: 'error', message: this.error() });
+      this.setNotice({ status: 'error', message: this.error() });
     } finally {
       this.loading.set(false);
     }
@@ -231,7 +246,7 @@ export class PracticeState {
     const settings = this.settingsStore.getSettings();
     if (!settings.apiKey) {
       this.error.set('設定ページで Gemini API キーを入力してください。');
-      this.notice.set({ status: 'error', message: this.error() });
+      this.setNotice({ status: 'error', message: this.error() });
       return;
     }
 
@@ -269,7 +284,7 @@ export class PracticeState {
             errorCount++;
           } finally {
             completedCount++;
-            this.notice.set({
+            this.setNotice({
               status: 'loading',
               message: `一括添削中 (${completedCount}/${entries.length})`,
             });
@@ -282,7 +297,7 @@ export class PracticeState {
         const elapsed = Date.now() - batchStartedAt;
         const waitMs = this.BULK_WINDOW_MS - elapsed;
         if (waitMs > 0) {
-          this.notice.set({
+          this.setNotice({
             status: 'loading',
             message: `一括添削中 (${completedCount}/${entries.length}) — レート制限のため待機中...`,
           });
@@ -292,7 +307,7 @@ export class PracticeState {
     }
 
     this.bulkRunning.set(false);
-    this.notice.set({
+    this.setNotice({
       status: errorCount > 0 ? 'error' : 'success',
       message: `一括添削が完了しました（成功: ${successCount}件 / 失敗: ${errorCount}件）`,
     });
