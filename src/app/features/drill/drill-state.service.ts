@@ -24,8 +24,10 @@
  * levelup の答え合わせ後ボタンは「次へ」（同じ文を更新後の maskLevel のまま再出題、実体は retry()）と
  * 「中断」（backToSentenceList() で文一覧選択画面に戻る）の2つのみ。
  * ただし全単語マスクの状態（maskLevel === maxLevel）で正答し習熟達成した瞬間だけは、この2ボタンの代わりに
- * 「文一覧に戻る」1ボタンのみを表示する（判定・遷移先はテンプレート側の条件分岐のみで完結し、
- * ロジック側の変更は不要。習熟の記録自体は checkTyping() が既に行う）。
+ * 「文一覧に戻る」1ボタンのみを表示する。この判定は checkTyping() 内で設定する justMastered signal を
+ * テンプレート側で参照する（checkTyping() は正解時に maskLevel を次段階へ進めてしまうため、採点後の
+ * maskLevel と maxLevel の比較では「まだ全マスクに到達していない途中の正解」も真になってしまう。
+ * justMastered は採点前の段階が maxLevel だったかどうかで判定するため、この誤判定を避けられる）。
  *
  * ── ファイル分割方針 ──
  * cloze/levelup それぞれのモード固有データ・純粋ロジック（対象セッション一覧・達成度・進捗集計・
@@ -138,6 +140,12 @@ export class DrillState {
 
   // 穴あきタイピングの進行状態。
   maskLevel = signal(0); // 現在のアイテムのマスク段階（0=全文表示）
+  // 直近の checkTyping() が「maxLevel（全単語マスク）に対する正解」として習熟済みを記録したか。
+  // checkTyping() 内で maskLevel を先に次段階へ進めてしまうため、採点後の maskLevel と maxLevel の
+  // 比較では「まだ全マスクに到達していない途中の正解」も真になってしまう（習熟済み判定のズレ）。
+  // 「今回の採点が実際に全マスクに対するものだったか」をこの専用signalで保持し、drill.htmlの
+  // 「文一覧に戻る」単独ボタン表示はこちらを参照する。
+  justMastered = signal(false);
   mistakeKind = signal<MistakeKind | null>(null); // 直近の不正解の分類（結果メッセージ用）
   // 穴あきタイピングは「maxLevelで正解」した問題数を結果サマリーの分子として使う。
   masteredCount = signal(0);
@@ -179,6 +187,7 @@ export class DrillState {
     this.hintShown.set(false);
     this.maskLevel.set(0);
     this.mistakeKind.set(null);
+    this.justMastered.set(false);
     this.masteredCount.set(0);
     this.levelUpDateChosen.set(false);
     this.levelUpSentenceChosen.set(false);
@@ -270,6 +279,7 @@ export class DrillState {
     this.currentCorrect.set(false);
     this.hintShown.set(false);
     this.mistakeKind.set(null);
+    this.justMastered.set(false);
     this.levelUpSentenceChosen.set(true);
   }
 
@@ -386,6 +396,7 @@ export class DrillState {
       this.mistakeKind.set(null);
       const level = this.maskLevel();
       if (level >= cur.maxLevel) {
+        this.justMastered.set(true);
         // masteredCount（結果表示の自己ベスト）は既に習熟済みの文の再正解では加算しないが、
         // セッション完了判定（checkLevelUpSessionComplete）は再挑戦のたびに必ず行う。
         // パーフェクト達成数はそちら側で「訪問」単位に重複防止するため、ここではガードしない。
@@ -396,6 +407,7 @@ export class DrillState {
         if (!alreadyMastered) this.masteredCount.update((c) => c + 1);
         if (sessionId && !this.sampleMode()) this.checkLevelUpSessionComplete(sessionId);
       } else {
+        this.justMastered.set(false);
         const nextLevel = level + 1;
         this.maskLevel.set(nextLevel);
         if (sessionId)
@@ -403,6 +415,7 @@ export class DrillState {
       }
       return;
     }
+    this.justMastered.set(false);
 
     const kind = classifyMistake(cur, this.userAnswer(), this.maskLevel());
     this.mistakeKind.set(kind);
@@ -453,6 +466,7 @@ export class DrillState {
     this.currentCorrect.set(false);
     this.mistakeKind.set(null);
     this.hintShown.set(false);
+    this.justMastered.set(false);
   }
 
   // cloze 専用: 次の問題（配列の次要素）に進む。
@@ -482,6 +496,7 @@ export class DrillState {
     this.finished.set(false);
     this.maskLevel.set(0);
     this.mistakeKind.set(null);
+    this.justMastered.set(false);
     this.levelUpDateChosen.set(false);
     this.levelUpSentenceChosen.set(false);
     this.levelUpQuiz.set([]);

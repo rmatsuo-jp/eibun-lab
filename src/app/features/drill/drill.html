@@ -9,7 +9,9 @@
      各文は maskLevel（0=全文表示〜maxLevel=全単語マスク）の一本道で進行し、正解のたびに隠れる単語が増える。
      不正解時はタイポ（見えている単語のミス）なら据え置き、理解度不足（隠れている単語のミス）なら1段階戻る。
      答え合わせ後は「次へ」で同じ文を更新後の maskLevel のまま再出題し、「中断」で文一覧選択画面に戻る
-     （別の文に進みたい場合は中断→文一覧から選び直す）。
+     （別の文に進みたい場合は中断→文一覧から選び直す）。全マスク状態で正答し習熟達成した瞬間だけは
+     state.justMastered() を見て「文一覧に戻る」1ボタンに切り替える（採点後に進んだ maskLevel と
+     maxLevel の比較だと1段階早く習熟済み扱いになってしまうため、専用signalで判定する）。
      日付・文ごとの進捗はセッションID単位で保存され、日付選択・文一覧の各画面で完了状況の確認・途中再開ができる。
      全文言は i18n.t()（core/i18n/I18nService）経由で表示する。
      実績解除時は画面上部にトーストを表示し（state.newlyUnlocked()）、結果サマリー（clozeのみ）には
@@ -290,7 +292,7 @@
           >
             {{
               state.currentCorrect()
-                ? state.maskLevel() >= item.maxLevel
+                ? state.justMastered()
                   ? i18n.t('drill.resultCorrectMastered')
                   : i18n.t('drill.resultCorrect')
                 : state.mistakeKind() === 'gap'
@@ -303,7 +305,7 @@
             <span class="correct-text">{{ item.leveledUp }}</span>
           </div>
           <div class="post-actions">
-            @if (state.currentCorrect() && state.maskLevel() >= item.maxLevel) {
+            @if (state.currentCorrect() && state.justMastered()) {
               <button class="btn-primary" #nextBtn (click)="state.backToSentenceList()">
                 {{ i18n.t('drill.backToSentenceList') }}
               </button>
