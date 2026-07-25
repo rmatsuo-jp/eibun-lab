@@ -95,20 +95,14 @@
   }
 }
 
-.achievement-toast {
-  border: 1px solid var(--color-success);
-  border-radius: 0.5rem;
-  padding: 0.75rem 1rem;
-  margin-bottom: 1rem;
-  background: var(--color-surface);
+// 実績解除トースト（.achievement-toast）は practice と共通のため src/styles.scss で一元定義する。
 
-  strong {
-    color: var(--color-success);
-  }
-
-  ul {
-    margin: 0.5rem 0;
-    padding-left: 1.25rem;
+@media (min-width: 768px) {
+  // サイドナビ（幅220px）に被らないよう左端をずらす（app.scss の .global-notice と同条件）。
+  .achievement-toast {
+    left: 220px;
+    bottom: calc(1rem + 3.5rem);
+    margin: 0 1.5rem;
   }
 }
 

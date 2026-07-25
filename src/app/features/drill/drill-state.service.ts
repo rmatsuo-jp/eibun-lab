@@ -58,7 +58,8 @@
  * recordAnswer() で累積統計を更新し、cloze は結果サマリー到達時、levelup は日程内全文完了時に
  * recordSessionComplete() でセッション完了（パーフェクト判定含む）を記録する。両者とも記録直後に
  * core/achievements/achievement-engine.util.ts の evaluateNewlyUnlocked() で新規解除を判定し、
- * newlyUnlocked signal に積んで drill.html のトースト表示に渡す（dismissNewlyUnlocked()で消去）。
+ * newlyUnlocked signal に積んで drill.html のトースト表示に渡す。トーストは画面下部に固定表示し、
+ * 4秒後に自動で消える（手動で消す場合は dismissNewlyUnlocked()）。
  * パーフェクト達成数（perfectCountForSession/perfectCountForClozeSession）: 「クリア済み」バッジとは別に、
  * 満点（全問正解）で完了するたびに加算する累積カウンタを DrillProgressService.incrementPerfectCount で
  * 記録し、日付選択画面に表示する（クリア後も繰り返し練習する動機付け）。cloze は next() が最終問題を
@@ -107,7 +108,10 @@ export class DrillState {
   // 1プレイ内の連続正解数（自己ベスト判定用）。start() でリセットする。
   private sessionCorrectStreak = signal(0);
   // 直近の採点/セッション完了で新規解除された実績ID一覧。UI（drill.html）のトースト表示に使う。
+  // トーストは ACHIEVEMENT_TOAST_MS 後に自動で消える（グローバル通知バナーと同じ 4 秒）。
+  private static readonly ACHIEVEMENT_TOAST_MS = 4000;
   newlyUnlocked = signal<AchievementId[]>([]);
+  private achievementTimer?: ReturnType<typeof setTimeout>;
   // 結果サマリー表示用の累積統計（drill.html が現在の連続記録・継続日数を表示するのに使う）。
   gamificationStats = this.gamification.stats;
 
@@ -195,7 +199,7 @@ export class DrillState {
     this.currentSessionId.set(null);
     this.clozeDateChosen.set(false);
     this.sessionCorrectStreak.set(0);
-    this.newlyUnlocked.set([]);
+    this.dismissNewlyUnlocked();
 
     // 新規ユーザー（セッション0件）は日付選択をスキップし、静的サンプル問題を直接出題する。
     this.sampleMode.set(this.isNewUser());
@@ -358,11 +362,23 @@ export class DrillState {
     });
     if (ids.length === 0) return;
     this.gamification.markUnlocked(ids);
-    this.newlyUnlocked.update((prev) => [...prev, ...ids]);
+    this.pushNewlyUnlocked(ids);
   }
 
-  // 実績解除トーストを閉じる。
+  // 解除された実績を積み、自動消滅タイマーを張り直す
+  // （連続で解除された場合は最後の解除から ACHIEVEMENT_TOAST_MS 表示する）。
+  private pushNewlyUnlocked(ids: AchievementId[]): void {
+    clearTimeout(this.achievementTimer);
+    this.newlyUnlocked.update((prev) => [...prev, ...ids]);
+    this.achievementTimer = setTimeout(
+      () => this.newlyUnlocked.set([]),
+      DrillState.ACHIEVEMENT_TOAST_MS,
+    );
+  }
+
+  // 実績解除トーストを閉じる（自動消滅タイマーも解除する）。
   dismissNewlyUnlocked(): void {
+    clearTimeout(this.achievementTimer);
     this.newlyUnlocked.set([]);
   }
 

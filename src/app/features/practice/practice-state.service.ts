@@ -23,8 +23,9 @@
  * ゲーミフィケーション（添削の統計・実績）: submit()/submitBulk() の saveSession() 直後に
  * recordCorrectionForGamification() を呼び、GamificationSyncService.recordCorrectionSaved() で
  * 添削回数・継続日数を更新する。記録直後に achievement-engine.util.ts の evaluateNewlyUnlocked() で
- * 新規解除を判定し、newlyUnlocked signal に積んで practice.html のトースト表示に渡す
- * （dismissNewlyUnlocked()で消去。features/drill/drill-state.service.ts と同じ方針）。
+ * 新規解除を判定し、newlyUnlocked signal に積んで practice.html のトースト表示に渡す。
+ * トーストは画面下部に固定表示し、4秒後に自動で消える（手動で消す場合は dismissNewlyUnlocked()。
+ * features/drill/drill-state.service.ts と同じ方針）。
  */
 import { Injectable, inject, signal } from '@angular/core';
 import { GeminiService, CorrectionResult } from '@core/gemini/gemini.service';
@@ -49,9 +50,24 @@ export class PracticeState {
   private gamification = inject(GamificationSyncService);
 
   // 直近の添削保存で新規解除された実績ID一覧。UI（practice.html）のトースト表示に使う。
+  // トーストは ACHIEVEMENT_TOAST_MS 後に自動で消える（グローバル通知バナーと同じ 4 秒）。
+  private static readonly ACHIEVEMENT_TOAST_MS = 4000;
   newlyUnlocked = signal<AchievementId[]>([]);
+  private achievementTimer?: ReturnType<typeof setTimeout>;
+
+  // 解除された実績を積み、自動消滅タイマーを張り直す
+  // （連続で解除された場合は最後の解除から ACHIEVEMENT_TOAST_MS 表示する）。
+  private pushNewlyUnlocked(ids: AchievementId[]): void {
+    clearTimeout(this.achievementTimer);
+    this.newlyUnlocked.update((prev) => [...prev, ...ids]);
+    this.achievementTimer = setTimeout(
+      () => this.newlyUnlocked.set([]),
+      PracticeState.ACHIEVEMENT_TOAST_MS,
+    );
+  }
 
   dismissNewlyUnlocked(): void {
+    clearTimeout(this.achievementTimer);
     this.newlyUnlocked.set([]);
   }
 
@@ -69,7 +85,7 @@ export class PracticeState {
     const ids = evaluateNewlyUnlocked(this.gamification.stats(), { masteryProgress: {} });
     if (ids.length === 0) return;
     this.gamification.markUnlocked(ids);
-    this.newlyUnlocked.update((prev) => [...prev, ...ids]);
+    this.pushNewlyUnlocked(ids);
   }
 
   // ── 状態管理（signal。コンポーネント破棄後も保持される） ──────────

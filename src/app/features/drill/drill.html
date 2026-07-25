@@ -14,7 +14,8 @@
      maxLevel の比較だと1段階早く習熟済み扱いになってしまうため、専用signalで判定する）。
      日付・文ごとの進捗はセッションID単位で保存され、日付選択・文一覧の各画面で完了状況の確認・途中再開ができる。
      全文言は i18n.t()（core/i18n/I18nService）経由で表示する。
-     実績解除時は画面上部にトーストを表示し（state.newlyUnlocked()）、結果サマリー（clozeのみ）には
+     実績解除時は画面下部固定のトーストを表示し（state.newlyUnlocked()。4秒で自動的に消える）、
+     結果サマリー（clozeのみ）には
      現在の連続正解自己ベスト・継続日数（state.gamificationStats()）を表示する。 -->
 <div class="page">
   <h1 class="page-title">
@@ -26,7 +27,7 @@
   </h1>
 
   @if (state.newlyUnlocked().length > 0) {
-    <!-- ── 実績解除トースト（ドリル画面内のみ表示） ── -->
+    <!-- ── 実績解除トースト（ドリル画面内のみ表示。SCSS で画面下部に固定配置する） ── -->
     <div class="achievement-toast">
       <strong>{{ i18n.t('achievements.toast.heading') }}</strong>
       <ul>
