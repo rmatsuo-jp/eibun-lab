@@ -4,17 +4,36 @@
  * 達成度・文ごとの進捗）とLevelUpQuiz構築・マスク表示ロジックのみを持ち、出題中の共有UI状態
  * （levelUpQuiz/index/userAnswer/maskLevel等）は持たない（drill-state.ts側で管理し、このサービスは
  * 「日付・文ごとの一覧・進捗・LevelUpQuiz配列の構築・マスク文字列生成」というデータ提供役に専念する設計）。
+ * マスク文字列（maskedSentence）は、お手本と入力欄を等幅フォントで桁揃えするため、
+ * 下線の本数を実際の単語の文字数と一致させる（語末の句読点は残す）。
  * セッション完了判定（isSessionComplete）は「該当日程の全文が完了（maxLevelで正解済み）したか」を
- * 返すだけの純粋判定に留め、パーフェクト達成数の記録・訪問単位ガード・ゲーミフィケーション連携は
- * drill-state.ts 側（checkTyping）が行う（複数モード共通の記録経路のため）。
+ * 返すだけの純粋判定に留め、ゲーミフィケーション連携（統計・実績）は drill-state.ts 側
+ * （checkTyping）が行う（複数モード共通の記録経路のため）。
+ * 一方、パーフェクト達成数の加算と訪問単位ガード（startVisit / noteVisitMistake /
+ * recordPerfectVisit）は levelup 固有の進捗ルールのためこのサービスが持つ。
  */
-import { Injectable, computed, inject } from '@angular/core';
+import { Injectable, computed, inject, signal } from '@angular/core';
 import { SessionRepositoryService } from '@core/sessions/session-repository.service';
 import { getSessionsWithLevelUp, normalizeDrillKey } from '@core/stats/session-stats.util';
-import { DrillProgressSyncService } from './drill-progress-sync.service';
+import { DrillProgressSyncService } from '@core/drill/drill-progress-sync.service';
 import { CorrectionSession } from '@core/models/session.model';
 import { I18nService } from '@core/i18n/i18n.service';
 import { buildLevelUpQuiz, LevelUpQuiz, maskedIndices } from '@core/quiz/quiz.util';
+
+// ── マスク表示用のヘルパー ──
+// 語末の句読点は伏せずに残し、本体だけを「実際の文字数と同じ本数」の下線に置き換える。
+// 等幅フォントで表示するため、文字数が一致すれば入力欄と桁が揃う。
+const TRAILING_PUNCT = /[.,!?;:")'\]]+$/;
+function maskWord(word: string): string {
+  const punct = TRAILING_PUNCT.exec(word)?.[0] ?? '';
+  const body = word.slice(0, word.length - punct.length);
+  return '_'.repeat(body.length) + punct;
+}
+
+// パーフェクト達成数（perfectCounts）の保存キー。cloze 側と衝突しないよう levelup- を前置する。
+export function perfectCountKey(sessionId: string): string {
+  return `levelup-${sessionId}`;
+}
 
 @Injectable({ providedIn: 'root' })
 export class DrillLevelUpState {
@@ -58,7 +77,32 @@ export class DrillLevelUpState {
 
   // 選択中セッションのパーフェクト達成数（穴あきタイピング）。日付選択画面のバッジ表示に使う。
   perfectCountForSession(session: CorrectionSession): number {
-    return this.drillProgress.getPerfectCount(`levelup-${session.id}`);
+    return this.drillProgress.getPerfectCount(perfectCountKey(session.id));
+  }
+
+  // ── パーフェクト達成数の訪問単位ガード ──────────────────────────
+  // 既に習熟済みの文が多い日程を再訪しても正解のたびに完了判定が走るため、
+  // 「1回の訪問（selectLevelUpDate〜次にselectLevelUpDateするまで）で最大1回、
+  // 訪問中に一度でも不正解があれば加算しない」というガードで重複加算を防ぐ。
+  private visitHadMistake = signal(false);
+  private perfectRecordedForVisit = signal(false);
+
+  /** 日程を開いたときに呼び、訪問単位のガードをリセットする。 */
+  startVisit(): void {
+    this.visitHadMistake.set(false);
+    this.perfectRecordedForVisit.set(false);
+  }
+
+  /** 不正解を記録する（この訪問ではパーフェクト加算しない）。 */
+  noteVisitMistake(): void {
+    this.visitHadMistake.set(true);
+  }
+
+  /** 全文完了時に呼ぶ。この訪問がノーミスかつ未加算のときだけパーフェクト達成数を1つ加算する。 */
+  recordPerfectVisit(sessionId: string): void {
+    if (this.visitHadMistake() || this.perfectRecordedForVisit()) return;
+    this.drillProgress.incrementPerfectCount(perfectCountKey(sessionId));
+    this.perfectRecordedForVisit.set(true);
   }
 
   // 選択した日程の levelUpItems を Gemini が返した元の順番のまま LevelUpQuiz[] に変換する。
@@ -95,11 +139,9 @@ export class DrillLevelUpState {
     return maskedIndices(item.hideOrder, item.words.length, item.maxLevel, level);
   }
 
-  // ── 表示用: maskLevel に応じて隠れた単語を同じ視覚幅のアンダースコアに置換した文を返す ─
+  // ── 表示用: maskLevel に応じて隠れた単語を「実際の文字数と同じ幅」の下線に置換した文を返す ─
   maskedSentence(item: LevelUpQuiz, maskLevel: number): string {
     const hidden = this.maskedIndicesFor(item, maskLevel);
-    return item.words
-      .map((w, i) => (hidden.has(i) ? '_'.repeat(Math.max(w.length, 3)) : w))
-      .join(' ');
+    return item.words.map((w, i) => (hidden.has(i) ? maskWord(w) : w)).join(' ');
   }
 }

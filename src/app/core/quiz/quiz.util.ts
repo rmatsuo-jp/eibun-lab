@@ -126,7 +126,7 @@ export function buildLevelUpQuiz(
     translation: lang === 'en' && item.translationEn ? item.translationEn : item.translation,
     words,
     hideOrder: buildHideOrder(item.leveledUp, words.length),
-    maxLevel: Math.min(6, Math.max(3, words.length)),
+    maxLevel: Math.min(4, Math.max(3, words.length)),
   };
 }
 

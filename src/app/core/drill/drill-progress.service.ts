@@ -1,8 +1,10 @@
 /**
  * @file ドリルの習熟度（頻出ミス・復習カードの正解ストリーク）と、穴あきタイピングの
- * マスク段階進捗のローカル永続化を担うサービス。Drill 機能専用のストア（features/drill 内に同居）。
- * 各問題の正誤履歴は drillProgress signal（DRILL_PROGRESS_KEY）で正解ストリーク（出題重み用）と
- * everCorrect（1回でも正解したかの永続フラグ、達成バッジ用）として永続化する。
+ * マスク段階進捗のローカル永続化を担うサービス。core に置くのは features/drill 以外に
+ * features/mistakes（未克服ミスの判定）からも参照するため（features 間 import は禁止のため core へ集約）。
+ * 各問題の正誤履歴は drillProgress signal（DRILL_PROGRESS_KEY）で正解ストリーク（出題重み用）・
+ * everCorrect（1回でも正解したかの永続フラグ、達成バッジ用）・correctCount/attemptCount
+ * （同じ問題の累積正答数／挑戦回数、穴埋めクイズの答え合わせ後の表示用）として永続化する。
  * 穴あきタイピングのマスク段階進捗は levelUpProgress signal（LEVELUP_PROGRESS_KEY）で
  * セッションID単位に永続化し、日付選択画面での再開・完了表示に使う。
  * クラウド同期は行わない（ローカル専任）。DrillProgressSyncService が allDrillProgress() /
@@ -75,6 +77,8 @@ export class DrillProgressService {
 
   // 正解なら連続正解数を+1、不正解なら0にリセットして保存する。
   // everCorrect は1回でも正解したら true になり、以後不正解が続いても false には戻らない。
+  // correctCount/attemptCount は同じ問題の累積成績で、リセットせずに加算し続ける
+  // （移行前データにはフィールドが無いため 0 起点で数え始める）。
   recordDrillResult(key: string, correct: boolean): void {
     const normalized = normalizeDrillKey(key);
     const current = this.drillProgress();
@@ -84,6 +88,8 @@ export class DrillProgressService {
       [normalized]: {
         correctStreak: correct ? (prev?.correctStreak ?? 0) + 1 : 0,
         everCorrect: (prev?.everCorrect ?? false) || correct,
+        correctCount: (prev?.correctCount ?? 0) + (correct ? 1 : 0),
+        attemptCount: (prev?.attemptCount ?? 0) + 1,
         lastAttemptAt: new Date().toISOString(),
       },
     };

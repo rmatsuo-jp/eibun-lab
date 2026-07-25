@@ -230,6 +230,42 @@ body {
   padding: var(--space-4);
 }
 
+// ── 実績解除トースト（drill/practice 共通。画面下部固定、4秒で自動的に消える） ─
+// app.scss の .global-notice と同じ座標系。ただし .global-notice と同時に出ることがあるため、
+// その高さぶん（3.5rem）持ち上げて重ならないようにする。
+// 消えるタイミングは各featureのstateサービス（ACHIEVEMENT_TOAST_MS）が制御する。
+.achievement-toast {
+  position: fixed;
+  left: 0;
+  right: 0;
+  bottom: calc(var(--bottom-nav-height) + env(safe-area-inset-bottom) + 3.5rem);
+  z-index: 101; // bottom-nav(100) より前面
+  margin: 0 0.75rem;
+  border: 1px solid var(--color-success);
+  border-radius: 0.5rem;
+  padding: 0.75rem 1rem;
+  background: var(--color-surface);
+  box-shadow: 0 4px 12px rgb(0 0 0 / 20%);
+
+  strong {
+    color: var(--color-success);
+  }
+
+  ul {
+    margin: 0.5rem 0;
+    padding-left: 1.25rem;
+  }
+}
+
+@media (min-width: 768px) {
+  // サイドナビ（幅220px）に被らないよう左端をずらす（app.scss の .global-notice と同条件）。
+  .achievement-toast {
+    left: 220px;
+    bottom: calc(1rem + 3.5rem);
+    margin: 0 1.5rem;
+  }
+}
+
 // ── サブセクション見出し共通 ─────────────────────────────────────
 .section-title {
   font-size: 1.125rem;

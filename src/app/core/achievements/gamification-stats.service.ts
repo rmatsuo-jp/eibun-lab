@@ -1,6 +1,6 @@
 /**
  * @file 対象機能別（添削／穴埋めクイズ／穴あきタイピング）の累積統計（GamificationStats）の
- * ローカル永続化を担うサービス。features/drill/drill-progress.service.ts と同じ構造
+ * ローカル永続化を担うサービス。core/drill/drill-progress.service.ts と同じ構造
  * （signal + readJson/writeJson）で、core層に置くことで features/practice（添削記録）・
  * features/drill（記録・実績判定）・features/achievements（一覧表示）の全てから参照できるようにする
  * （feature間import禁止のため）。

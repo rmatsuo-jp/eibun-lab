@@ -1,19 +1,4 @@
-.achievement-toast {
-  border: 1px solid var(--color-success);
-  border-radius: 0.5rem;
-  padding: 0.75rem 1rem;
-  margin-bottom: 1rem;
-  background: var(--color-surface);
-
-  strong {
-    color: var(--color-success);
-  }
-
-  ul {
-    margin: 0.5rem 0;
-    padding-left: 1.25rem;
-  }
-}
+// 実績解除トースト（.achievement-toast）は drill と共通のため src/styles.scss で一元定義する。
 
 .label {
   display: block;

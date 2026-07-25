@@ -169,11 +169,12 @@ i18n翻訳キーであり、旧データには存在しないため任意。
 | ------------------------------- | ------------------------ | ------------------------------------------------------------------------------------------- | ------------------------------------------------------------------------------- | -------------------------------------------------------------------------------------- |
 | `correction_sessions`           | `SESSIONS_KEY`           | [session-store.service.ts](../src/app/core/sessions/session-store.service.ts)               | `CorrectionSession[]`                                                           | `SessionStoreService`（CRUD、`deleted`フラグで論理削除）。`FirestoreSyncService`が同期 |
 | `app_settings`                  | `SETTINGS_KEY`           | [settings-store.service.ts](../src/app/core/settings/settings-store.service.ts)             | `StoredSettings`（`Partial<AppSettings> & { model?, apiKeyEnc? }`）             | `SettingsStoreService`のみ。クラウド同期なし                                           |
-| `eibun-lab-drill-progress`      | `DRILL_PROGRESS_KEY`     | [drill-progress.service.ts](../src/app/features/drill/drill-progress.service.ts)            | `Record<string, DrillProgress>`（キー=`normalizeDrillKey(...)`）                | `DrillProgressService`。`DrillProgressSyncService`が同期                               |
+| `eibun-lab-drill-progress`      | `DRILL_PROGRESS_KEY`     | [drill-progress.service.ts](../src/app/core/drill/drill-progress.service.ts)                | `Record<string, DrillProgress>`（キー=`normalizeDrillKey(...)`）                | `DrillProgressService`。`DrillProgressSyncService`が同期                               |
 | `eibun-lab-levelup-progress`    | `LEVELUP_PROGRESS_KEY`   | 同上                                                                                        | `Record<string, Record<string, LevelUpItemProgress>>`（sessionId→itemKey→進捗） | 同上                                                                                   |
 | `eibun-lab-drill-perfect-count` | `PERFECT_COUNT_KEY`      | 同上                                                                                        | `Record<string, number>`（キー=`` `cloze-${id}` `` / `` `levelup-${id}` ``）    | 同上                                                                                   |
 | `eibun-lab-gamification-stats`  | `GAMIFICATION_STATS_KEY` | [gamification-stats.service.ts](../src/app/core/achievements/gamification-stats.service.ts) | `GamificationStats`（§6参照）                                                   | `GamificationStatsService`。`GamificationSyncService`が同期                            |
 | `release_notes_seen`            | `SEEN_KEY`               | [release-notes.service.ts](../src/app/core/release-notes/release-notes.service.ts)          | `{ lastSeenVersion?: string }`                                                  | `ReleaseNotesService`のみ。クラウド同期なし                                            |
+| `eibun-lab-mistakes-sections`   | `SECTION_STATE_KEY`      | [mistakes-state.service.ts](../src/app/features/mistakes/mistakes-state.service.ts)         | `Record<MistakeSectionId, boolean>`（ミス傾向タブ各セクションの開閉）           | `MistakesState`のみ。端末ごとのUI設定のためクラウド同期なし                            |
 | `dev_logs`                      | `LOGS_KEY`               | [dev-log.service.ts](../src/app/features/dev/dev-log.service.ts)                            | `DevLogEntry[]`（最大20件）                                                     | `DevLogService`のみ。開発ビルドのみ記録                                                |
 
 `DevLogEntry`は`GeminiLogRecord`（[gemini-log.token.ts](../src/app/core/logging/gemini-log.token.ts)）を拡張し、
@@ -217,12 +218,21 @@ service cloud.firestore {
 ### コレクション構成
 
 すべて `apps/eibun_lab/users/{uid}/` 配下（`apps/eibun_lab`は他アプリとのFirebaseプロジェクト共有を想定した名前空間）。
+パス文字列は各同期サービスに散らさず、[firestore-paths.ts](../src/app/core/firebase/firestore-paths.ts)の
+`userDoc()` / `userCol()` で一元的に組み立てる。
 
 | パス                   | 内容                                                   | ドキュメント粒度                            |
 | ---------------------- | ------------------------------------------------------ | ------------------------------------------- |
 | `sessions/{sessionId}` | `CorrectionSession`をそのまま保存                      | セッション単位（1セッション=1ドキュメント） |
 | `drillProgress/data`   | `{ drillProgress?, levelUpProgress?, perfectCounts? }` | 固定ID`data`の単一ドキュメント              |
 | `gamification/data`    | `GamificationStats`相当                                | 固定ID`data`の単一ドキュメント              |
+
+3つの同期サービス（`FirestoreSyncService` / `DrillProgressSyncService` / `GamificationSyncService`）は
+いずれも[cloud-sync.base.ts](../src/app/core/sync/cloud-sync.base.ts)の`CloudSyncBase`を継承し、
+同期エラーsignal・ログイン監視`effect()`・push成否ハンドリングを共有する。派生側はマージ規則と
+対象ドキュメントだけを実装する。`setDoc`直前のundefined除去は
+[strip-undefined.util.ts](../src/app/core/sync/strip-undefined.util.ts)の
+`stripUndefinedShallow()` / `stripUndefinedDeep()`を使う。
 
 ### sessions の同期・マージ（`FirestoreSyncService`）
 
@@ -245,7 +255,7 @@ service cloud.firestore {
 
 ### drillProgress の同期・マージ（`DrillProgressSyncService`）
 
-正典: [drill-progress-sync.service.ts](../src/app/features/drill/drill-progress-sync.service.ts)
+正典: [drill-progress-sync.service.ts](../src/app/core/drill/drill-progress-sync.service.ts)
 
 削除（tombstone）の概念はない。`syncFromCloud`でのマージ規則：
 

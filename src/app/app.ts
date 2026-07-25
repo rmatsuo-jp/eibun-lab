@@ -24,7 +24,8 @@ import { I18nService } from '@core/i18n/i18n.service';
 import { Lang } from '@core/i18n/lang.model';
 import { PracticeState } from '@features/practice/practice-state.service';
 import { FirestoreSyncService } from '@core/sessions/firestore-sync.service';
-import { DrillProgressSyncService } from '@features/drill/drill-progress-sync.service';
+import { DrillProgressSyncService } from '@core/drill/drill-progress-sync.service';
+import { GamificationSyncService } from '@core/achievements/gamification-sync.service';
 import { ReleaseNotesService, ReleaseNoteEntry } from '@core/release-notes/release-notes.service';
 import { APP_VERSION } from '../version';
 
@@ -43,14 +44,19 @@ export class App {
   protected i18n = inject(I18nService);
   private firestoreSync = inject(FirestoreSyncService);
   private drillProgressSync = inject(DrillProgressSyncService);
+  private gamificationSync = inject(GamificationSyncService);
   private releaseNotes = inject(ReleaseNotesService);
 
   // ── クラウド同期失敗の通知（練習の添削通知が無い時だけ表示） ─────────
   // 閉じるボタンで syncErrorDismissed を立てるが、次回同期が成功して syncError が null に戻ると
   // effect() で自動的にリセットし、以後の失敗を再び通知できるようにする。
   private syncErrorDismissed = signal(false);
+  // 3つの同期サービス（学習履歴・ドリル進捗・実績/統計）のうち、最初に見つかった失敗を表示する。
   private rawSyncError = computed(
-    () => this.firestoreSync.syncError() ?? this.drillProgressSync.syncError(),
+    () =>
+      this.firestoreSync.syncError() ??
+      this.drillProgressSync.syncError() ??
+      this.gamificationSync.syncError(),
   );
   protected syncError = computed(() => (this.syncErrorDismissed() ? null : this.rawSyncError()));
 

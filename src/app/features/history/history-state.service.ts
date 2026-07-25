@@ -8,7 +8,7 @@
 import { Injectable, computed, inject, signal } from '@angular/core';
 import { DomSanitizer, SafeHtml } from '@angular/platform-browser';
 import { renderSafeMarkdown } from '@shared/utils/markdown.util';
-import { toDayKey } from '@shared/utils/date.util';
+import { FULL_DATE_OPTIONS, formatLocaleDate, toDayKey } from '@shared/utils/date.util';
 import { SessionRepositoryService } from '@core/sessions/session-repository.service';
 import { CorrectionSession, Mistake } from '@core/models/session.model';
 import { I18nService } from '@core/i18n/i18n.service';
@@ -18,7 +18,7 @@ import {
   localizedProse,
 } from '@core/i18n/localized-session.util';
 import { PROSE_FIELDS } from '@core/i18n/prose-fields.util';
-import { GEMINI_MODELS } from '@core/gemini/gemini-models.constants';
+import { modelLabel } from '@core/gemini/gemini-models.constants';
 
 @Injectable({ providedIn: 'root' })
 export class HistoryState {
@@ -104,11 +104,8 @@ export class HistoryState {
     return localizedCategory(m, this.i18n);
   }
 
-  // 添削に使用されたモデルの人間可読ラベルを返す。GEMINI_MODELS に見つからない場合（廃止モデル等）は
-  // 生のモデルIDへフォールバックする。
-  modelLabel(modelId: string): string {
-    return GEMINI_MODELS.find((m) => m.value === modelId)?.label ?? modelId;
-  }
+  // 添削に使用されたモデルの人間可読ラベル（実装は core/gemini/gemini-models.constants）。
+  modelLabel = modelLabel;
 
   toggle(id: string) {
     if (this.selectionMode()) return;
@@ -158,12 +155,7 @@ export class HistoryState {
   }
 
   formatDate(iso: string): string {
-    return new Date(iso).toLocaleDateString(this.i18n.lang() === 'en' ? 'en-US' : 'ja-JP', {
-      year: 'numeric',
-      month: 'long',
-      day: 'numeric',
-      weekday: 'short',
-    });
+    return formatLocaleDate(iso, this.i18n.lang(), FULL_DATE_OPTIONS);
   }
 
   // ── インポート / エクスポート ──────────────────────────────────────

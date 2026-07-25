@@ -220,4 +220,134 @@
     display: grid;
     grid-template-columns: repeat(2, 1fr);
   }
+
+  .trend-row {
+    grid-template-columns: 8rem 1fr 6rem;
+  }
+}
+
+// 折りたたみの見出し・枠は shared/ui/collapsible が持つ（.collapsible / .collapse-head / .collapse-icon）。
+// ここでは各セクションの中身だけをスタイルする。
+
+.sub-title {
+  font-size: 0.875rem;
+  font-weight: 700;
+  color: var(--color-text);
+  margin: 1rem 0 0.375rem;
+}
+
+// ── カテゴリ別の改善/悪化 ──
+.trend-list {
+  display: flex;
+  flex-direction: column;
+  gap: 0.5rem;
+  margin-top: 0.75rem;
+}
+
+.trend-row {
+  display: grid;
+  grid-template-columns: 5rem 1fr auto;
+  align-items: center;
+  gap: 0.5rem;
+  background: var(--color-surface);
+  border: 1px solid var(--color-border);
+  border-radius: 0.75rem;
+  padding: 0.5rem 0.75rem;
+}
+
+.trend-category {
+  font-size: 0.8125rem;
+  color: var(--color-text);
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.trend-values {
+  font-size: 0.8125rem;
+  color: var(--color-text-muted);
+}
+
+.trend-unit {
+  font-size: 0.6875rem;
+}
+
+.trend-badge {
+  font-size: 0.75rem;
+  font-weight: 700;
+  white-space: nowrap;
+
+  .trend-improved & {
+    color: var(--color-success);
+  }
+
+  .trend-worsened & {
+    color: var(--color-error);
+  }
+
+  .trend-flat & {
+    color: var(--color-text-muted);
+  }
+}
+
+.density-chart {
+  background: var(--color-surface);
+  border: 1px solid var(--color-border);
+  border-radius: 0.75rem;
+  padding: 0.5rem;
+
+  svg {
+    width: 100%;
+    height: auto;
+    display: block;
+  }
+}
+
+// ── 未克服ミス／再発ミス ──
+.drill-link {
+  display: block;
+  width: 100%;
+  margin-top: 0.75rem;
+  padding: 0.625rem 1rem;
+  background: var(--color-primary);
+  color: #fff;
+  border: none;
+  border-radius: 0.75rem;
+  font-size: 0.875rem;
+  font-weight: 700;
+  cursor: pointer;
+}
+
+.recurring-span {
+  font-size: 0.6875rem;
+  color: var(--color-text-muted);
+  margin-left: auto;
+}
+
+// ── AI診断 ──
+.insight-list {
+  display: flex;
+  flex-direction: column;
+  gap: 0.75rem;
+  margin-top: 0.75rem;
+}
+
+.insight-card {
+  background: var(--color-surface);
+  border: 1px solid var(--color-border);
+  border-radius: 0.75rem;
+  padding: 0.875rem 1rem;
+}
+
+.insight-date {
+  font-size: 0.6875rem;
+  color: var(--color-text-muted);
+}
+
+.insight-body {
+  margin: 0;
+  font-size: 0.875rem;
+  color: var(--color-text);
+  line-height: 1.7;
+  white-space: pre-wrap;
 }

@@ -62,7 +62,8 @@ src/
     │   ├── gemini/                  # Gemini API 連携
     │   │   ├── gemini.service.ts        # API呼び出し・モデルフォールバック
     │   │   ├── prompt.util.ts           # buildPrompt() プロンプト動的生成（全10セクション常時有効）
-    │   │   ├── gemini-parse.util.ts     # レスポンスのタグ抽出＋JSON検証
+    │   │   ├── gemini-parse.util.ts     # レスポンスのタグ抽出プリミティブ
+    │   │   ├── gemini-response.util.ts  # 各セクションのスキーマ検証（mistakes/evaluation/levelup/review）
     │   │   ├── evaluation.util.ts       # 総合スコア・CEFR算出
     │   │   ├── gemini-error.util.ts / gemini-blocked.error.ts
     │   │   ├── gemini-models.constants.ts
@@ -71,6 +72,9 @@ src/
     │   │   └── quiz.util.ts         # 出題整形・正誤判定（drill/practiceの待機中クイズが共用）
     │   ├── stats/
     │   │   └── session-stats.util.ts # セッション配列からの統計・集計計算（純粋関数）
+    │   ├── drill/
+    │   │   ├── drill-progress.service.ts      # 習熟度・レベルアップ進捗（LocalStorage。drillとmistakesが共用）
+    │   │   └── drill-progress-sync.service.ts # ドリル進捗のクラウド同期（読み書きの唯一の窓口）
     │   ├── achievements/             # 実績（ゲーミフィケーション）
     │   │   ├── achievement-definitions/   # featureId（correction/cloze/levelup）別に分割した実績定義
     │   │   │   └── index.ts               # 各ファイルの配列を結合してACHIEVEMENTSをexport
@@ -89,12 +93,19 @@ src/
     │   │   │   └── index.ts         # 各ファイルのja/enをマージしてTRANSLATIONSを構成
     │   │   ├── localized-session.util.ts  # ja/en出し分け（en欠損時はjaへフォールバック）
     │   │   └── prose-fields.util.ts       # 添削本文系フィールドのja/enキー対応表
-    │   └── logging/
-    │       └── gemini-log.token.ts  # GEMINI_LOGGER トークン
+    │   ├── logging/
+    │   │   └── gemini-log.token.ts  # GEMINI_LOGGER トークン
+    │   └── sync/                    # クラウド同期3サービスの共通基盤
+    │       ├── cloud-sync.base.ts       # CloudSyncBase（同期エラーsignal・ログイン監視・push処理）
+    │       └── strip-undefined.util.ts  # setDoc直前のundefined除去（浅い版/深い版）
     ├── shared/
+    │   ├── ui/                      # ドメイン非依存の共通UIコンポーネント
+    │   │   ├── badge / card / icon / modal / progress-bar / spinner
+    │   │   └── collapsible/         # 見出しクリックで格納/展開するセクション（開閉状態は親が保持）
     │   └── utils/                   # ドメイン非依存の汎用ユーティリティ
     │       ├── markdown.util.ts     # Markdown → 安全なHTML変換
     │       ├── clipboard.util.ts    # クリップボードコピー
+    │       ├── file-transfer.util.ts # JSONのダウンロード/ファイル読み込み
     │       └── date.util.ts         # 日付フォーマット/日付キー変換
     └── features/                    # 遅延ロード。1フォルダ = 1拡張機能
         ├── practice/                # 英文入力・添削結果表示
@@ -105,14 +116,13 @@ src/
         │   ├── drill-state.service.ts        # オーケストレーター（モード選択・共通UI状態・採点・実績連携）
         │   ├── drill-cloze-state.ts           # 穴埋めクイズモード専用のデータ・ロジック
         │   ├── drill-levelup-state.ts         # 穴あきタイピングモード専用のデータ・ロジック
-        │   ├── drill-progress.service.ts     # 習熟度・レベルアップ進捗（LocalStorage）
-        │   ├── drill-progress-sync.service.ts # ドリル進捗のクラウド同期
         │   └── sentence-list/                # レベルアップの文一覧選択サブコンポーネント
         ├── history/                 # 過去セッション一覧・カレンダー・検索・インポート/エクスポート
         │   ├── history-state.service.ts       # 状態・インポート/エクスポートの集約（history.tsはDOM制御のみ）
         │   └── history-calendar/    # カレンダー表示サブコンポーネント
         ├── mistakes/                # 学習統計・ミス傾向・スコア/CEFR推移ダッシュボード
-        │   └── mistakes-state.service.ts     # 集計状態の集約（mistakes.tsはテンプレート橋渡しのみ）
+        │   ├── mistakes-state.service.ts     # 集計状態の集約（mistakes.tsはテンプレート橋渡しのみ）
+        │   └── mistakes-chart.util.ts        # 推移グラフ・スパークラインのSVG座標計算（純粋関数）
         ├── achievements/            # 実績（バッジ・達成条件）一覧表示
         ├── settings/                # オーケストレーター（テーマ・言語・法的情報・GitHubリンク）
         │   ├── settings.guard.ts    # canDeactivateで未保存変更を検知

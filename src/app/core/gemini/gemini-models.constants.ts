@@ -19,3 +19,11 @@ export const GEMINI_MODELS: GeminiModelOption[] = [
 ];
 
 export const DEFAULT_MODEL_PRIORITY: string[] = GEMINI_MODELS.map((m) => m.value);
+
+/**
+ * モデルIDを人間可読ラベルに変換する（practice / history の結果表示で共用）。
+ * GEMINI_MODELS に見つからない場合（廃止モデルで添削した過去セッション等）は生のモデルIDを返す。
+ */
+export function modelLabel(modelId: string): string {
+  return GEMINI_MODELS.find((m) => m.value === modelId)?.label ?? modelId;
+}

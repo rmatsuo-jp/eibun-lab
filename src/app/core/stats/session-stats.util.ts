@@ -3,9 +3,12 @@
  * すべて sessions（CorrectionSession[]）を引数に取るため
  * Angular DI なしに単体テストできる。カテゴリ正規化・CEFR数値化・学習統計・評価推移・頻出ミス・
  * 復習カード集計・レベルアップ対象セッション抽出を提供する。
+ * さらにミス傾向タブ向けに、カテゴリ別の改善/悪化トレンド（ミス密度の期間比較）・再発ミス検出・
+ * ミス密度推移・未克服ミス抽出（ドリル習熟度と突合）を提供する。
  */
 import {
   CorrectionSession,
+  DrillProgress,
   Mistake,
   ReviewItem,
   WritingEvaluation,
@@ -158,8 +161,152 @@ export function getSessionsWithLevelUp(sessions: CorrectionSession[]): Correctio
 }
 
 // ── 復習カードを持つセッション一覧: Drill の穴埋めクイズ・日付選択画面で使う ─
-// getReviewItems と同じ RECENT_SESSION_LIMIT 件のスライスを対象にする（今のレベルではもう
-// 犯していない古いミス由来のカードを除外し、「今の弱点」を優先出題する方針を日付選択でも踏襲する）。
+// getSessionsWithLevelUp と同様に直近件数では絞らず、全期間の reviewItems を持つセッションを対象にする
+// （日付単位で1セッションを選んでその中のカードを順にたどる仕様のため、古い日付も選択肢に残す）。
+// sessions は既に新しい順にソート済みである前提のため、追加のソートは行わない。
 export function getSessionsWithReviewItems(sessions: CorrectionSession[]): CorrectionSession[] {
-  return sessions.slice(0, RECENT_SESSION_LIMIT).filter((s) => (s.reviewItems?.length ?? 0) > 0);
+  return sessions.filter((s) => (s.reviewItems?.length ?? 0) > 0);
+}
+
+// ── ミス密度（100語あたりのミス数）ユーティリティ ──────────────────
+// 学習者が書いた英文は original。空白区切りの語数を書いた量の指標として使う。
+function wordCount(session: CorrectionSession): number {
+  return session.original.trim().split(/\s+/).filter(Boolean).length;
+}
+
+// カテゴリ別の「100語あたりミス数」。語数0（空入力のみ）の区間は密度0として扱う。
+function densityByCategory(sessions: CorrectionSession[]): Record<string, number> {
+  const totalWords = sessions.reduce((sum, s) => sum + wordCount(s), 0);
+  const counts: Record<string, number> = {};
+  for (const s of sessions) {
+    for (const m of s.mistakes) {
+      const category = normalizeCategory(m.category);
+      counts[category] = (counts[category] ?? 0) + 1;
+    }
+  }
+  const densities: Record<string, number> = {};
+  for (const [category, count] of Object.entries(counts)) {
+    densities[category] = totalWords === 0 ? 0 : (count / totalWords) * 100;
+  }
+  return densities;
+}
+
+// ── カテゴリ別 改善/悪化トレンド ────────────────────────────────
+// 累計件数は「書いた量」に比例して増えるだけで上達が読み取れないため、100語あたりのミス密度に
+// 正規化したうえで「直近 RECENT_SESSION_LIMIT 件」と「それ以前」を比較する。
+// 比較対象（それ以前）が存在しない場合は判定不能なので空配列を返す（呼び出し側でセクションごと非表示）。
+// delta が ±TREND_FLAT_THRESHOLD 未満の変化は誤差とみなし「横ばい」に寄せる。
+export const TREND_FLAT_THRESHOLD = 0.2;
+
+export interface CategoryTrend {
+  category: string; // 正規化済み日本語カテゴリ（表示直前に localizedNormalizedCategory で翻訳する）
+  recentDensity: number; // 直近区間の100語あたりミス数
+  pastDensity: number; // それ以前の区間の100語あたりミス数
+  delta: number; // recentDensity - pastDensity（負なら改善）
+  direction: 'improved' | 'worsened' | 'flat';
+}
+
+export function getCategoryTrends(sessions: CorrectionSession[]): CategoryTrend[] {
+  const recent = sessions.slice(0, RECENT_SESSION_LIMIT);
+  const past = sessions.slice(RECENT_SESSION_LIMIT);
+  if (past.length === 0) return [];
+
+  const recentDensities = densityByCategory(recent);
+  const pastDensities = densityByCategory(past);
+  const categories = new Set([...Object.keys(recentDensities), ...Object.keys(pastDensities)]);
+
+  return [...categories]
+    .map((category) => {
+      const recentDensity = recentDensities[category] ?? 0;
+      const pastDensity = pastDensities[category] ?? 0;
+      const delta = recentDensity - pastDensity;
+      const direction: CategoryTrend['direction'] =
+        Math.abs(delta) < TREND_FLAT_THRESHOLD ? 'flat' : delta < 0 ? 'improved' : 'worsened';
+      return { category, recentDensity, pastDensity, delta, direction };
+    })
+    .sort((a, b) => b.recentDensity - a.recentDensity);
+}
+
+// ── 再発ミス検出 ────────────────────────────────────────────────
+// getFrequentMistakes は直近 RECENT_SESSION_LIMIT 件しか見ないため「以前も同じミスをした」という
+// 本当の癖を取りこぼす。ここでは全期間を対象に、2つ以上の異なる日付に登場したミスだけを抽出する
+// （同じ日に同じミスを繰り返しても癖の証拠にはならないため、件数ではなく登場日数で判定する）。
+const RECURRING_LIMIT = 20;
+
+export interface RecurringMistake extends Mistake {
+  dayCount: number; // 登場した異なる日付の数
+  firstDate: string; // 最初に登場したセッションの date（ISO）
+  lastDate: string; // 最後に登場したセッションの date（ISO）
+}
+
+export function getRecurringMistakes(sessions: CorrectionSession[]): RecurringMistake[] {
+  const grouped = new Map<string, { mistake: Mistake; days: Set<string>; dates: string[] }>();
+  for (const s of sessions) {
+    const dayKey = toDayKey(s.date);
+    for (const m of s.mistakes) {
+      const key = normalizeDrillKey(m.original);
+      const existing = grouped.get(key);
+      if (existing) {
+        existing.days.add(dayKey);
+        existing.dates.push(s.date);
+      } else {
+        grouped.set(key, { mistake: m, days: new Set([dayKey]), dates: [s.date] });
+      }
+    }
+  }
+  return [...grouped.values()]
+    .filter((g) => g.days.size >= 2)
+    .map((g) => {
+      const sorted = [...g.dates].sort((a, b) => a.localeCompare(b));
+      return {
+        ...g.mistake,
+        dayCount: g.days.size,
+        firstDate: sorted[0],
+        lastDate: sorted[sorted.length - 1],
+      };
+    })
+    .sort((a, b) => b.dayCount - a.dayCount || b.lastDate.localeCompare(a.lastDate))
+    .slice(0, RECURRING_LIMIT);
+}
+
+// ── ミス密度（errorDensity）推移: getEvaluationHistory と同じ日単位集約規則で昇順に返す ──
+export function getErrorDensityHistory(
+  sessions: CorrectionSession[],
+): { date: string; density: number }[] {
+  return getEvaluationHistory(sessions).map((h) => ({
+    date: h.date,
+    density: h.evaluation.errorDensity,
+  }));
+}
+
+// ── 未克服ミス: 頻出ミスをドリル習熟度と突合し、まだ身についていないものだけを残す ──
+// 習熟済み（correctStreak >= masteryStreak）は除外し、「未克服 → 未着手 → 定着途中」の順に並べる
+// （挑戦したのに正解できていないミスが最も優先度が高いため）。
+// DrillProgress は引数（progressOf）で受け取り、この関数自体は DI なしで単体テストできるようにする。
+export type MasteryState = 'unmastered' | 'untouched' | 'learning';
+const MASTERY_ORDER: Record<MasteryState, number> = { unmastered: 0, untouched: 1, learning: 2 };
+
+export function getUnmasteredMistakes(
+  sessions: CorrectionSession[],
+  progressOf: (key: string) => DrillProgress | undefined,
+  masteryStreak: number,
+): (Mistake & { count: number; state: MasteryState })[] {
+  const result: (Mistake & { count: number; state: MasteryState })[] = [];
+  for (const m of getFrequentMistakes(sessions)) {
+    const progress = progressOf(normalizeDrillKey(m.original));
+    let state: MasteryState;
+    if (!progress) {
+      state = 'untouched';
+    } else if (!progress.everCorrect) {
+      state = 'unmastered';
+    } else if (progress.correctStreak < masteryStreak) {
+      state = 'learning';
+    } else {
+      continue; // 習熟済みは表示しない
+    }
+    result.push({ ...m, state });
+  }
+  return result.sort(
+    (a, b) => MASTERY_ORDER[a.state] - MASTERY_ORDER[b.state] || b.count - a.count,
+  );
 }

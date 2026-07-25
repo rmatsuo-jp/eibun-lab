@@ -27,13 +27,13 @@ describe('buildClozeQuiz', () => {
 });
 
 describe('buildLevelUpQuiz', () => {
-  it('leveledUpを単語分割し、maxLevelを3〜6に丸める', () => {
+  it('leveledUpを単語分割し、maxLevelを3〜4に丸める', () => {
     const quiz = buildLevelUpQuiz(
       { leveledUp: 'This is a short sentence', original: 'This is short', translation: '短い文' },
       'key3',
     );
     expect(quiz.words).toEqual(['This', 'is', 'a', 'short', 'sentence']);
-    expect(quiz.maxLevel).toBe(5);
+    expect(quiz.maxLevel).toBe(4);
     expect(quiz.hideOrder).toHaveLength(5);
   });
 
@@ -45,12 +45,12 @@ describe('buildLevelUpQuiz', () => {
     expect(quiz.maxLevel).toBe(3);
   });
 
-  it('単語数が6を超えてもmaxLevelは6を上回らない', () => {
+  it('単語数が4を超えてもmaxLevelは4を上回らない', () => {
     const quiz = buildLevelUpQuiz(
       { leveledUp: 'one two three four five six seven eight', original: 'x', translation: 'y' },
       'key5',
     );
-    expect(quiz.maxLevel).toBe(6);
+    expect(quiz.maxLevel).toBe(4);
   });
 });
 

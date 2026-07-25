@@ -59,9 +59,13 @@ export interface LevelUpItem {
 // correctStreak が一定数以上になると出題の重みを下げ、既に習熟した問題の再出題頻度を減らす。
 // everCorrect は1回でも正解したら true になり、以後不正解になっても false に戻さない
 // （穴埋めクイズの日付選択画面の達成バッジ判定に使用。既存データには存在しないため optional）。
+// correctCount/attemptCount は同じ問題を繰り返し解いた累積成績で、穴埋めクイズの答え合わせ後に
+// 「この問題: {correct} / {attempts}回 正解」として表示する（既存データには存在しないため optional）。
 export interface DrillProgress {
   correctStreak: number; // 連続正解数
   everCorrect?: boolean; // 1回でも正解したことがあるか（永続的な達成フラグ）
+  correctCount?: number; // 累積正答数
+  attemptCount?: number; // 累積挑戦回数
   lastAttemptAt: string; // 直近に解答した日時（ISO 8601）
 }
 

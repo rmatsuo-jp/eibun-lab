@@ -95,20 +95,14 @@
   }
 }
 
-.achievement-toast {
-  border: 1px solid var(--color-success);
-  border-radius: 0.5rem;
-  padding: 0.75rem 1rem;
-  margin-bottom: 1rem;
-  background: var(--color-surface);
+// 実績解除トースト（.achievement-toast）は practice と共通のため src/styles.scss で一元定義する。
 
-  strong {
-    color: var(--color-success);
-  }
-
-  ul {
-    margin: 0.5rem 0;
-    padding-left: 1.25rem;
+@media (min-width: 768px) {
+  // サイドナビ（幅220px）に被らないよう左端をずらす（app.scss の .global-notice と同条件）。
+  .achievement-toast {
+    left: 220px;
+    bottom: calc(1rem + 3.5rem);
+    margin: 0 1.5rem;
   }
 }
 
@@ -251,6 +245,14 @@
   margin: 0 0 1rem;
 }
 
+// 答え合わせ後に出す「この問題の累積正答数／挑戦回数」。補助情報なので控えめに。
+.answer-stats {
+  font-size: 0.8125rem;
+  color: var(--color-text-muted);
+  text-align: center;
+  margin: 0 0 1rem;
+}
+
 .answer-input {
   width: 100%;
   box-sizing: border-box;
@@ -270,6 +272,41 @@
   &:disabled {
     opacity: 0.7;
   }
+}
+
+// ── 穴あきタイピング: お手本と入力文字列を縦に揃えるための共通指定 ──
+// お手本 <p class="quiz-original"> と入力 <textarea class="answer-input"> の両方に付与し、
+// フォント・寸法・内側余白・折り返し条件を完全に一致させて1文字ずつ突き合わせられるようにする。
+// .quiz-original / .answer-input より後に定義して font-size 等を上書きする。
+
+// 桁揃えの基準となる文字送り。お手本・入力欄・正解表示の3箇所で共有する。
+@mixin typing-metrics {
+  font-family: ui-monospace, SFMono-Regular, Menlo, Consolas, monospace;
+  font-size: 1rem;
+  font-weight: 600;
+  line-height: 1.6;
+  letter-spacing: 0;
+  white-space: pre-wrap;
+  word-break: break-word;
+}
+
+.typing-line {
+  @include typing-metrics;
+
+  padding: 0.625rem 0.875rem;
+  border: 1px solid transparent; // 入力欄の枠線ぶんの左端ズレを打ち消す
+  box-sizing: border-box;
+  width: 100%;
+  margin: 0 0 0.5rem;
+}
+
+// textarea 化に伴う調整（高さは drill.ts が内容に応じて設定する）
+textarea.answer-input {
+  display: block;
+  resize: none;
+  overflow: hidden;
+  border-color: var(--color-border); // .typing-line の transparent を打ち消して枠線を戻す
+  margin-bottom: 1rem;
 }
 
 .answer-result {
@@ -308,6 +345,21 @@
 .correct-text {
   color: var(--color-success);
   font-weight: 600;
+}
+
+// 穴あきタイピングの正解表示。お手本・入力欄と左端／文字幅を揃えるため、
+// 「正解」バッジは置かず（結果行で正誤は分かる）、緑文字と左端のラインだけで示す。
+// 内側余白は .correct-answer の 0.625rem 0.875rem（.typing-line と同値）をそのまま使う。
+.correct-answer--typing {
+  display: block;
+  border: 1px solid transparent; // .typing-line の枠線ぶんの左端ズレを吸収
+  // 左ラインは border ではなく inset shadow で描き、本文を右へずらさない
+  box-shadow: inset 3px 0 0 var(--color-success);
+
+  .correct-text {
+    display: block;
+    @include typing-metrics;
+  }
 }
 
 // クローズ4択（choice-list）は回答前後で同じ縦1列の並びにし、選択→結果表示の対応がずれないようにする

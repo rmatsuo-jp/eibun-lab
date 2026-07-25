@@ -1,4 +1,9 @@
-<!-- @file Mistakes ページテンプレート。学習統計ダッシュボード・スコア推移グラフ・CEFR推移グラフ（横軸=添削日付）・カテゴリ別ミス頻度バー・頻出ミスリストを表示する。
+<!-- @file Mistakes ページテンプレート。学習統計ダッシュボード以外の8セクションは <app-collapsible> で
+     格納/展開できる（開閉状態は MistakesState.openSections が一元管理し localStorage に永続化）。
+     並びは「行動優先」順で、上から順に読めば今日やるべきことが先に目に入る（末尾ほど参考情報）:
+     ①学習統計ダッシュボード ②まだ身についていないミス（ドリル習熟度と突合） ③繰り返しているミス（全期間の再発検出）
+     ④AIによる診断（grammarTendency / studyPlan / cefrRationale） ⑤カテゴリ別の改善/悪化＋ミス密度スパークライン
+     ⑥スコア推移グラフ ⑦CEFR推移グラフ（横軸=添削日付） ⑧頻出ミスリスト ⑨カテゴリ別ミス頻度バー。
      グラフ凡例（.legend-item）は tabindex/role="button"+keydown.enter/space でキーボードからも系列ハイライトを切り替えられる。 -->
 <div class="page">
   <h1 class="page-title">{{ i18n.t('mistakes.title') }}</h1>
@@ -9,7 +14,7 @@
       <p>{{ i18n.t('mistakes.empty2') }}</p>
     </div>
   } @else {
-    <!-- ── 学習統計ダッシュボード ── -->
+    <!-- ── 学習統計ダッシュボード（常時表示。見出しの無いサマリのため折りたたまない） ── -->
     <section class="section">
       <div class="stat-grid">
         <div class="stat-card streak">
@@ -35,10 +40,147 @@
       </div>
     </section>
 
+    <!-- ── まだ身についていないミス（ドリル習熟度と突合。習熟済みは表示しない） ── -->
+    @if (state.unmastered().length > 0) {
+      <app-collapsible
+        [title]="i18n.t('mistakes.unmastered')"
+        [open]="state.isOpen('unmastered')"
+        (toggled)="state.toggleSection('unmastered')"
+      >
+        <p class="chart-note">{{ i18n.t('mistakes.unmasteredNote') }}</p>
+        <div class="frequent-list">
+          @for (m of state.unmastered(); track m.original) {
+            <div class="frequent-item">
+              <div class="frequent-header">
+                <app-badge>{{ state.mistakeCategoryLabel(m) }}</app-badge>
+                <app-badge [variant]="state.masteryVariant(m.state)">{{
+                  state.masteryLabel(m.state)
+                }}</app-badge>
+              </div>
+              <div class="frequent-pair">
+                <span class="f-original">{{ m.original }}</span>
+                <span class="arrow">→</span>
+                <span class="f-corrected">{{ m.corrected }}</span>
+              </div>
+              <p class="f-explanation">{{ state.mistakeExplanation(m) }}</p>
+            </div>
+          }
+        </div>
+        <button class="drill-link" type="button" (click)="state.goToDrill()">
+          {{ i18n.t('mistakes.goToDrill') }}
+        </button>
+      </app-collapsible>
+    }
+
+    <!-- ── 繰り返しているミス（全期間で2日以上に登場） ── -->
+    @if (state.recurring().length > 0) {
+      <app-collapsible
+        [title]="i18n.t('mistakes.recurring')"
+        [open]="state.isOpen('recurring')"
+        (toggled)="state.toggleSection('recurring')"
+      >
+        <p class="chart-note">{{ i18n.t('mistakes.recurringNote') }}</p>
+        <div class="frequent-list">
+          @for (m of state.recurring(); track m.original) {
+            <div class="frequent-item">
+              <div class="frequent-header">
+                <app-badge>{{ state.mistakeCategoryLabel(m) }}</app-badge>
+                <app-badge variant="error">{{
+                  i18n.t('mistakes.recurringDays', { count: m.dayCount })
+                }}</app-badge>
+                <span class="recurring-span">
+                  {{ state.shortDate(m.firstDate) }} 〜 {{ state.shortDate(m.lastDate) }}
+                </span>
+              </div>
+              <div class="frequent-pair">
+                <span class="f-original">{{ m.original }}</span>
+                <span class="arrow">→</span>
+                <span class="f-corrected">{{ m.corrected }}</span>
+              </div>
+              <p class="f-explanation">{{ state.mistakeExplanation(m) }}</p>
+            </div>
+          }
+        </div>
+      </app-collapsible>
+    }
+
+    <!-- ── AIによる診断（保存済みの grammarTendency / studyPlan / cefrRationale） ── -->
+    @if (state.aiInsights().length > 0) {
+      <app-collapsible
+        [title]="i18n.t('mistakes.aiInsight')"
+        [open]="state.isOpen('ai')"
+        (toggled)="state.toggleSection('ai')"
+      >
+        <div class="insight-list">
+          @for (insight of state.aiInsights(); track insight.date) {
+            <div class="insight-card">
+              <span class="insight-date">{{ state.shortDate(insight.date) }}</span>
+              @if (insight.grammarTendency) {
+                <h3 class="sub-title">{{ i18n.t('mistakes.aiTendency') }}</h3>
+                <p class="insight-body">{{ insight.grammarTendency }}</p>
+              }
+              @if (insight.studyPlan) {
+                <h3 class="sub-title">{{ i18n.t('mistakes.aiStudyPlan') }}</h3>
+                <p class="insight-body">{{ insight.studyPlan }}</p>
+              }
+              @if (insight.cefrRationale) {
+                <h3 class="sub-title">{{ i18n.t('mistakes.aiCefrRationale') }}</h3>
+                <p class="insight-body">{{ insight.cefrRationale }}</p>
+              }
+            </div>
+          }
+        </div>
+      </app-collapsible>
+    }
+
+    <!-- ── カテゴリ別の改善/悪化（100語あたりのミス密度で直近15回とそれ以前を比較） ── -->
+    @if (state.categoryTrends().length > 0) {
+      <app-collapsible
+        [title]="i18n.t('mistakes.trend')"
+        [open]="state.isOpen('trend')"
+        (toggled)="state.toggleSection('trend')"
+      >
+        <p class="chart-note">{{ i18n.t('mistakes.trendNote') }}</p>
+        <div class="trend-list">
+          @for (t of state.categoryTrends(); track t.category) {
+            <div class="trend-row" [class]="'trend-' + t.direction">
+              <span class="trend-category">{{ state.categoryLabel(t.category) }}</span>
+              <span class="trend-values">
+                {{ state.formatDensity(t.pastDensity) }} →
+                {{ state.formatDensity(t.recentDensity) }}
+                <span class="trend-unit">{{ i18n.t('mistakes.trendUnit') }}</span>
+              </span>
+              <span class="trend-badge">
+                {{ state.trendArrow(t.direction) }} {{ state.trendLabel(t.direction) }}
+              </span>
+            </div>
+          }
+        </div>
+
+        @if (state.densityChart(); as chart) {
+          <h3 class="sub-title">{{ i18n.t('mistakes.densityTrend') }}</h3>
+          <div class="density-chart">
+            <svg
+              [attr.viewBox]="'0 0 ' + state.chartBox.w + ' ' + state.densityChartH"
+              preserveAspectRatio="xMidYMid meet"
+            >
+              <polyline [attr.points]="chart.line" fill="none" stroke="#f87171" stroke-width="2" />
+              @for (d of chart.dots; track $index) {
+                <circle [attr.cx]="d.x" [attr.cy]="d.y" r="2" fill="#f87171" />
+              }
+            </svg>
+          </div>
+        }
+      </app-collapsible>
+    }
+
     <!-- ── スコア推移（10点満点） ── -->
     @if (state.evalHistory().length > 0) {
-      <section class="section">
-        <h2 class="section-title">{{ i18n.t('mistakes.scoreTrend') }}</h2>
+      <app-collapsible
+        [title]="i18n.t('mistakes.scoreTrend')"
+        [open]="state.isOpen('score')"
+        (toggled)="state.toggleSection('score')"
+      >
         @if (state.scoreChart().length > 0) {
           <div class="cefr-chart">
             <svg
@@ -113,13 +255,16 @@
         } @else {
           <p class="chart-note">{{ i18n.t('mistakes.chartNote') }}</p>
         }
-      </section>
+      </app-collapsible>
     }
 
     <!-- ── CEFR レベル推移 ── -->
     @if (state.evalHistory().length > 0) {
-      <section class="section">
-        <h2 class="section-title">{{ i18n.t('mistakes.cefrTrend') }}</h2>
+      <app-collapsible
+        [title]="i18n.t('mistakes.cefrTrend')"
+        [open]="state.isOpen('cefr')"
+        (toggled)="state.toggleSection('cefr')"
+      >
         @if (state.cefrChart().length > 0) {
           <div class="cefr-chart">
             <svg
@@ -194,27 +339,16 @@
         } @else {
           <p class="chart-note">{{ i18n.t('mistakes.chartNote') }}</p>
         }
-      </section>
+      </app-collapsible>
     }
 
-    @if (state.stats().length > 0) {
-      <section class="section">
-        <h2 class="section-title">{{ i18n.t('mistakes.categoryCount') }}</h2>
-        <div class="chart">
-          @for (s of state.stats(); track s.category) {
-            <div class="chart-row">
-              <span class="chart-label">{{ state.categoryLabel(s.category) }}</span>
-              <div class="bar-wrap">
-                <div class="bar" [style.width]="state.barWidth(s.count)"></div>
-              </div>
-              <span class="chart-count">{{ s.count }}</span>
-            </div>
-          }
-        </div>
-      </section>
-
-      <section class="section">
-        <h2 class="section-title">{{ i18n.t('mistakes.frequent') }}</h2>
+    <!-- ── よく間違える表現（直近15件の頻出ミス） ── -->
+    @if (state.frequent().length > 0) {
+      <app-collapsible
+        [title]="i18n.t('mistakes.frequent')"
+        [open]="state.isOpen('frequent')"
+        (toggled)="state.toggleSection('frequent')"
+      >
         <div class="frequent-list">
           @for (m of state.frequent(); track m.original) {
             <div class="frequent-item">
@@ -235,7 +369,28 @@
             </div>
           }
         </div>
-      </section>
+      </app-collapsible>
+    }
+
+    <!-- ── カテゴリ別ミス件数（全期間の累計） ── -->
+    @if (state.stats().length > 0) {
+      <app-collapsible
+        [title]="i18n.t('mistakes.categoryCount')"
+        [open]="state.isOpen('category')"
+        (toggled)="state.toggleSection('category')"
+      >
+        <div class="chart">
+          @for (s of state.stats(); track s.category) {
+            <div class="chart-row">
+              <span class="chart-label">{{ state.categoryLabel(s.category) }}</span>
+              <div class="bar-wrap">
+                <div class="bar" [style.width]="state.barWidth(s.count)"></div>
+              </div>
+              <span class="chart-count">{{ s.count }}</span>
+            </div>
+          }
+        </div>
+      </app-collapsible>
     }
   }
 </div>

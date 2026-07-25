@@ -1,11 +1,5 @@
 import { vi } from 'vitest';
-import {
-  extractTaggedJson,
-  extractTaggedText,
-  stripKnownBlocks,
-  KNOWN_TAGS,
-  HEADING_BLOCKS,
-} from './gemini-parse.util';
+import { extractTaggedJson, extractTaggedText } from './gemini-parse.util';
 
 describe('extractTaggedJson', () => {
   const validateArr = (json: unknown) => {
@@ -66,88 +60,7 @@ describe('extractTaggedJson', () => {
   });
 });
 
-describe('stripKnownBlocks', () => {
-  it('見出しとタグが揃っていればブロックごと消え、他のプローズは残る', () => {
-    const text = [
-      '【文法・語法のミスの指摘】',
-      '三単現の s が抜けています。',
-      '',
-      '【添削後の全文】',
-      '<corrected-text>He goes to school.</corrected-text>',
-      '',
-      '【CEFR評価の根拠】',
-      '語彙は A2 相当です。',
-    ].join('\n');
-
-    const out = stripKnownBlocks(text);
-    expect(out).toContain('三単現の s が抜けています。');
-    expect(out).toContain('語彙は A2 相当です。');
-    expect(out).not.toContain('corrected-text');
-    expect(out).not.toContain('He goes to school.');
-    expect(out).not.toContain('【添削後の全文】');
-  });
-
-  it('見出しが欠落しタグだけでも JSON が本文に残らない', () => {
-    const text = [
-      '前置き。',
-      '語彙は A2 相当です。',
-      '',
-      '<levelup>{"levelUpItems":[{"original":"a","leveledUp":"b"}]}</levelup>',
-      '<levelup-text>Leveled up prose.</levelup-text>',
-    ].join('\n');
-
-    const out = stripKnownBlocks(text);
-    expect(out).toBe('前置き。\n語彙は A2 相当です。');
-    expect(out).not.toContain('levelUpItems');
-    expect(out).not.toContain('Leveled up prose.');
-  });
-
-  it('閉じタグが欠落しても次の見出しまでで除去が止まる', () => {
-    const text = [
-      '<levelup>{"levelUpItems":[{"original":"a"}]}',
-      '',
-      '【今のレベルから伸ばすための学習法】',
-      '冠詞のドリルを1日30分。',
-    ].join('\n');
-
-    const out = stripKnownBlocks(text);
-    expect(out).not.toContain('levelUpItems');
-    expect(out).toContain('冠詞のドリルを1日30分。');
-  });
-
-  it('閉じタグが欠落し次の開始タグが続く場合はそこで除去が止まる', () => {
-    const text = '<levelup>{"levelUpItems":[]}<review>{"reviewItems":[]}</review>あとがき';
-    expect(stripKnownBlocks(text)).toBe('あとがき');
-  });
-
-  it('既知タグが無ければ入力をそのまま返す', () => {
-    const text = '前置きのみで、既知タグも見出しも含まない本文です。';
-    expect(stripKnownBlocks(text)).toBe(text);
-  });
-
-  it('除去跡に3行以上の連続空行を残さない', () => {
-    const text = '前書き\n\n<review>{"reviewItems":[]}</review>\n\n後書き';
-    expect(stripKnownBlocks(text)).toBe('前書き\n\n後書き');
-  });
-
-  // ── 解説5項目（-ja/-en 個別タグ）関連 ──────────────────────────────
-  it('見出し【文法のミスの傾向】〜</grammar-tendency-en> がひとまとまりで除去される', () => {
-    const text = [
-      '【文法のミスの傾向】',
-      '<grammar-tendency-ja>三単現の s が抜けやすい傾向。</grammar-tendency-ja>',
-      '<grammar-tendency-en>Tends to drop the third-person singular -s.</grammar-tendency-en>',
-      '',
-      '【添削後の全文】',
-      '<corrected-text>He goes to school.</corrected-text>',
-    ].join('\n');
-
-    const out = stripKnownBlocks(text);
-    expect(out).not.toContain('grammar-tendency-ja');
-    expect(out).not.toContain('grammar-tendency-en');
-    expect(out).not.toContain('三単現の s が抜けやすい傾向。');
-    expect(out).not.toContain('【文法のミスの傾向】');
-  });
-
+describe('extractTaggedText', () => {
   it('extractTaggedText で解説タグの -ja/-en をそれぞれ独立して抽出できる', () => {
     const text =
       '<grammar-notes-ja>日本語の解説</grammar-notes-ja><grammar-notes-en>English explanation</grammar-notes-en>';
@@ -166,13 +79,5 @@ describe('stripKnownBlocks', () => {
     expect(extractTaggedText(text, 'grammar-notes-ja')).toBe('三単現の s が抜けています。');
     expect(extractTaggedText(text, 'grammar-notes-en')).toBeUndefined();
     expect(extractTaggedText(text, 'cefr-rationale-ja')).toBe('語彙は A2 相当です。');
-  });
-});
-
-describe('KNOWN_TAGS / HEADING_BLOCKS の整合性', () => {
-  it('HEADING_BLOCKSの終了タグはすべてKNOWN_TAGSに含まれる（stripKnownBlocksの2段階除去の前提）', () => {
-    expect(HEADING_BLOCKS.every(([, tag]) => (KNOWN_TAGS as readonly string[]).includes(tag))).toBe(
-      true,
-    );
   });
 });

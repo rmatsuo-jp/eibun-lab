@@ -1,7 +1,8 @@
 /**
- * @file ビルド/開発サーバ起動時に src/version.ts を自動生成するスクリプト。
+ * @file リリース時に src/version.ts を自動生成するスクリプト。
  *       package.json の version を読み取り、実行当日（JST）をリリース日として埋め込む。
- *       package.json の "prestart" / "prebuild" フックから呼ばれる。
+ *       semantic-release の prepareCmd（.releaserc.json）から呼ばれる。
+ *       通常の npm start / npm run build では実行されない（毎回差分が出るのを防ぐため）。
  */
 import { readFileSync, writeFileSync } from 'node:fs';
 import { fileURLToPath } from 'node:url';

@@ -26,6 +26,7 @@ import { Badge } from '@shared/ui/badge/badge';
 import { Spinner } from '@shared/ui/spinner/spinner';
 import { parseBulkImportJson } from './bulk-import.util';
 import { formatTimestampForFilename } from '@shared/utils/date.util';
+import { downloadJson, readTextFile } from '@shared/utils/file-transfer.util';
 import { I18nService } from '@core/i18n/i18n.service';
 import {
   localizedCategory,
@@ -35,7 +36,7 @@ import {
 } from '@core/i18n/localized-session.util';
 import { Mistake } from '@core/models/session.model';
 import { PROSE_FIELDS, ProseSource } from '@core/i18n/prose-fields.util';
-import { GEMINI_MODELS } from '@core/gemini/gemini-models.constants';
+import { modelLabel } from '@core/gemini/gemini-models.constants';
 import { PracticeState } from './practice-state.service';
 import { WaitingQuiz } from './waiting-quiz/waiting-quiz';
 
@@ -91,22 +92,16 @@ export class Practice {
     return localizedCategory(m, this.i18n);
   }
 
-  // 添削に使用されたモデルの人間可読ラベルを返す。GEMINI_MODELS に見つからない場合（廃止モデル等）は
-  // 生のモデルIDへフォールバックする（history.ts の同名メソッドと同一ロジック）。
-  modelLabel(modelId: string): string {
-    return GEMINI_MODELS.find((m) => m.value === modelId)?.label ?? modelId;
-  }
+  // 添削に使用されたモデルの人間可読ラベル（実装は core/gemini/gemini-models.constants）。
+  modelLabel = modelLabel;
 
   // ── 一括添削: テンプレートダウンロード / JSONアップロード ──────────
   // 履歴が0件の場合は buildHistoryTemplateJson() 側でサンプルテンプレートにフォールバックする。
   downloadHistoryAsTemplate() {
-    const json = this.state.buildHistoryTemplateJson();
-    const blob = new Blob([json], { type: 'application/json' });
-    const a = document.createElement('a');
-    a.href = URL.createObjectURL(blob);
-    a.download = `bulk_from_history_${formatTimestampForFilename()}.json`;
-    a.click();
-    URL.revokeObjectURL(a.href);
+    downloadJson(
+      `bulk_from_history_${formatTimestampForFilename()}.json`,
+      this.state.buildHistoryTemplateJson(),
+    );
   }
 
   triggerBulkUpload() {
@@ -114,18 +109,13 @@ export class Practice {
   }
 
   onBulkFileSelected(event: Event) {
-    const file = (event.target as HTMLInputElement).files?.[0];
-    if (!file) return;
-    const reader = new FileReader();
-    reader.onload = () => {
-      const { entries, errors } = parseBulkImportJson(reader.result as string);
+    readTextFile(event, (text) => {
+      const { entries, errors } = parseBulkImportJson(text);
       this.state.setBulkEntries(entries);
       if (errors.length > 0) {
         alert(this.i18n.t('practice.bulk.alertPartial', { errors: errors.join('\n') }));
       }
-      (event.target as HTMLInputElement).value = '';
-    };
-    reader.readAsText(file);
+    });
   }
 
   // 一括添削は件数分の API 呼び出しになるため、意図しない大量送信・課金を防ぐ確認を挟む。

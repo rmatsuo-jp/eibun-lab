@@ -1,30 +1,27 @@
 /**
  * @file 対象機能別（添削／穴埋めクイズ／穴あきタイピング）の累積統計（GamificationStats）の
- * Firestore 双方向同期を担うサービス。features/drill/drill-progress-sync.service.ts と同じパターン
- * （ログイン監視→自動同期、書き込み直後の fire-and-forget push）を適用する。
+ * Firestore 双方向同期を担うサービス。core/drill/drill-progress-sync.service.ts と同じパターン
+ * （ログイン監視→自動同期、書き込み直後の fire-and-forget push）を CloudSyncBase から継承する。
  * GamificationStatsService の signal を直接は書き換えず、allStats() / persist() 経由で読み書きする。
  * カウンタ系フィールドはマージ時に大きい方を採用し、unlockedAchievements/completedSessionKeys は
  * キー和集合でマージする（一度解除された実績・完了済みセッションは失われない）。
  * lastActiveDate は新しい方を採用する。マージロジックは GamificationStats.features のキー（featureId）の
  * 和集合に対して共通の mergeFeatureStats() を使い回す（featureId別に分岐しない汎用実装）。
- * 同期失敗は syncError signal（読み取り専用）にメッセージを流し、app.ts がグローバルバナーで
- * ユーザーに知らせる（次回の同期成功時に自動でクリアされる）。
- * setDoc 直前は必ず stripUndefinedDeep() を通し、lastActiveDate 等 undefined になり得る任意
- * フィールドを取り除く（Firestore は undefined を受け付けないため）。
+ * 同期エラー signal・ログイン監視・push の成否ハンドリングは CloudSyncBase（core/sync）から継承する。
+ * setDoc 直前は必ず stripUndefinedDeep()（core/sync/strip-undefined.util）を通し、lastActiveDate 等
+ * undefined になり得る任意フィールドを取り除く（Firestore は undefined を受け付けないため）。
  */
-import { effect, Injectable, inject, signal } from '@angular/core';
-import { doc, getDoc, setDoc } from 'firebase/firestore';
+import { Injectable, inject } from '@angular/core';
+import { getDoc, setDoc } from 'firebase/firestore';
 import { FeatureGamificationStats, GamificationStats } from '@core/models/session.model';
-import { AuthService } from '@core/firebase/auth.service';
-import { firestore } from '@core/firebase/firebase.init';
+import { userDoc } from '@core/firebase/firestore-paths';
+import { CloudSyncBase } from '@core/sync/cloud-sync.base';
+import { stripUndefinedDeep } from '@core/sync/strip-undefined.util';
 import { AchievementId } from './achievement.model';
 import { GamificationStatsService, isValidStats } from './gamification-stats.service';
 
-// Firestore は undefined を受け付けないため、setDoc 直前に再帰的に undefined フィールドを取り除く
-// （lastActiveDate は未着手の機能だと undefined になり得るため、jsonの往復で確実に落とす）。
-function stripUndefinedDeep<T>(value: T): T {
-  return JSON.parse(JSON.stringify(value)) as T;
-}
+// 同期失敗時にユーザーへ見せるメッセージ（ローカル保存は成功している旨を必ず添える）。
+const SYNC_ERROR_MESSAGE = '実績・統計のクラウド同期に失敗しました。ローカルには保存されています。';
 
 // mergeFeatureStats() でどちらか一方にしかfeatureIdが存在しない場合のフォールバック初期値。
 const EMPTY_FEATURE_STATS: FeatureGamificationStats = {
@@ -42,31 +39,14 @@ const EMPTY_FEATURE_STATS: FeatureGamificationStats = {
 };
 
 @Injectable({ providedIn: 'root' })
-export class GamificationSyncService {
-  private auth = inject(AuthService);
+export class GamificationSyncService extends CloudSyncBase {
   private store = inject(GamificationStatsService);
-
-  // クラウド同期の直近の失敗メッセージ（成功時は null に戻る）。app.ts が購読して通知バナーに出す。
-  private _syncError = signal<string | null>(null);
-  readonly syncError = this._syncError.asReadonly();
 
   readonly stats = this.store.stats;
 
   constructor() {
-    // ログイン状態を監視し、ログインした瞬間にクラウドと双方向同期する。
-    effect(() => {
-      const user = this.auth.user();
-      if (user) {
-        this.syncFromCloud(user.uid)
-          .then(() => this._syncError.set(null))
-          .catch((err) => {
-            console.error('[GamificationSyncService] クラウド同期に失敗:', err);
-            this._syncError.set(
-              '実績・統計のクラウド同期に失敗しました。ローカルには保存されています。',
-            );
-          });
-      }
-    });
+    super('GamificationSyncService', SYNC_ERROR_MESSAGE);
+    this.initCloudSync();
   }
 
   // ── 書き込み（ローカル保存 + クラウド push を必ずペアで実行） ────────
@@ -90,23 +70,16 @@ export class GamificationSyncService {
     this.pushStats();
   }
 
-  // apps/eibun_lab/users/{uid}/gamification/data の単一ドキュメント参照を返す。
+  // apps/eibun_lab/users/{uid}/gamification/data の単一ドキュメント参照を返す（パス組み立ては firestore-paths）。
   private statsDoc(uid: string) {
-    return doc(firestore, 'apps', 'eibun_lab', 'users', uid, 'gamification', 'data');
+    return userDoc(uid, 'gamification', 'data');
   }
 
   // 書き込み直後に呼び、ログイン中なら現在の全件をクラウドへ反映する（fire-and-forget）。
   private pushStats(): void {
     const uid = this.auth.user()?.uid;
     if (!uid) return;
-    setDoc(this.statsDoc(uid), stripUndefinedDeep(this.store.allStats()))
-      .then(() => this._syncError.set(null))
-      .catch((err) => {
-        console.error('[GamificationSyncService] 同期に失敗:', err);
-        this._syncError.set(
-          '実績・統計のクラウド同期に失敗しました。ローカルには保存されています。',
-        );
-      });
+    this.runPush(setDoc(this.statsDoc(uid), stripUndefinedDeep(this.store.allStats())));
   }
 
   // ログイン直後に呼ぶ双方向同期:

@@ -5,7 +5,7 @@
  */
 import { ChangeDetectionStrategy, Component, inject, signal } from '@angular/core';
 import { AppSettings, SettingsStoreService } from '@core/settings/settings-store.service';
-import { GEMINI_MODELS } from '@core/gemini/gemini-models.constants';
+import { GEMINI_MODELS, modelLabel } from '@core/gemini/gemini-models.constants';
 import { I18nService } from '@core/i18n/i18n.service';
 
 @Component({
@@ -35,9 +35,8 @@ export class ModelPriorityPanel {
     return saved;
   }
 
-  modelLabel(modelId: string): string {
-    return this.models.find((m) => m.value === modelId)?.label ?? modelId;
-  }
+  // モデルIDの表示ラベル（実装は core/gemini/gemini-models.constants）。
+  modelLabel = modelLabel;
 
   onDragStart(index: number) {
     this.dragIndex.set(index);

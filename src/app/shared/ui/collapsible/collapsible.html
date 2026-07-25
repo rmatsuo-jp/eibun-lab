@@ -1,0 +1,14 @@
+<!-- @file Collapsible テンプレート。本文は @if ではなく .closed（display:none）で隠す:
+     <ng-content> を制御フローブロック内に置くと投影コンテンツが期待どおり生成/破棄されないため。 -->
+<section class="collapsible">
+  <button
+    class="collapse-head"
+    type="button"
+    [attr.aria-expanded]="open()"
+    (click)="toggled.emit()"
+  >
+    <h2 class="collapse-title">{{ title() }}</h2>
+    <span class="collapse-icon" [class.open]="open()">›</span>
+  </button>
+  <div class="collapse-body" [class.closed]="!open()"><ng-content></ng-content></div>
+</section>

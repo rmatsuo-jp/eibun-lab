@@ -9,10 +9,13 @@
      各文は maskLevel（0=全文表示〜maxLevel=全単語マスク）の一本道で進行し、正解のたびに隠れる単語が増える。
      不正解時はタイポ（見えている単語のミス）なら据え置き、理解度不足（隠れている単語のミス）なら1段階戻る。
      答え合わせ後は「次へ」で同じ文を更新後の maskLevel のまま再出題し、「中断」で文一覧選択画面に戻る
-     （別の文に進みたい場合は中断→文一覧から選び直す）。
+     （別の文に進みたい場合は中断→文一覧から選び直す）。全マスク状態で正答し習熟達成した瞬間だけは
+     state.justMastered() を見て「文一覧に戻る」1ボタンに切り替える（採点後に進んだ maskLevel と
+     maxLevel の比較だと1段階早く習熟済み扱いになってしまうため、専用signalで判定する）。
      日付・文ごとの進捗はセッションID単位で保存され、日付選択・文一覧の各画面で完了状況の確認・途中再開ができる。
      全文言は i18n.t()（core/i18n/I18nService）経由で表示する。
-     実績解除時は画面上部にトーストを表示し（state.newlyUnlocked()）、結果サマリー（clozeのみ）には
+     実績解除時は画面下部固定のトーストを表示し（state.newlyUnlocked()。4秒で自動的に消える）、
+     結果サマリー（clozeのみ）には
      現在の連続正解自己ベスト・継続日数（state.gamificationStats()）を表示する。 -->
 <div class="page">
   <h1 class="page-title">
@@ -24,7 +27,7 @@
   </h1>
 
   @if (state.newlyUnlocked().length > 0) {
-    <!-- ── 実績解除トースト（ドリル画面内のみ表示） ── -->
+    <!-- ── 実績解除トースト（ドリル画面内のみ表示。SCSS で画面下部に固定配置する） ── -->
     <div class="achievement-toast">
       <strong>{{ i18n.t('achievements.toast.heading') }}</strong>
       <ul>
@@ -251,24 +254,22 @@
               : i18n.t('drill.promptRecallAndType')
           }}
         </p>
-        <p class="quiz-original">{{ state.maskedSentence(item) }}</p>
-
+        <!-- 日本語訳（ヒント表示時／答え合わせ後）は英文の上に置き、訳→英文の順で読めるようにする -->
         @if (state.hintShown() || state.revealed()) {
           <p class="quiz-translation">{{ item.translation }}</p>
-        } @else {
-          <button class="btn-secondary" (click)="state.toggleHint()">
-            {{ i18n.t('drill.hintTranslation') }}
-          </button>
         }
+        <p class="quiz-original typing-line">{{ state.maskedSentence(item) }}</p>
 
-        <input
-          class="answer-input"
-          type="text"
+        <!-- お手本と同じ折り返し位置に揃えるため textarea（高さは drill.ts が自動調整） -->
+        <textarea
+          class="answer-input typing-line"
+          #answerInput
+          rows="1"
           [placeholder]="i18n.t('drill.answerPlaceholder')"
           [(ngModel)]="state.userAnswer"
           [disabled]="state.revealed()"
-          (keyup.enter)="state.checkTyping()"
-        />
+          (keydown.enter)="$event.preventDefault(); state.checkTyping()"
+        ></textarea>
 
         @if (!state.revealed()) {
           <div class="quiz-actions">
@@ -279,10 +280,21 @@
             >
               {{ i18n.t('drill.check') }}
             </button>
+            <!-- ヒントは「答え合わせ」の右に並べる（押すとお手本の下に日本語訳が出る） -->
+            @if (!state.hintShown()) {
+              <button class="btn-secondary" (click)="state.toggleHint()">
+                {{ i18n.t('drill.hintTranslation') }}
+              </button>
+            }
           </div>
         }
 
         @if (state.revealed()) {
+          <!-- 正解英文はお手本・入力欄と桁を揃えて表示する。ラベルは置かず緑色と左ラインで示す。
+               入力欄の直下に隣接させたいため、正誤判定（.answer-result）はこの下に置く -->
+          <div class="correct-answer correct-answer--typing">
+            <span class="correct-text">{{ item.leveledUp }}</span>
+          </div>
           <div
             class="answer-result"
             [class.correct]="state.currentCorrect()"
@@ -290,7 +302,7 @@
           >
             {{
               state.currentCorrect()
-                ? state.maskLevel() >= item.maxLevel
+                ? state.justMastered()
                   ? i18n.t('drill.resultCorrectMastered')
                   : i18n.t('drill.resultCorrect')
                 : state.mistakeKind() === 'gap'
@@ -298,12 +310,8 @@
                   : i18n.t('drill.resultWrongTypo')
             }}
           </div>
-          <div class="correct-answer">
-            <span class="correct-label">{{ i18n.t('drill.correctAnswer') }}</span>
-            <span class="correct-text">{{ item.leveledUp }}</span>
-          </div>
           <div class="post-actions">
-            @if (state.currentCorrect() && state.maskLevel() >= item.maxLevel) {
+            @if (state.currentCorrect() && state.justMastered()) {
               <button class="btn-primary" #nextBtn (click)="state.backToSentenceList()">
                 {{ i18n.t('drill.backToSentenceList') }}
               </button>
@@ -406,6 +414,13 @@
               state.currentCorrect() ? i18n.t('drill.resultCorrect') : i18n.t('drill.resultWrong')
             }}
           </div>
+          @if (state.currentAnswerStats(); as stats) {
+            <p class="answer-stats">
+              {{
+                i18n.t('drill.answerStats', { correct: stats.correct, attempts: stats.attempts })
+              }}
+            </p>
+          }
           @if (!q.choiceExplanations) {
             <div class="correct-answer">
               <span class="correct-label">{{ i18n.t('drill.correctAnswer') }}</span>
