@@ -2,9 +2,10 @@
  * @file 弱点克服ドリルページ。
  * 状態（出題モード・進行状況・スコア等）は DrillState サービスが保持するため、
  * タブ遷移でコンポーネントが破棄されても消えない（practice.ts/PracticeState と同じ設計）。
- * 本コンポーネントは DOM 操作（答え合わせ後の「次へ」ボタンへの自動フォーカス）にのみ専念する。
- * 答え合わせ後（revealed→true）は #nextBtn（levelup/mistakes・cloze で共用のテンプレート参照名）へ
- * 自動フォーカスし、Enterキーだけで次の問題に進めるようにしている。
+ * 本コンポーネントは DOM 操作（自動フォーカス）にのみ専念する。
+ * 答え合わせ後（revealed→true）は #nextBtn（levelup/mistakes・cloze で共用のテンプレート参照名）へ、
+ * 穴あきタイピング（levelup）の出題中は #answerInput へ自動フォーカスし、
+ * マウス操作なしで「入力→Enter→次へ→入力」と続けられるようにしている。
  */
 import {
   ChangeDetectionStrategy,
@@ -38,12 +39,28 @@ export class Drill {
   // revealed() が true になった直後に自動フォーカスし、Enterキーだけで次の問題へ進めるようにする。
   private nextBtn = viewChild<ElementRef<HTMLButtonElement>>('nextBtn');
 
+  // 穴あきタイピング（levelup）の英文入力欄。出題中は自動フォーカスし、
+  // 次の問題に進んだ直後もクリックなしでそのまま打ち始められるようにする。
+  private answerInput = viewChild<ElementRef<HTMLInputElement>>('answerInput');
+
   constructor() {
     // 答え合わせ直後（revealed→true）にレンダリングが確定してから「次へ」ボタンへフォーカスを移す。
     // setTimeout(0) で描画完了後まで待たないと、切り替わった @if ブロック内の要素がまだ存在しない。
     effect(() => {
       if (this.state.revealed()) {
         setTimeout(() => this.nextBtn()?.nativeElement.focus());
+      }
+    });
+
+    // 穴あきタイピングの出題中（revealed=false）は入力欄へフォーカスを戻す。
+    // maskLevel()/index() も読むことで、retry() での段階進行や別の文の選択でも再実行される。
+    effect(() => {
+      const isLevelUp = this.state.mode() === 'levelup';
+      const revealed = this.state.revealed();
+      this.state.maskLevel();
+      this.state.index();
+      if (isLevelUp && !revealed) {
+        setTimeout(() => this.answerInput()?.nativeElement.focus());
       }
     });
   }
