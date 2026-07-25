@@ -42,6 +42,29 @@ describe('DrillProgressService', () => {
     expect(service.getDrillProgress('key-e')?.everCorrect).toBe(false);
   });
 
+  it('correctCount/attemptCountは正解・不正解を通じて累積し、不正解ではattemptCountだけ増える', () => {
+    const service = new DrillProgressService();
+    service.recordDrillResult('key-f', true);
+    service.recordDrillResult('key-f', false);
+    service.recordDrillResult('key-f', true);
+
+    expect(service.getDrillProgress('key-f')?.correctCount).toBe(2);
+    expect(service.getDrillProgress('key-f')?.attemptCount).toBe(3);
+  });
+
+  it('カウンタを持たない移行前データからも0起点で加算できる', () => {
+    const service = new DrillProgressService();
+    service.persist(
+      { 'legacy-key': { correctStreak: 1, lastAttemptAt: new Date().toISOString() } },
+      {},
+      {},
+    );
+    service.recordDrillResult('legacy-key', true);
+
+    expect(service.getDrillProgress('legacy-key')?.correctCount).toBe(1);
+    expect(service.getDrillProgress('legacy-key')?.attemptCount).toBe(1);
+  });
+
   it('キーは正規化されて同一問題として扱われる（大文字小文字・前後空白の違いを無視）', () => {
     const service = new DrillProgressService();
     service.recordDrillResult('  Key-C  ', true);

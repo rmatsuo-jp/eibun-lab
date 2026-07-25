@@ -414,6 +414,11 @@
               state.currentCorrect() ? i18n.t('drill.resultCorrect') : i18n.t('drill.resultWrong')
             }}
           </div>
+          @if (state.currentAnswerStats(); as stats) {
+            <p class="answer-stats">
+              {{ i18n.t('drill.answerStats', { correct: stats.correct, attempts: stats.attempts }) }}
+            </p>
+          }
           @if (!q.choiceExplanations) {
             <div class="correct-answer">
               <span class="correct-label">{{ i18n.t('drill.correctAnswer') }}</span>

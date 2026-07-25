@@ -245,6 +245,14 @@
   margin: 0 0 1rem;
 }
 
+// 答え合わせ後に出す「この問題の累積正答数／挑戦回数」。補助情報なので控えめに。
+.answer-stats {
+  font-size: 0.8125rem;
+  color: var(--color-text-muted);
+  text-align: center;
+  margin: 0 0 1rem;
+}
+
 .answer-input {
   width: 100%;
   box-sizing: border-box;

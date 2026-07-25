@@ -29,6 +29,7 @@ export const drill = {
     'drill.noClozeSessions': '復習カードを持つセッションがありません。',
     'drill.cleared': 'クリア済み',
     'drill.perfectCount': 'パーフェクト {count}回',
+    'drill.answerStats': 'この問題: {correct} / {attempts}回 正解',
     'drill.progressCount': '{done} / {total}文',
     'drill.progressCountCloze': '{done} / {total}問',
     'drill.chooseSentence':
@@ -91,6 +92,7 @@ export const drill = {
     'drill.noClozeSessions': 'No sessions with review cards.',
     'drill.cleared': 'Cleared',
     'drill.perfectCount': 'Perfect x{count}',
+    'drill.answerStats': 'This question: {correct} / {attempts} correct',
     'drill.progressCount': '{done} / {total} sentences',
     'drill.progressCountCloze': '{done} / {total} questions',
     'drill.chooseSentence':

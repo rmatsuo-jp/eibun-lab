@@ -21,6 +21,7 @@
  * 出題順は完全ランダムではなく、頻度（ミスの出現回数）と習熟度（正解ストリーク）で重み付けし、
  * 頻出かつ未習熟の問題ほど手前に出やすくする。回答結果は DrillProgressSyncService.recordDrillResult で永続化し、
  * 習熟済み（DRILL_MASTERY_STREAK 以上）の問題は次回以降の出題重みを下げる。
+ * cloze の答え合わせ後には currentAnswerStats() で同じ問題の累積正答数／挑戦回数を表示する。
  * levelup の答え合わせ後ボタンは「次へ」（同じ文を更新後の maskLevel のまま再出題、実体は retry()）と
  * 「中断」（backToSentenceList() で文一覧選択画面に戻る）の2つのみ。
  * ただし全単語マスクの状態（maskLevel === maxLevel）で正答し習熟達成した瞬間だけは、この2ボタンの代わりに
@@ -175,6 +176,20 @@ export class DrillState {
   total = computed(() =>
     this.mode() === 'levelup' ? this.levelUpQuiz().length : this.quiz().length,
   );
+
+  // 出題中の穴埋めクイズ1問の累積成績（同じ問題を過去に何回中何回正解したか）。
+  // 答え合わせ後に表示し、繰り返し解くほど数字が伸びることを見せて反復の動機付けにする。
+  // サンプル出題中は進捗を永続化していないため null。移行前データ（カウンタ未保存）も
+  // 「0 / 0回」を出さないよう null にし、次の解答から表示を開始する。
+  currentAnswerStats = computed<{ correct: number; attempts: number } | null>(() => {
+    if (this.sampleMode()) return null;
+    const cur = this.current();
+    if (!cur) return null;
+    const progress = this.drillProgress.getDrillProgress(cur.key);
+    const attempts = progress?.attemptCount ?? 0;
+    if (attempts <= 0) return null;
+    return { correct: progress?.correctCount ?? 0, attempts };
+  });
 
   // ── ドリル開始: モードのデータを重み付きシャッフルしてスナップショット ───
   // weight * Math.random() の降順ソートで、頻出・未習熟の問題ほど手前に出やすくしつつ、

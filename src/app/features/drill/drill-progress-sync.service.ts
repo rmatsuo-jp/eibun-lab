@@ -6,7 +6,8 @@
  * allPerfectCounts() / persist() 経由で読み書きする。Drill ページ（drill.ts）はこのサービスを窓口として使い、
  * DrillProgressService を直接 inject しない。
  * ドリル進捗には「削除」概念がないため tombstone は不要。競合は各値の新しさ（lastAttemptAt /
- * maskLevel）、パーフェクト達成数は大きい方（Math.max）で解決する。
+ * maskLevel）、パーフェクト達成数と問題ごとの累積カウンタ（correctCount/attemptCount）は
+ * 大きい方（Math.max）で解決する。
  * 同期失敗は syncError signal（読み取り専用）にメッセージを流し、app.ts がグローバルバナーで
  * ユーザーに知らせる（次回の同期成功時に自動でクリアされる）。
  */
@@ -156,6 +157,9 @@ export class DrillProgressSyncService {
   }
 
   // キーごとに lastAttemptAt が新しい方を採用する。
+  // ただし累積カウンタ（correctCount/attemptCount）だけは新しい方をそのまま採るともう一方の端末で
+  // 解いた分が失われるため、perfectCounts と同じく大きい方（Math.max）で上書きする
+  // （単純な合算は同じ解答を二重に数えてしまうため採らない）。
   private mergeDrillProgress(
     local: Record<string, DrillProgress>,
     cloud: Record<string, DrillProgress>,
@@ -165,10 +169,15 @@ export class DrillProgressSyncService {
     for (const key of keys) {
       const l = local[key];
       const c = cloud[key];
-      merged[key] =
+      const base =
         !c || (l && new Date(l.lastAttemptAt).getTime() >= new Date(c.lastAttemptAt).getTime())
           ? l
           : c;
+      merged[key] = {
+        ...base,
+        correctCount: Math.max(l?.correctCount ?? 0, c?.correctCount ?? 0),
+        attemptCount: Math.max(l?.attemptCount ?? 0, c?.attemptCount ?? 0),
+      };
     }
     return merged;
   }

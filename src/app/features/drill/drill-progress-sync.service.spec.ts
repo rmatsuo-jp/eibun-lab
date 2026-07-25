@@ -118,6 +118,28 @@ describe('DrillProgressSyncService', () => {
     expect(store.getDrillProgress('cloud-only')?.correctStreak).toBe(1); // クラウドのみの値は取り込まれる
   });
 
+  it('syncFromCloud成功時、correctCount/attemptCountは大きい方を採用する（新しい方で上書きしない）', async () => {
+    store.recordDrillResult('shared', true); // ローカル: 1/1、かつ lastAttemptAt はローカルが新しい
+    const cloudData = {
+      drillProgress: {
+        shared: {
+          correctStreak: 3,
+          correctCount: 5,
+          attemptCount: 8,
+          lastAttemptAt: '2000-01-01T00:00:00.000Z',
+        },
+      },
+      levelUpProgress: {},
+    };
+    getDocMock.mockResolvedValue(cloudDoc(cloudData));
+
+    await service.syncFromCloud('uid');
+
+    expect(store.getDrillProgress('shared')?.correctStreak).toBe(1); // ストリークはローカル（新しい方）
+    expect(store.getDrillProgress('shared')?.correctCount).toBe(5); // カウンタは大きい方
+    expect(store.getDrillProgress('shared')?.attemptCount).toBe(8);
+  });
+
   it('syncFromCloud成功時、levelUpProgressはmaskLevelが大きい方をマージ採用する', async () => {
     store.setLevelUpItemProgress('s1', 'item', 1, false);
     const cloudData = {
