@@ -54,15 +54,15 @@ graph TD
 
 ### 各 feature が inject する core サービス
 
-| feature      | 使用する core                                                                                                                                                                               |
-| ------------ | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| practice     | GeminiService / SessionRepositoryService / SettingsStoreService（+ feature 内 PracticeState）                                                                                               |
-| drill        | SessionRepositoryService / stats / DrillProgressSyncService / I18nService / GamificationSyncService（+ feature 内 DrillState / DrillClozeState / DrillLevelUpState）                       |
-| history      | SessionRepositoryService / I18nService（+ feature 内 HistoryState / HistoryCalendar）                                                                                                       |
-| mistakes     | SessionRepositoryService / stats / DrillProgressSyncService / I18nService（+ feature 内 MistakesState / mistakes-chart.util）                                                                                                                |
-| achievements | GamificationStatsService / achievement-definitions / I18nService                                                                                                                            |
-| settings     | SettingsStoreService / AuthService / ReleaseNotesService / gemini-models.constants                                                                                                          |
-| dev          | SessionRepositoryService / SettingsStoreService / prompt.util（+ feature 内 DevLogService）                                                                                                 |
+| feature      | 使用する core                                                                                                                                                        |
+| ------------ | -------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| practice     | GeminiService / SessionRepositoryService / SettingsStoreService（+ feature 内 PracticeState）                                                                        |
+| drill        | SessionRepositoryService / stats / DrillProgressSyncService / I18nService / GamificationSyncService（+ feature 内 DrillState / DrillClozeState / DrillLevelUpState） |
+| history      | SessionRepositoryService / I18nService（+ feature 内 HistoryState / HistoryCalendar）                                                                                |
+| mistakes     | SessionRepositoryService / stats / DrillProgressSyncService / I18nService（+ feature 内 MistakesState / mistakes-chart.util）                                        |
+| achievements | GamificationStatsService / achievement-definitions / I18nService                                                                                                     |
+| settings     | SettingsStoreService / AuthService / ReleaseNotesService / gemini-models.constants                                                                                   |
+| dev          | SessionRepositoryService / SettingsStoreService / prompt.util（+ feature 内 DevLogService）                                                                          |
 
 ### 状態分離パターン（practice / drill / history / mistakes 共通）
 
@@ -127,11 +127,11 @@ Firestore と双方向同期するサービスは3本あり、いずれも `core
 成否ハンドリングは基底クラスに一元化してあり、派生クラスは「マージ規則」と「どのドキュメントを
 読み書きするか」だけを実装する。
 
-| 同期サービス                | ストア                    | Firestore パス（`firestore-paths.ts` の `userDoc`/`userCol` で組み立て） |
-| --------------------------- | ------------------------- | ------------------------------------------------------------------------ |
-| `FirestoreSyncService`      | `SessionStoreService`     | `.../{uid}/sessions/{sessionId}`                                         |
-| `DrillProgressSyncService`  | `DrillProgressService`    | `.../{uid}/drillProgress/data`                                           |
-| `GamificationSyncService`   | `GamificationStatsService` | `.../{uid}/gamification/data`                                            |
+| 同期サービス               | ストア                     | Firestore パス（`firestore-paths.ts` の `userDoc`/`userCol` で組み立て） |
+| -------------------------- | -------------------------- | ------------------------------------------------------------------------ |
+| `FirestoreSyncService`     | `SessionStoreService`      | `.../{uid}/sessions/{sessionId}`                                         |
+| `DrillProgressSyncService` | `DrillProgressService`     | `.../{uid}/drillProgress/data`                                           |
+| `GamificationSyncService`  | `GamificationStatsService` | `.../{uid}/gamification/data`                                            |
 
 3本とも core に置き、`app.ts` が3つの `syncError` signal を合成してグローバルバナーに出す。
 ドリル進捗を読むのは features/drill と features/mistakes の2機能あるが、どちらも

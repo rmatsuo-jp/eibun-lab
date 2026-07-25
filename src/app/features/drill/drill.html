@@ -416,7 +416,9 @@
           </div>
           @if (state.currentAnswerStats(); as stats) {
             <p class="answer-stats">
-              {{ i18n.t('drill.answerStats', { correct: stats.correct, attempts: stats.attempts }) }}
+              {{
+                i18n.t('drill.answerStats', { correct: stats.correct, attempts: stats.attempts })
+              }}
             </p>
           }
           @if (!q.choiceExplanations) {
