@@ -1,3 +1,23 @@
+# [1.3.0](https://github.com/rmatsuo-jp/eibun-lab/compare/v1.2.0...v1.3.0) (2026-07-25)
+
+
+### Bug Fixes
+
+* 実績・統計のクラウド同期失敗が通知されない問題を修正する ([e926753](https://github.com/rmatsuo-jp/eibun-lab/commit/e9267530ad334f1eaab5df6b74adc3ad242f9aab))
+* 実績解除トーストを画面下部に固定し4秒で自動的に消す ([1514d36](https://github.com/rmatsuo-jp/eibun-lab/commit/1514d36e2720af5d3eead7f4f2c6ed559a7eddfa))
+* 添削完了通知を一定時間後に自動で消えるようにする ([42f8b49](https://github.com/rmatsuo-jp/eibun-lab/commit/42f8b496ab77c72f655b945f9a2bdcfafa9085c5))
+* 穴あきタイピングでお手本・入力・正解の英文を桁揃えする ([62ba9e2](https://github.com/rmatsuo-jp/eibun-lab/commit/62ba9e252d22639fcb52788323c4799bd762b89e))
+* 穴あきタイピングで全マスク未達なのに習熟済み扱いになる不具合を修正 ([1f70b6e](https://github.com/rmatsuo-jp/eibun-lab/commit/1f70b6e61dfbb9e4410649f0b407a554d47cb8bf))
+* 穴あきタイピングの最大マスク段階を6から4に短縮 ([eeb7858](https://github.com/rmatsuo-jp/eibun-lab/commit/eeb78582c15787cb743ac196762cd599fae44fab))
+* 穴埋めクイズの対象日を直近15件から全期間に広げる ([acc5e0a](https://github.com/rmatsuo-jp/eibun-lab/commit/acc5e0af253dc7e5a71058c7448fe30307da7d15))
+
+
+### Features
+
+* ミス傾向タブに弱点分析セクションを追加し折りたたみ式に統一する ([f99d3a7](https://github.com/rmatsuo-jp/eibun-lab/commit/f99d3a763cca390a7255b0018af722d57480b568))
+* 穴あきタイピングの出題中に英文入力欄を自動フォーカスする ([c9756c1](https://github.com/rmatsuo-jp/eibun-lab/commit/c9756c194a90b3c8aa6db1d69e39f0b300d7c429))
+* 穴埋めクイズに同じ問題の累積正答数／挑戦回数を表示する ([4ed398b](https://github.com/rmatsuo-jp/eibun-lab/commit/4ed398b34ea2328a423c3fb0a3b5cfb36433bb2a))
+
 # [1.2.0](https://github.com/rmatsuo-jp/eibun-lab/compare/v1.1.0...v1.2.0) (2026-07-19)
 
 
