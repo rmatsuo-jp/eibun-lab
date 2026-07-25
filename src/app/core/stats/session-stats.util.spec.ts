@@ -134,4 +134,12 @@ describe('getSessionsWithReviewItems', () => {
     const result = getSessionsWithReviewItems(sessions);
     expect(result.map((s) => s.id)).toEqual(['1']);
   });
+
+  it('直近15件に絞らず全期間を対象にする', () => {
+    const reviewItem = { sentence: 'a', answer: 'b', hint: '', translation: '', choices: ['b'] };
+    const sessions = Array.from({ length: 24 }, (_, i) =>
+      makeSession({ id: String(i), reviewItems: [reviewItem] }),
+    );
+    expect(getSessionsWithReviewItems(sessions).length).toBe(24);
+  });
 });

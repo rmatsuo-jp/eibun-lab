@@ -158,8 +158,9 @@ export function getSessionsWithLevelUp(sessions: CorrectionSession[]): Correctio
 }
 
 // ── 復習カードを持つセッション一覧: Drill の穴埋めクイズ・日付選択画面で使う ─
-// getReviewItems と同じ RECENT_SESSION_LIMIT 件のスライスを対象にする（今のレベルではもう
-// 犯していない古いミス由来のカードを除外し、「今の弱点」を優先出題する方針を日付選択でも踏襲する）。
+// getSessionsWithLevelUp と同様に直近件数では絞らず、全期間の reviewItems を持つセッションを対象にする
+// （日付単位で1セッションを選んでその中のカードを順にたどる仕様のため、古い日付も選択肢に残す）。
+// sessions は既に新しい順にソート済みである前提のため、追加のソートは行わない。
 export function getSessionsWithReviewItems(sessions: CorrectionSession[]): CorrectionSession[] {
-  return sessions.slice(0, RECENT_SESSION_LIMIT).filter((s) => (s.reviewItems?.length ?? 0) > 0);
+  return sessions.filter((s) => (s.reviewItems?.length ?? 0) > 0);
 }
