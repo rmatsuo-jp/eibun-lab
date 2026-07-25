@@ -4,6 +4,8 @@
  * 達成度・文ごとの進捗）とLevelUpQuiz構築・マスク表示ロジックのみを持ち、出題中の共有UI状態
  * （levelUpQuiz/index/userAnswer/maskLevel等）は持たない（drill-state.ts側で管理し、このサービスは
  * 「日付・文ごとの一覧・進捗・LevelUpQuiz配列の構築・マスク文字列生成」というデータ提供役に専念する設計）。
+ * マスク文字列（maskedSentence）は、お手本と入力欄を等幅フォントで桁揃えするため、
+ * 下線の本数を実際の単語の文字数と一致させる（語末の句読点は残す）。
  * セッション完了判定（isSessionComplete）は「該当日程の全文が完了（maxLevelで正解済み）したか」を
  * 返すだけの純粋判定に留め、パーフェクト達成数の記録・訪問単位ガード・ゲーミフィケーション連携は
  * drill-state.ts 側（checkTyping）が行う（複数モード共通の記録経路のため）。
@@ -15,6 +17,16 @@ import { DrillProgressSyncService } from './drill-progress-sync.service';
 import { CorrectionSession } from '@core/models/session.model';
 import { I18nService } from '@core/i18n/i18n.service';
 import { buildLevelUpQuiz, LevelUpQuiz, maskedIndices } from '@core/quiz/quiz.util';
+
+// ── マスク表示用のヘルパー ──
+// 語末の句読点は伏せずに残し、本体だけを「実際の文字数と同じ本数」の下線に置き換える。
+// 等幅フォントで表示するため、文字数が一致すれば入力欄と桁が揃う。
+const TRAILING_PUNCT = /[.,!?;:")'\]]+$/;
+function maskWord(word: string): string {
+  const punct = TRAILING_PUNCT.exec(word)?.[0] ?? '';
+  const body = word.slice(0, word.length - punct.length);
+  return '_'.repeat(body.length) + punct;
+}
 
 @Injectable({ providedIn: 'root' })
 export class DrillLevelUpState {
@@ -95,11 +107,9 @@ export class DrillLevelUpState {
     return maskedIndices(item.hideOrder, item.words.length, item.maxLevel, level);
   }
 
-  // ── 表示用: maskLevel に応じて隠れた単語を同じ視覚幅のアンダースコアに置換した文を返す ─
+  // ── 表示用: maskLevel に応じて隠れた単語を「実際の文字数と同じ幅」の下線に置換した文を返す ─
   maskedSentence(item: LevelUpQuiz, maskLevel: number): string {
     const hidden = this.maskedIndicesFor(item, maskLevel);
-    return item.words
-      .map((w, i) => (hidden.has(i) ? '_'.repeat(Math.max(w.length, 3)) : w))
-      .join(' ');
+    return item.words.map((w, i) => (hidden.has(i) ? maskWord(w) : w)).join(' ');
   }
 }

@@ -6,6 +6,7 @@
  * 答え合わせ後（revealed→true）は #nextBtn（levelup/mistakes・cloze で共用のテンプレート参照名）へ、
  * 穴あきタイピング（levelup）の出題中は #answerInput へ自動フォーカスし、
  * マウス操作なしで「入力→Enter→次へ→入力」と続けられるようにしている。
+ * また #answerInput（お手本と桁を揃えるため textarea）の高さを入力内容に応じて自動調整する。
  */
 import {
   ChangeDetectionStrategy,
@@ -41,7 +42,8 @@ export class Drill {
 
   // 穴あきタイピング（levelup）の英文入力欄。出題中は自動フォーカスし、
   // 次の問題に進んだ直後もクリックなしでそのまま打ち始められるようにする。
-  private answerInput = viewChild<ElementRef<HTMLInputElement>>('answerInput');
+  // お手本と折り返し位置を揃えるため textarea で、高さは下の effect が内容に合わせて設定する。
+  private answerInput = viewChild<ElementRef<HTMLTextAreaElement>>('answerInput');
 
   constructor() {
     // 答え合わせ直後（revealed→true）にレンダリングが確定してから「次へ」ボタンへフォーカスを移す。
@@ -62,6 +64,20 @@ export class Drill {
       if (isLevelUp && !revealed) {
         setTimeout(() => this.answerInput()?.nativeElement.focus());
       }
+    });
+
+    // 入力量に応じて textarea の高さを実際の行数へ合わせる（rows=1 のままだと2行目以降が隠れる）。
+    // 次の問題へ進んで userAnswer が空に戻れば 1 行分に縮む。
+    effect(() => {
+      this.state.userAnswer();
+      this.state.index();
+      this.state.maskLevel();
+      setTimeout(() => {
+        const el = this.answerInput()?.nativeElement;
+        if (!el) return;
+        el.style.height = 'auto';
+        el.style.height = `${el.scrollHeight}px`;
+      });
     });
   }
 }
