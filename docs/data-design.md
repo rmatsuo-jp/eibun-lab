@@ -218,12 +218,21 @@ service cloud.firestore {
 ### コレクション構成
 
 すべて `apps/eibun_lab/users/{uid}/` 配下（`apps/eibun_lab`は他アプリとのFirebaseプロジェクト共有を想定した名前空間）。
+パス文字列は各同期サービスに散らさず、[firestore-paths.ts](../src/app/core/firebase/firestore-paths.ts)の
+`userDoc()` / `userCol()` で一元的に組み立てる。
 
 | パス                   | 内容                                                   | ドキュメント粒度                            |
 | ---------------------- | ------------------------------------------------------ | ------------------------------------------- |
 | `sessions/{sessionId}` | `CorrectionSession`をそのまま保存                      | セッション単位（1セッション=1ドキュメント） |
 | `drillProgress/data`   | `{ drillProgress?, levelUpProgress?, perfectCounts? }` | 固定ID`data`の単一ドキュメント              |
 | `gamification/data`    | `GamificationStats`相当                                | 固定ID`data`の単一ドキュメント              |
+
+3つの同期サービス（`FirestoreSyncService` / `DrillProgressSyncService` / `GamificationSyncService`）は
+いずれも[cloud-sync.base.ts](../src/app/core/sync/cloud-sync.base.ts)の`CloudSyncBase`を継承し、
+同期エラーsignal・ログイン監視`effect()`・push成否ハンドリングを共有する。派生側はマージ規則と
+対象ドキュメントだけを実装する。`setDoc`直前のundefined除去は
+[strip-undefined.util.ts](../src/app/core/sync/strip-undefined.util.ts)の
+`stripUndefinedShallow()` / `stripUndefinedDeep()`を使う。
 
 ### sessions の同期・マージ（`FirestoreSyncService`）
 
@@ -246,7 +255,7 @@ service cloud.firestore {
 
 ### drillProgress の同期・マージ（`DrillProgressSyncService`）
 
-正典: [drill-progress-sync.service.ts](../src/app/features/drill/drill-progress-sync.service.ts)
+正典: [drill-progress-sync.service.ts](../src/app/core/drill/drill-progress-sync.service.ts)
 
 削除（tombstone）の概念はない。`syncFromCloud`でのマージ規則：
 

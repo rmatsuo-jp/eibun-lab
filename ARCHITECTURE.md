@@ -18,9 +18,9 @@ features/ ──▶ core/ ──▶ shared/
 graph TD
     subgraph Features["features/（遅延ロード。1フォルダ = 1拡張機能）"]
         Practice["practice\n英文入力・添削\n(+ practice-state.service\n+ bulk-import.util\n+ waiting-quiz)"]
-        Drill["drill\n弱点克服ドリル\n(+ drill-state.service（オーケストレーター）\n+ drill-cloze-state / drill-levelup-state\n+ drill-progress-sync.service\n+ sentence-list)"]
+        Drill["drill\n弱点克服ドリル\n(+ drill-state.service（オーケストレーター）\n+ drill-cloze-state / drill-levelup-state\n+ sentence-list)"]
         History["history\n履歴・検索・入出力\n(+ history-calendar)"]
-        Mistakes["mistakes\n統計ダッシュボード\n(+ mistakes-state.service)"]
+        Mistakes["mistakes\n統計ダッシュボード\n(+ mistakes-state.service\n+ mistakes-chart.util)"]
         Achievements["achievements\n実績（バッジ・達成条件）\n表示"]
         Settings["settings\nテーマ・言語・法的情報\n(+ settings.guard\n+ api-key-panel / model-priority-panel\n+ release-notes-panel / account-panel)"]
         Dev["dev（本番非搭載）\nGeminiログ閲覧\n(+ dev-log.service)"]
@@ -29,11 +29,12 @@ graph TD
     subgraph Core["core/（基盤。providedIn: root）"]
         Models["models\nドメイン型定義"]
         Sessions["sessions\nSessionRepositoryService\n（ローカル+クラウド永続化）"]
+        SyncCore["sync\nCloudSyncBase\n（同期3サービスの共通基盤）\n+ strip-undefined.util"]
         SettingsStore["settings\nSettingsStoreService"]
-        Gemini["gemini\nGeminiService\n+ prompt/parse/evaluation\n/stream-progress util"]
+        Gemini["gemini\nGeminiService\n+ prompt/parse/response/evaluation\n/stream-progress util"]
         Quiz["quiz\nquiz.util（出題ロジック純粋関数。\ndrill と practice の待機中クイズが共用）"]
         Stats["stats\nsession-stats.util（純粋関数）"]
-        DrillCore["drill\nDrillProgressService\n（習熟度・レベルアップ進捗。\ndrill と mistakes が共用）"]
+        DrillCore["drill\nDrillProgressService\n+ DrillProgressSyncService\n（習熟度・レベルアップ進捗。\ndrill と mistakes が共用）"]
         AchievementsCore["achievements\nGamificationStatsService\n+ achievement-engine.util\n+ achievement-definitions/（featureId別に分割）\n+ gamification-feature-id"]
         ReleaseNotes["release-notes\nReleaseNotesService\n（CHANGELOG.mdを取得・解析）"]
         I18n["i18n\nI18nService（lang signal）\n+ translations\n+ localized-session.util\n+ prose-fields.util"]
@@ -41,7 +42,7 @@ graph TD
         Logging["logging\nGEMINI_LOGGER トークン"]
     end
 
-    Shared["shared/utils\nmarkdown / date / clipboard / local-storage"]
+    Shared["shared/utils\nmarkdown / date / clipboard\n/ local-storage / file-transfer"]
 
     Features --> Core --> Shared
 
@@ -56,9 +57,9 @@ graph TD
 | feature      | 使用する core                                                                                                                                                                               |
 | ------------ | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
 | practice     | GeminiService / SessionRepositoryService / SettingsStoreService（+ feature 内 PracticeState）                                                                                               |
-| drill        | SessionRepositoryService / stats / DrillProgressService / I18nService / GamificationSyncService（+ feature 内 DrillState / DrillClozeState / DrillLevelUpState / DrillProgressSyncService） |
+| drill        | SessionRepositoryService / stats / DrillProgressSyncService / I18nService / GamificationSyncService（+ feature 内 DrillState / DrillClozeState / DrillLevelUpState）                       |
 | history      | SessionRepositoryService / I18nService（+ feature 内 HistoryState / HistoryCalendar）                                                                                                       |
-| mistakes     | SessionRepositoryService / stats / DrillProgressService / I18nService（+ feature 内 MistakesState）                                                                                                                |
+| mistakes     | SessionRepositoryService / stats / DrillProgressSyncService / I18nService（+ feature 内 MistakesState / mistakes-chart.util）                                                                                                                |
 | achievements | GamificationStatsService / achievement-definitions / I18nService                                                                                                                            |
 | settings     | SettingsStoreService / AuthService / ReleaseNotesService / gemini-models.constants                                                                                                          |
 | dev          | SessionRepositoryService / SettingsStoreService / prompt.util（+ feature 内 DevLogService）                                                                                                 |
@@ -92,8 +93,11 @@ Blobダウンロード等）のみに専念する」というパターンを採�
 
 ## 2. core/sessions 内部構造
 
-`SessionRepositoryService` がセッション永続化の唯一の窓口。「ローカル保存 → クラウド push」の
-組み合わせを private な `syncToCloud()` に集約しており、書き込み系操作の呼び忘れによる乖離が起きない。
+`SessionRepositoryService` がアプリ側から見たセッション永続化の唯一の窓口。「ローカル保存 →
+クラウド push」の組み合わせを private な `syncToCloud()` に集約しており、書き込み系操作の
+呼び忘れによる乖離が起きない。ただし `FirestoreSyncService.syncFromCloud()` だけは例外で、
+クラウドとのマージ結果を `SessionStoreService.persist()` へ直接書き戻す（同期経路はリポジトリを
+経由しない）。
 
 ```mermaid
 graph TD
@@ -115,6 +119,23 @@ graph TD
 
 設定（`SettingsStoreService`）とドリル進捗（`DrillProgressService`、core/drill 内）は
 それぞれ独立に LocalStorage を読み書きし、リポジトリを経由しない。
+
+### クラウド同期サービスの共通基盤
+
+Firestore と双方向同期するサービスは3本あり、いずれも `core/sync/cloud-sync.base.ts` の
+`CloudSyncBase` を継承する。同期エラー signal・ログイン監視 `effect()`・fire-and-forget push の
+成否ハンドリングは基底クラスに一元化してあり、派生クラスは「マージ規則」と「どのドキュメントを
+読み書きするか」だけを実装する。
+
+| 同期サービス                | ストア                    | Firestore パス（`firestore-paths.ts` の `userDoc`/`userCol` で組み立て） |
+| --------------------------- | ------------------------- | ------------------------------------------------------------------------ |
+| `FirestoreSyncService`      | `SessionStoreService`     | `.../{uid}/sessions/{sessionId}`                                         |
+| `DrillProgressSyncService`  | `DrillProgressService`    | `.../{uid}/drillProgress/data`                                           |
+| `GamificationSyncService`   | `GamificationStatsService` | `.../{uid}/gamification/data`                                            |
+
+3本とも core に置き、`app.ts` が3つの `syncError` signal を合成してグローバルバナーに出す。
+ドリル進捗を読むのは features/drill と features/mistakes の2機能あるが、どちらも
+`DrillProgressSyncService` を唯一の窓口として使い、`DrillProgressService` を直接 inject しない。
 
 ---
 
@@ -254,8 +275,9 @@ flowchart TD
         DrillState["DrillState\n(オーケストレーター。共通UI状態・採点・実績連携)"]
         DrillKey["正規化キー（normalizeDrillKey）ごとの\ncorrectStreak管理（DrillProgressService）"]
         LevelUpProg["セッション単位のmaskLevel/completed管理（DrillProgressService）"]
-        Sync["DrillProgressSyncService\n(クラウド同期)"]
     end
+
+    Sync["DrillProgressSyncService（core/drill）\n(クラウド同期。CloudSyncBase を継承)"]
 
     Sessions --> ReviewItems --> ClozeState
     Sessions --> LevelUpSessions --> LevelUpState
