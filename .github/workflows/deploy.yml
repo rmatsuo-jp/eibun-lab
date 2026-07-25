@@ -24,9 +24,19 @@ jobs:
     steps:
       - uses: actions/checkout@v7
         with:
+          # push イベント既定のトリガーSHAではなく main の先端を取得する
+          # （concurrency の待ち行列で滞留する間に main が進むと、古いSHAではリリースがスキップされるため）
+          ref: main
           # semantic-release は全コミット履歴とタグを参照して次バージョンを判定するため全取得する
           fetch-depth: 0
           persist-credentials: true
+
+      # checkout 解決後に main が進んでいた場合に備え、先端とタグへ明示的に追随する
+      # （追随分もこの後の Test / Build (verify) を通ってからリリースされる）
+      - name: Sync to latest main
+        run: |
+          git fetch origin main --tags
+          git reset --hard origin/main
 
       - uses: actions/setup-node@v7
         with:
