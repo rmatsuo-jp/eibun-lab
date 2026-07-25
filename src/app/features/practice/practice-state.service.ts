@@ -37,10 +37,9 @@ import { BulkEntry, buildBulkTemplateFromSessions } from './bulk-import.util';
 import { toDayKey } from '@shared/utils/date.util';
 import { CorrectionSession } from '@core/models/session.model';
 import { PRACTICE_THEMES, PracticeTheme } from '@core/practice/practice-themes.data';
-import { AchievementId } from '@core/achievements/achievement.model';
 import { evaluateNewlyUnlocked } from '@core/achievements/achievement-engine.util';
+import { AchievementToast, achievementTitleKey } from '@core/achievements/achievement-toast';
 import { GamificationSyncService } from '@core/achievements/gamification-sync.service';
-import { TranslationKey } from '@core/i18n/translations';
 
 @Injectable({ providedIn: 'root' })
 export class PracticeState {
@@ -50,34 +49,16 @@ export class PracticeState {
   private gamification = inject(GamificationSyncService);
 
   // 直近の添削保存で新規解除された実績ID一覧。UI（practice.html）のトースト表示に使う。
-  // トーストは ACHIEVEMENT_TOAST_MS 後に自動で消える（グローバル通知バナーと同じ 4 秒）。
-  private static readonly ACHIEVEMENT_TOAST_MS = 4000;
-  newlyUnlocked = signal<AchievementId[]>([]);
-  private achievementTimer?: ReturnType<typeof setTimeout>;
-
-  // 解除された実績を積み、自動消滅タイマーを張り直す
-  // （連続で解除された場合は最後の解除から ACHIEVEMENT_TOAST_MS 表示する）。
-  private pushNewlyUnlocked(ids: AchievementId[]): void {
-    clearTimeout(this.achievementTimer);
-    this.newlyUnlocked.update((prev) => [...prev, ...ids]);
-    this.achievementTimer = setTimeout(
-      () => this.newlyUnlocked.set([]),
-      PracticeState.ACHIEVEMENT_TOAST_MS,
-    );
-  }
+  // 積み上げと自動消滅（4秒）は AchievementToast が持つ（drill と共通の挙動）。
+  private toast = new AchievementToast();
+  newlyUnlocked = this.toast.items;
 
   dismissNewlyUnlocked(): void {
-    clearTimeout(this.achievementTimer);
-    this.newlyUnlocked.set([]);
+    this.toast.dismiss();
   }
 
-  // 実績IDから i18n タイトルキー（achievements.<id>.title）を組み立てる。
-  // AchievementId は core/achievements 側で string リテラルユニオンとして定義されており
-  // i18n の TranslationKey を知らないため、ここでキャストする
-  // （core/i18n/localized-session.util.ts / features/drill/drill-state.service.ts と同じ方針）。
-  achievementTitleKey(id: AchievementId): TranslationKey {
-    return `achievements.${id}.title` as TranslationKey;
-  }
+  // 実績IDから i18n タイトルキーを組み立てる（実装は core/achievements/achievement-toast）。
+  achievementTitleKey = achievementTitleKey;
 
   // 添削保存のたびに呼ぶ。添削の累積統計（回数・継続日数）を記録し、新規解除された実績があれば積む。
   private recordCorrectionForGamification(): void {
@@ -85,7 +66,7 @@ export class PracticeState {
     const ids = evaluateNewlyUnlocked(this.gamification.stats(), { masteryProgress: {} });
     if (ids.length === 0) return;
     this.gamification.markUnlocked(ids);
-    this.pushNewlyUnlocked(ids);
+    this.toast.push(ids);
   }
 
   // ── 状態管理（signal。コンポーネント破棄後も保持される） ──────────

@@ -14,6 +14,13 @@ export function formatTimestampForFilename(date: Date = new Date()): string {
   return `${yy}${mm}${dd}${hh}${mi}`;
 }
 
+// ── 表示用フォーマット ────────────────────────────────────────────
+/** ISO日時をローカル時刻の M/D 形式にする（推移グラフの横軸・一覧の日付表示で共用）。 */
+export function formatShortDate(iso: string): string {
+  const d = new Date(iso);
+  return `${d.getMonth() + 1}/${d.getDate()}`;
+}
+
 // ── 日付キー正規化（streak集計・カレンダー表示で共用） ───────────────
 /** ISO日時をローカル時刻の YYYY-MM-DD キーに正規化する。 */
 export function toDayKey(iso: string): string {
