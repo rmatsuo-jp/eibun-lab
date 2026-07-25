@@ -13,7 +13,7 @@
 import { Injectable, computed, inject } from '@angular/core';
 import { SessionRepositoryService } from '@core/sessions/session-repository.service';
 import { getSessionsWithLevelUp, normalizeDrillKey } from '@core/stats/session-stats.util';
-import { DrillProgressSyncService } from './drill-progress-sync.service';
+import { DrillProgressSyncService } from '@core/drill/drill-progress-sync.service';
 import { CorrectionSession } from '@core/models/session.model';
 import { I18nService } from '@core/i18n/i18n.service';
 import { buildLevelUpQuiz, LevelUpQuiz, maskedIndices } from '@core/quiz/quiz.util';

@@ -3,7 +3,7 @@ import { signal } from '@angular/core';
 import { TestBed } from '@angular/core/testing';
 import { DrillState } from './drill-state.service';
 import { SessionRepositoryService } from '@core/sessions/session-repository.service';
-import { DrillProgressSyncService } from './drill-progress-sync.service';
+import { DrillProgressSyncService } from '@core/drill/drill-progress-sync.service';
 import { I18nService } from '@core/i18n/i18n.service';
 
 // サンプル問題出題中（sampleMode）はDrillProgressSyncServiceへの永続化を行わないことを検証する。

@@ -3,20 +3,23 @@
  * core/sessions/firestore-sync.service.ts と同じパターン（ログイン監視→自動同期、
  * 書き込み直後の fire-and-forget push）を Drill 機能専用に適用する。
  * DrillProgressService の signal を直接は書き換えず、allDrillProgress() / allLevelUpProgress() /
- * allPerfectCounts() / persist() 経由で読み書きする。Drill ページ（drill.ts）はこのサービスを窓口として使い、
+ * allPerfectCounts() / persist() 経由で読み書きする。ドリル進捗を読み書きする各機能
+ * （features/drill, features/mistakes）はこのサービスを唯一の窓口として使い、
  * DrillProgressService を直接 inject しない。
  * ドリル進捗には「削除」概念がないため tombstone は不要。競合は各値の新しさ（lastAttemptAt /
  * maskLevel）、パーフェクト達成数と問題ごとの累積カウンタ（correctCount/attemptCount）は
  * 大きい方（Math.max）で解決する。
- * 同期失敗は syncError signal（読み取り専用）にメッセージを流し、app.ts がグローバルバナーで
- * ユーザーに知らせる（次回の同期成功時に自動でクリアされる）。
+ * 同期エラー signal・ログイン監視・push の成否ハンドリングは CloudSyncBase（core/sync）から継承する。
  */
-import { effect, Injectable, inject, signal } from '@angular/core';
-import { doc, getDoc, setDoc } from 'firebase/firestore';
+import { Injectable, inject } from '@angular/core';
+import { getDoc, setDoc } from 'firebase/firestore';
 import { DrillProgress, LevelUpItemProgress } from '@core/models/session.model';
-import { AuthService } from '@core/firebase/auth.service';
-import { firestore } from '@core/firebase/firebase.init';
-import { DrillProgressService } from '@core/drill/drill-progress.service';
+import { userDoc } from '@core/firebase/firestore-paths';
+import { CloudSyncBase } from '@core/sync/cloud-sync.base';
+import { DrillProgressService } from './drill-progress.service';
+
+// 同期失敗時にユーザーへ見せるメッセージ（ローカル保存は成功している旨を必ず添える）。
+const SYNC_ERROR_MESSAGE = 'ドリル進捗のクラウド同期に失敗しました。ローカルには保存されています。';
 
 interface DrillProgressDoc {
   drillProgress?: Record<string, DrillProgress>;
@@ -25,30 +28,12 @@ interface DrillProgressDoc {
 }
 
 @Injectable({ providedIn: 'root' })
-export class DrillProgressSyncService {
-  private auth = inject(AuthService);
+export class DrillProgressSyncService extends CloudSyncBase {
   private store = inject(DrillProgressService);
 
-  // クラウド同期の直近の失敗メッセージ（成功時は null に戻る）。app.ts が購読して通知バナーに出す。
-  private _syncError = signal<string | null>(null);
-  readonly syncError = this._syncError.asReadonly();
-
   constructor() {
-    // ログイン状態を監視し、ログインした瞬間にクラウドと双方向同期する。
-    // ログアウト時（user が null）はローカルキャッシュをそのまま残す。
-    effect(() => {
-      const user = this.auth.user();
-      if (user) {
-        this.syncFromCloud(user.uid)
-          .then(() => this._syncError.set(null))
-          .catch((err) => {
-            console.error('[DrillProgressSyncService] クラウド同期に失敗:', err);
-            this._syncError.set(
-              'ドリル進捗のクラウド同期に失敗しました。ローカルには保存されています。',
-            );
-          });
-      }
-    });
+    super('DrillProgressSyncService', SYNC_ERROR_MESSAGE);
+    this.initCloudSync();
   }
 
   // ── 読み取り（DrillProgressService への単純な委譲） ──────────────
@@ -85,10 +70,10 @@ export class DrillProgressSyncService {
     this.pushProgress();
   }
 
-  // apps/eibun_lab/users/{uid}/drillProgress/data の単一ドキュメント参照を返す。
+  // apps/eibun_lab/users/{uid}/drillProgress/data の単一ドキュメント参照を返す（パス組み立ては firestore-paths）。
   // セッションと異なり件数の多い配列ではないため、1ドキュメントに両方のマップをまとめて保存する。
   private progressDoc(uid: string) {
-    return doc(firestore, 'apps', 'eibun_lab', 'users', uid, 'drillProgress', 'data');
+    return userDoc(uid, 'drillProgress', 'data');
   }
 
   // ドリル進捗の書き込み直後に呼び、ログイン中なら現在の全件をクラウドへ反映する（fire-and-forget）。
@@ -100,14 +85,7 @@ export class DrillProgressSyncService {
       levelUpProgress: this.store.allLevelUpProgress(),
       perfectCounts: this.store.allPerfectCounts(),
     };
-    setDoc(this.progressDoc(uid), data)
-      .then(() => this._syncError.set(null))
-      .catch((err) => {
-        console.error('[DrillProgressSyncService] 同期に失敗:', err);
-        this._syncError.set(
-          'ドリル進捗のクラウド同期に失敗しました。ローカルには保存されています。',
-        );
-      });
+    this.runPush(setDoc(this.progressDoc(uid), data));
   }
 
   // ログイン直後に呼ぶ双方向同期:

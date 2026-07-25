@@ -22,7 +22,8 @@
 import { Injectable, computed, inject, signal } from '@angular/core';
 import { Router } from '@angular/router';
 import { SessionRepositoryService } from '@core/sessions/session-repository.service';
-import { DRILL_MASTERY_STREAK, DrillProgressService } from '@core/drill/drill-progress.service';
+import { DRILL_MASTERY_STREAK } from '@core/drill/drill-progress.service';
+import { DrillProgressSyncService } from '@core/drill/drill-progress-sync.service';
 import { BadgeVariant } from '@shared/ui/badge/badge';
 import {
   CategoryTrend,
@@ -116,7 +117,8 @@ export interface AiInsight {
 export class MistakesState {
   private repository = inject(SessionRepositoryService);
   private i18n = inject(I18nService);
-  private drillProgress = inject(DrillProgressService);
+  // ドリル進捗は DrillProgressService を直接ではなく同期サービス経由で読む（唯一の窓口に統一）。
+  private drillProgress = inject(DrillProgressSyncService);
   private router = inject(Router);
 
   categoryLabel(categoryJa: string): string {
