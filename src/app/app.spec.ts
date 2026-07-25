@@ -23,6 +23,6 @@ describe('App', () => {
     const labels = Array.from(compiled.querySelectorAll('.nav-item span')).map((el) =>
       el.textContent?.trim(),
     );
-    expect(labels).toEqual(['添削', 'ドリル', '履歴', 'ミス傾向', '設定', '開発']);
+    expect(labels).toEqual(['添削', 'ドリル', '履歴', 'ミス傾向', '実績', '設定', '開発']);
   });
 });

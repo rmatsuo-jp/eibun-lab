@@ -9,21 +9,9 @@
 
 ## 主な機能
 
-| 機能                           | 説明                                                                    |
-| ------------------------------ | ----------------------------------------------------------------------- |
-| 英作文添削                     | Gemini AI が文法・語法ミスを指摘し、修正理由を日本語で解説              |
-| 自然な表現の提案               | ネイティブらしい言い回しを提案（常時有効）                              |
-| 定量評価（スコア＋CEFR）       | 文法・語彙・内容を10点満点で採点＋エラー密度・暫定CEFR評価（常時有効）  |
-| レベルアップ提案               | 一段階上の CEFR レベルでの英文サンプルを提示（常時有効）                |
-| 文法ミスの傾向分析             | 今回の文章から犯しやすいミスの傾向を解説（常時有効）                    |
-| 穴埋め復習カード生成           | 添削のたびに穴埋め＋4択の復習カードを自動生成（常時有効）               |
-| ドリル（弱点克服）             | 頻出ミス出題・穴埋め復習・レベルアップ例文タイピングの3モードで反復練習 |
-| 履歴管理                       | 過去の添削セッションを一覧表示・カレンダー表示・検索・削除              |
-| インポート / エクスポート      | 履歴を JSON ファイルで持ち出し・取り込み                                |
-| 学習統計ダッシュボード         | スコア推移・CEFR推移・ミス傾向を集計・可視化                            |
-| Google ログイン / クラウド同期 | Google SSO ログイン時に添削履歴を Firestore と双方向同期（端末間共有）  |
-| ダークモード                   | ライト / ダークテーマ切り替え                                           |
-| PWA 対応                       | オフラインキャッシュ、ホーム画面追加                                    |
+Gemini による添削・定量評価・レベルアップ提案・穴埋めクイズ生成を核に、練習（英文添削）・ドリル（反復練習）・
+履歴（一覧管理）・ミス傾向（統計）・実績（バッジ・達成条件）・設定の6画面で構成される。Google ログイン時は Firestore とのクラウド同期、
+PWA としてのオフラインキャッシュ・ホーム画面追加にも対応する。各画面の操作方法は [manual.md](manual.md) を参照。
 
 ---
 
@@ -45,7 +33,7 @@
 
 ## ディレクトリ構造
 
-依存方向は `features → core → shared` の一方向のみ（詳細は [ARCHITECTURE.md](../../ARCHITECTURE.md) を参照）。
+依存方向は `features → core → shared` の一方向のみ（詳細は [ARCHITECTURE.md](../ARCHITECTURE.md) を参照）。
 
 ```
 src/
@@ -83,10 +71,22 @@ src/
     │   │   └── quiz.util.ts         # 出題整形・正誤判定（drill/practiceの待機中クイズが共用）
     │   ├── stats/
     │   │   └── session-stats.util.ts # セッション配列からの統計・集計計算（純粋関数）
+    │   ├── achievements/             # 実績（ゲーミフィケーション）
+    │   │   ├── achievement-definitions/   # featureId（correction/cloze/levelup）別に分割した実績定義
+    │   │   │   └── index.ts               # 各ファイルの配列を結合してACHIEVEMENTSをexport
+    │   │   ├── achievement-engine.util.ts # 達成判定ロジック（純粋関数）
+    │   │   ├── achievement.model.ts       # 実績関連の型定義（featureId汎用マップ構造）
+    │   │   ├── gamification-feature-id.ts # featureId定数（'correction'/'cloze'/'levelup'）
+    │   │   ├── gamification-stats.service.ts # 正解数・パーフェクト数等の集計（LocalStorage）
+    │   │   └── gamification-sync.service.ts  # 実績統計のクラウド同期
+    │   ├── release-notes/
+    │   │   └── release-notes.service.ts # CHANGELOG.md を取得・解析（起動時モーダル/設定ページ閲覧）
     │   ├── i18n/                    # 多言語表示（UI表示切り替えのみ。プロンプト/モデルには非関与）
     │   │   ├── i18n.service.ts      # I18nService（lang signal, t()）
     │   │   ├── lang.model.ts
-    │   │   ├── translations.ts
+    │   │   ├── translations.ts      # translations/ の薄い再エクスポート
+    │   │   ├── translations/        # UI文言をfeature単位に分割（practice/drill/settings等）
+    │   │   │   └── index.ts         # 各ファイルのja/enをマージしてTRANSLATIONSを構成
     │   │   ├── localized-session.util.ts  # ja/en出し分け（en欠損時はjaへフォールバック）
     │   │   └── prose-fields.util.ts       # 添削本文系フィールドのja/enキー対応表
     │   └── logging/
@@ -101,8 +101,10 @@ src/
         │   ├── practice-state.service.ts
         │   ├── bulk-import.util.ts  # 一括添削インポート/エクスポート
         │   └── waiting-quiz/        # 添削待機中の暇つぶしクイズ
-        ├── drill/                   # 弱点克服ドリル（頻出ミス出題・穴埋め復習・レベルアップタイピング）
-        │   ├── drill-state.service.ts        # 状態・ロジックの集約（drill.tsはDOM制御のみ）
+        ├── drill/                   # 弱点克服ドリル（穴埋めクイズ・穴あきタイピングの2モード）
+        │   ├── drill-state.service.ts        # オーケストレーター（モード選択・共通UI状態・採点・実績連携）
+        │   ├── drill-cloze-state.ts           # 穴埋めクイズモード専用のデータ・ロジック
+        │   ├── drill-levelup-state.ts         # 穴あきタイピングモード専用のデータ・ロジック
         │   ├── drill-progress.service.ts     # 習熟度・レベルアップ進捗（LocalStorage）
         │   ├── drill-progress-sync.service.ts # ドリル進捗のクラウド同期
         │   └── sentence-list/                # レベルアップの文一覧選択サブコンポーネント
@@ -111,8 +113,13 @@ src/
         │   └── history-calendar/    # カレンダー表示サブコンポーネント
         ├── mistakes/                # 学習統計・ミス傾向・スコア/CEFR推移ダッシュボード
         │   └── mistakes-state.service.ts     # 集計状態の集約（mistakes.tsはテンプレート橋渡しのみ）
-        ├── settings/                # アカウント・APIキー・モデル優先順位・テーマ設定
-        │   └── settings.guard.ts    # canDeactivateで未保存変更を検知
+        ├── achievements/            # 実績（バッジ・達成条件）一覧表示
+        ├── settings/                # オーケストレーター（テーマ・言語・法的情報・GitHubリンク）
+        │   ├── settings.guard.ts    # canDeactivateで未保存変更を検知
+        │   ├── api-key-panel/       # APIキー入力・保存パネル
+        │   ├── model-priority-panel/ # モデル優先順位ドラッグ&ドロップパネル
+        │   ├── release-notes-panel/ # バージョン情報・リリースノート開閉パネル
+        │   └── account-panel/       # Google SSOログイン/ログアウトパネル
         ├── legal/                   # 利用規約・プライバシーポリシー等の表示
         └── dev/                     # 開発者用ページ（本番ビルドではルートテーブルから除外）
             └── dev-log.service.ts   # 開発用の送受信ログ記録
@@ -130,15 +137,16 @@ src/
 
 ## ルーティング
 
-| パス        | 内容                                               |
-| ----------- | -------------------------------------------------- |
-| `/`         | `/practice` へリダイレクト                         |
-| `/practice` | 英文入力・添削結果表示                             |
-| `/drill`    | 弱点克服ドリル                                     |
-| `/history`  | 履歴一覧・検索・インポート/エクスポート            |
-| `/mistakes` | 学習統計ダッシュボード                             |
-| `/settings` | 設定（`canDeactivate` ガードで未保存変更を検知）   |
-| `/dev`      | 開発者用ページ（本番ビルドではルート自体が非搭載） |
+| パス            | 内容                                               |
+| --------------- | -------------------------------------------------- |
+| `/`             | `/practice` へリダイレクト                         |
+| `/practice`     | 英文入力・添削結果表示                             |
+| `/drill`        | 弱点克服ドリル                                     |
+| `/history`      | 履歴一覧・検索・インポート/エクスポート            |
+| `/mistakes`     | 学習統計ダッシュボード                             |
+| `/achievements` | 実績（バッジ・達成条件）一覧                       |
+| `/settings`     | 設定（`canDeactivate` ガードで未保存変更を検知）   |
+| `/dev`          | 開発者用ページ（本番ビルドではルート自体が非搭載） |
 
 ---
 
@@ -216,21 +224,23 @@ interface CorrectionSession {
 `Mistake`/`ReviewItem`/`LevelUpItem`/`CorrectionSession` の各文字列フィールドには、対応する
 `*En`（例: `explanationEn`, `correctedEn`）という任意の英語版フィールドが存在する。表示言語の切り替えは
 `core/i18n/localized-session.util.ts` が担い、en側が未設定の場合はja側へフォールバックする
-（詳細は [ARCHITECTURE.md](../../ARCHITECTURE.md) の i18n セクションを参照）。
+（詳細は [ARCHITECTURE.md](../ARCHITECTURE.md) の i18n セクションを参照）。
 
-プロンプトは `core/gemini/prompt.util.ts` の宣言的 `SECTIONS` 配列で管理（項目追加 = 配列にオブジェクト1つ）。全10セクション（文法指摘・自然表現・添削全文・ミス一覧・ミス傾向・定量評価・CEFR根拠・学習法・レベルアップ・穴埋め復習）は常時有効で、`buildPrompt()`（引数なし）が全セクションを順に連結する。ユーザー入力は `###USER_DIARY_START###` / `###USER_DIARY_END###` で囲み、プロンプトインジェクションを軽減している。
+プロンプトは `core/gemini/prompt.util.ts` の宣言的 `SECTIONS` 配列で管理（項目追加 = 配列にオブジェクト1つ）。全10セクション（文法指摘・自然表現・添削全文・ミス一覧・ミス傾向・定量評価・CEFR根拠・学習法・レベルアップ・穴埋めクイズ）は常時有効で、`buildPrompt()`（引数なし）が全セクションを順に連結する。ユーザー入力は `###USER_DIARY_START###` / `###USER_DIARY_END###` で囲み、プロンプトインジェクションを軽減している。
 
 ---
 
 ## LocalStorage キー
 
-| キー                         | 内容                                                                  |
-| ---------------------------- | --------------------------------------------------------------------- |
-| `correction_sessions`        | `CorrectionSession[]` の JSON 配列（論理削除済みも含む）              |
-| `app_settings`               | `AppSettings` の JSON オブジェクト                                    |
-| `eibun-lab-drill-progress`   | ドリルの正規化キーごとの正解ストリーク（`DrillProgress`）             |
-| `eibun-lab-levelup-progress` | レベルアップドリルのセッション単位マスク進捗（`LevelUpItemProgress`） |
-| `dev_logs`                   | Gemini 送受信ログ（最大20件、本番ビルドでは記録されない）             |
+| キー                           | 内容                                                                          |
+| ------------------------------ | ----------------------------------------------------------------------------- |
+| `correction_sessions`          | `CorrectionSession[]` の JSON 配列（論理削除済みも含む）                      |
+| `app_settings`                 | `AppSettings` の JSON オブジェクト                                            |
+| `eibun-lab-drill-progress`     | ドリルの正規化キーごとの正解ストリーク（`DrillProgress`）                     |
+| `eibun-lab-levelup-progress`   | レベルアップドリルのセッション単位マスク進捗（`LevelUpItemProgress`）         |
+| `eibun-lab-gamification-stats` | 実績判定用の正解数・パーフェクト数・連続正解等の集計統計                      |
+| `release_notes_seen`           | 既読済みの最終バージョン（`lastSeenVersion`）。未読分のみ起動時モーダルに表示 |
+| `dev_logs`                     | Gemini 送受信ログ（最大20件、本番ビルドでは記録されない）                     |
 
 ログイン中は、上記のうち `correction_sessions` に相当するデータが `apps/eibun_lab/users/{uid}/sessions` パスの Cloud Firestore とも双方向同期される。
 

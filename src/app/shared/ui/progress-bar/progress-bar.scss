@@ -1,0 +1,33 @@
+// ── プログレスバー共通スタイル。sizeで太さのみ切り替える ──
+:host {
+  display: block;
+}
+
+.progress-bar {
+  width: 100%;
+  background: var(--color-border);
+  border-radius: var(--radius-pill);
+  overflow: hidden;
+}
+
+.progress-bar-fill {
+  height: 100%;
+  border-radius: var(--radius-pill);
+  transition: width 0.2s;
+}
+
+.progress-bar-fill-primary {
+  background: var(--color-primary);
+}
+
+.progress-bar-fill-success {
+  background: var(--color-success);
+}
+
+.progress-bar-md {
+  height: 0.625rem;
+}
+
+.progress-bar-sm {
+  height: 0.375rem;
+}

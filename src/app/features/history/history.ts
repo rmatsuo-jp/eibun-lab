@@ -10,12 +10,13 @@ import { FormsModule } from '@angular/forms';
 import { NgTemplateOutlet } from '@angular/common';
 import { formatTimestampForFilename } from '@shared/utils/date.util';
 import { I18nService } from '@core/i18n/i18n.service';
+import { Badge } from '@shared/ui/badge/badge';
 import { HistoryCalendar } from './history-calendar/history-calendar';
 import { HistoryState } from './history-state.service';
 
 @Component({
   selector: 'app-history',
-  imports: [FormsModule, NgTemplateOutlet, HistoryCalendar],
+  imports: [FormsModule, NgTemplateOutlet, HistoryCalendar, Badge],
   templateUrl: './history.html',
   styleUrl: './history.scss',
   changeDetection: ChangeDetectionStrategy.OnPush,

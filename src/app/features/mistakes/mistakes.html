@@ -219,11 +219,11 @@
           @for (m of state.frequent(); track m.original) {
             <div class="frequent-item">
               <div class="frequent-header">
-                <span class="category-badge">{{ state.mistakeCategoryLabel(m) }}</span>
+                <app-badge>{{ state.mistakeCategoryLabel(m) }}</app-badge>
                 @if (m.count > 1) {
-                  <span class="repeat-badge">{{
+                  <app-badge variant="warning">{{
                     i18n.t('mistakes.repeatCount', { count: m.count })
-                  }}</span>
+                  }}</app-badge>
                 }
               </div>
               <div class="frequent-pair">

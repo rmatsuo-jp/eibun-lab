@@ -1,0 +1,46 @@
+<!-- @file 実績一覧ページ。対象機能（添削・穴埋めクイズ・穴あきタイピング）ごとに3セクションでカードを並べ、
+     解除済みは解除日時、未解除は現在値/しきい値の進捗（制覇はロック表示のみ）を表示する。 -->
+<div class="page">
+  <h1 class="page-title">{{ i18n.t('achievements.title') }}</h1>
+  <p class="achievements-summary">
+    {{ i18n.t('achievements.unlockedCount', { done: unlockedCount(), total: totalCount }) }}
+  </p>
+  <app-progress-bar
+    class="achievements-overall-progress-bar"
+    tone="success"
+    [value]="unlockedCount()"
+    [max]="totalCount"
+  ></app-progress-bar>
+
+  @for (group of groups; track group) {
+    <section class="achievement-category">
+      <h2 class="category-heading">{{ i18n.t(categoryHeadingKey(group)) }}</h2>
+      <div class="achievement-grid">
+        @for (view of views()[group]; track view.id) {
+          <div class="achievement-card" [class.unlocked]="view.unlocked">
+            <strong class="achievement-title">{{ i18n.t(view.titleKey) }}</strong>
+            <p class="achievement-desc">{{ i18n.t(view.descKey) }}</p>
+            @if (view.unlocked && view.unlockedAt; as ua) {
+              <span class="achievement-status achievement-status-done">
+                {{ i18n.t('achievements.unlockedAt', { date: (ua | date: 'yyyy/MM/dd') ?? '' }) }}
+              </span>
+            } @else if (view.progressText) {
+              <span class="achievement-status">
+                {{ i18n.t('achievements.progress', { progress: view.progressText }) }}
+              </span>
+              <app-progress-bar
+                class="achievement-progress-bar"
+                size="sm"
+                tone="success"
+                [value]="view.progressRatio!"
+                [max]="1"
+              ></app-progress-bar>
+            } @else {
+              <span class="achievement-status">{{ i18n.t('achievements.locked') }}</span>
+            }
+          </div>
+        }
+      </div>
+    </section>
+  }
+</div>

@@ -22,9 +22,10 @@ export interface Quiz {
   weight: number; // 出題優先度（頻度 × 習熟度による重み）
   translation?: string; // クローズのみ: 日本語訳
   choices?: string[]; // クローズのみ: 4択
+  choiceExplanations?: string[]; // クローズのみ: choices と同順の正誤理由
 }
 
-// レベルアップ・タイピング専用の出題型。Quiz とは形が異なる（マスク段階を持つ）ため独立させる。
+// 穴あきタイピング専用の出題型。Quiz とは形が異なる（マスク段階を持つ）ため独立させる。
 export interface LevelUpQuiz {
   key: string; // 習熟度トラッキング用の一意キー（normalizeDrillKey(leveledUp)）
   leveledUp: string; // 正解の全文（採点基準・マスク生成の元）
@@ -106,6 +107,8 @@ export function buildClozeQuiz(
     weight,
     translation: lang === 'en' && r.translationEn ? r.translationEn : r.translation,
     choices: r.choices,
+    choiceExplanations:
+      lang === 'en' && r.choiceExplanationsEn ? r.choiceExplanationsEn : r.choiceExplanations,
   };
 }
 
@@ -123,7 +126,7 @@ export function buildLevelUpQuiz(
     translation: lang === 'en' && item.translationEn ? item.translationEn : item.translation,
     words,
     hideOrder: buildHideOrder(item.leveledUp, words.length),
-    maxLevel: Math.min(6, Math.max(3, words.length)),
+    maxLevel: Math.min(4, Math.max(3, words.length)),
   };
 }
 

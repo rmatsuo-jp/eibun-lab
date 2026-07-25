@@ -1,29 +1,11 @@
 # 英文ラボ（Eibun-Lab）
 
-Gemini AI を使った英語添削 PWA アプリです。Angular で構築されており、英文を入力すると AI が文法・語彙・表現のミスを指摘・修正します。
-
-> **お知らせ（1.0.0）**: アプリ名変更（旧名からのリネーム）に伴い Firebase プロジェクトを作り直しました。
-> ホーム画面に追加済みの端末では、PWA アイコン・名前が変わって見えることがあります。学習履歴・ドリル進捗は
-> LocalStorage にはそのまま残りますが、Firestore クラウド同期は新プロジェクトでゼロから開始されるため、
-> 他端末との同期データは一度リセットされます。
-
-## 機能
-
-- **練習 (Practice)** — 英文を入力し、Gemini AI によるリアルタイム添削を受ける
-- **履歴 (History)** — 過去の添削セッションを一覧で確認する
-- **ミス一覧 (Mistakes)** — 蓄積されたミスをカテゴリ別に振り返る
-- **ドリル (Drill)** — 過去のミスをもとにした穴埋め・4択問題で復習する
-- **設定 (Settings)** — Gemini API キー・モデル・添削プロンプトを設定する
+Gemini AI を使った英語添削 PWA アプリです。Angular で構築されており、英文を入力すると AI が文法・語彙・表現のミスを指摘・修正します。機能の詳細は [docs/overview.md](docs/overview.md) を参照してください。
 
 ## 技術スタック
 
-| 項目           | 内容                                        |
-| -------------- | ------------------------------------------- |
-| フレームワーク | Angular 22（Standalone, PWA）               |
-| AI             | Google Gemini API (`@google/generative-ai`) |
-| ストレージ     | LocalStorage + Firestore 同期               |
-| スタイル       | SCSS                                        |
-| テスト         | Vitest                                      |
+Angular 22（Standalone, PWA）+ Google Gemini API + LocalStorage/Firestore 同期。
+詳細な技術スタック一覧は [docs/overview.md](docs/overview.md) を参照してください。
 
 ## セットアップ
 
@@ -51,8 +33,12 @@ npm start
 アプリ起動後、**Settings** ページで以下を設定してください。
 
 1. Gemini API キー
-2. 使用するモデル（例: `gemini-1.5-flash`）
-3. 添削プロンプト（`{USER_TEXT}` が入力テキストに置換されます）
+2. 使用するモデルの優先順位（ドラッグ&ドロップで並び替え可能）
+
+添削プロンプトは `core/gemini/prompt.util.ts` で一元管理されており、ユーザーが編集することはできません
+（設定ページの「プロンプトプレビュー」で実際に送信される内容を確認できます）。
+
+詳細なセットアップ手順（Node.js バージョン、テスト・lintの実行方法など）は [docs/setup.md](docs/setup.md) を参照してください。
 
 ## ビルド
 
@@ -94,14 +80,18 @@ npm run lint:text  # 表記ゆれチェック（docs, README.md, prompt.util.ts�
 
 ## プロジェクト構成
 
-依存方向は `features → core → shared` の一方向。
+依存方向は `features → core → shared` の一方向。詳細は [ARCHITECTURE.md](ARCHITECTURE.md) を参照してください。
 
 ```
 src/app/
 ├── core/         # モデル定義・Gemini/Firebase連携・永続化サービスなど
 ├── shared/       # 共通UIコンポーネント・ユーティリティ
-└── features/     # practice / history / mistakes / drill / settings / legal
+└── features/     # practice / history / mistakes / drill / achievements / settings / legal / dev
 ```
+
+## ドキュメント
+
+対象読者ごとのドキュメント一覧は [docs/index.md](docs/index.md) を参照してください。
 
 ## ライセンス・免責
 

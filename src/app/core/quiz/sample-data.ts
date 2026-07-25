@@ -1,7 +1,7 @@
 /**
  * @file 添削したことがない新規ユーザー向けの静的サンプル問題データ。
  * Gemini API は呼ばず、CEFR A2〜B1相当の英文をもとにハードコードした
- * ReviewItem（4択穴埋め）・LevelUpItem（レベルアップ・タイピング）を提供する。
+ * ReviewItem（4択穴埋め）・LevelUpItem（穴あきタイピング）を提供する。
  * features/practice/waiting-quiz（添削待機中クイズ）と features/drill（空状態）が参照する。
  */
 import { LevelUpItem, ReviewItem } from '@core/models/session.model';

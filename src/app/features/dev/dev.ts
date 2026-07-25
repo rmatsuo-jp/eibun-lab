@@ -12,10 +12,11 @@ import { SettingsStoreService } from '@core/settings/settings-store.service';
 import { buildPrompt } from '@core/gemini/prompt.util';
 import { renderSafeMarkdown } from '@shared/utils/markdown.util';
 import { copyToClipboard } from '@shared/utils/clipboard.util';
+import { Badge } from '@shared/ui/badge/badge';
 
 @Component({
   selector: 'app-dev',
-  imports: [FormsModule, DatePipe],
+  imports: [FormsModule, DatePipe, Badge],
   templateUrl: './dev.html',
   styleUrl: './dev.scss',
   changeDetection: ChangeDetectionStrategy.OnPush,

@@ -25,6 +25,10 @@ export const routes: Routes = [
     loadComponent: () => import('./features/mistakes/mistakes').then((m) => m.Mistakes),
   },
   {
+    path: 'achievements',
+    loadComponent: () => import('./features/achievements/achievements').then((m) => m.Achievements),
+  },
+  {
     path: 'settings',
     loadComponent: () => import('./features/settings/settings').then((m) => m.Settings),
     canDeactivate: [settingsCanDeactivateGuard],

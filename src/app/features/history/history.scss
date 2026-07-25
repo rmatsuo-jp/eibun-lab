@@ -1,16 +1,3 @@
-.page {
-  padding: 1rem;
-  max-width: 640px;
-  margin: 0 auto;
-}
-
-.page-title {
-  font-size: 1.5rem;
-  font-weight: 700;
-  margin: 0 0 1.5rem;
-  color: var(--color-text);
-}
-
 .empty {
   text-align: center;
   padding: 3rem 1rem;
@@ -126,40 +113,32 @@
 
 .mistake-count {
   font-size: 0.75rem;
-  background: #fee2e2;
-  color: #b91c1c;
+  background: var(--color-error-bg);
+  color: var(--color-error);
   padding: 0.15rem 0.5rem;
   border-radius: 999px;
   font-weight: 600;
 }
 
-// ── 総合スコア/CEFRバッジ（折りたたみ表示のセッションカードで独立表示） ──
-.score-badge {
-  font-size: 0.75rem;
-  font-weight: 700;
-  background: var(--color-primary-light, #ede9fe);
-  color: var(--color-primary);
-  padding: 0.15rem 0.5rem;
-  border-radius: 999px;
-}
-
+// ── CEFRバッジ（折りたたみ表示のセッションカードで独立表示） ──
 .score-cefr {
   font-size: 0.75rem;
   font-weight: 700;
-  color: #fff;
+  color: var(--color-on-primary);
   background: var(--color-primary);
   padding: 0.15rem 0.5rem;
-  border-radius: 999px;
+  border-radius: var(--radius-pill);
 }
 
 .delete-selected-btn {
-  background: #fee2e2;
-  border-color: #fca5a5;
-  color: #b91c1c;
+  background: var(--color-error-bg);
+  border-color: var(--color-error);
+  color: var(--color-error);
 
   &:hover:not(:disabled) {
-    background: #fecaca;
-    border-color: #ef4444;
+    background: var(--color-error-bg);
+    border-color: var(--color-error);
+    opacity: 0.85;
   }
 
   &:disabled {
@@ -319,18 +298,12 @@
   }
 }
 
-.category-badge {
-  background: var(--color-primary-light);
-  color: var(--color-primary);
-  font-size: 0.7rem;
-  font-weight: 700;
-  padding: 0.15rem 0.5rem;
-  border-radius: 999px;
+.mini-mistake > app-badge {
   white-space: nowrap;
 }
 
 .mistake-original {
-  color: #ef4444;
+  color: var(--color-error);
 }
 
 .arrow {
@@ -338,17 +311,12 @@
 }
 
 .mistake-corrected {
-  color: #16a34a;
+  color: var(--color-success);
   font-weight: 600;
 }
 
 // ── PC レイアウト（768px 以上）────────────────────────────────────
 @media (min-width: 768px) {
-  .page {
-    max-width: 960px;
-    padding: 2rem;
-  }
-
   .sessions-list {
     display: flex;
     flex-direction: column;

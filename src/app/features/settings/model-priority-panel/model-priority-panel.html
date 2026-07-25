@@ -1,0 +1,20 @@
+<!-- @file モデル優先順位パネル。ドラッグ&ドロップで並び替え、操作時に即時保存する。 -->
+<div class="form-group">
+  <label class="label">{{ i18n.t('settings.modelPriority') }}</label>
+  <p class="hint">{{ i18n.t('settings.modelPriorityHint') }}</p>
+  <ul class="model-priority-list">
+    @for (modelId of settings().modelPriority; track modelId; let i = $index) {
+      <li
+        class="model-priority-item"
+        draggable="true"
+        (dragstart)="onDragStart(i)"
+        (dragover)="onDragOver($event)"
+        (drop)="onDrop(i)"
+      >
+        <span class="priority-rank">{{ i + 1 }}</span>
+        <span class="priority-label">{{ modelLabel(modelId) }}</span>
+        <span class="drag-handle">⠿</span>
+      </li>
+    }
+  </ul>
+</div>

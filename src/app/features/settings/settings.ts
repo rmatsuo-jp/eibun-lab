@@ -1,155 +1,66 @@
 /**
- * @file 設定ページ。アカウント（Google SSO ログイン/同期）・API キー・モデル優先順位（ドラッグ&ドロップ）・テーマ切り替えを管理する。
- * 保存粒度は2種類。テーマとモデル優先順位は操作した時点で即時保存する。API キーだけは
- * 入力途中の値を永続化しないよう apiKeyDraft に退避し、専用の保存ボタンを押したときのみ確定する。
- * settings signal は常に「保存済みの真値」を保持するため、即時保存が API キー草稿を巻き込むことはない。
- * API キーは入力時に normalizeApiKey() で空白・引用符を除去する（プレフィックスによる形式検査はしない。
- * 理由は api-key.util.ts 参照）。テンプレート側には課金が利用者負担である旨の注意を常時表示する。
- * 未保存の API キーは isDirty で検知し、保存ボタンの強調表示と離脱時の確認ダイアログ（settings.guard.ts）に使う。
- * 選択可能なモデル一覧は gemini-models.constants.ts を共用する（settings-store.service.ts のデフォルト優先順位と同一ソース）。
+ * @file 設定ページのオーケストレーター。API キー・モデル優先順位・リリースノート・アカウントは
+ * それぞれ api-key-panel / model-priority-panel / release-notes-panel / account-panel に切り出し済み。
+ * テーマ・表示言語・法的情報導線・GitHubリポジトリ導線は小規模なためこのファイルに残す。
+ * テーマ・表示言語は操作した時点で即時保存する（settings signal は常に「保存済みの真値」）。
+ * updateLanguage() は I18nService.setLang() で即時反映しつつ settings signal を更新して
+ * persist() する（updateTheme() と同じ即時保存パターン）。
+ * 未保存の API キーは api-key-panel が isDirty として保持する。canDeactivate()（settings.guard.ts から
+ * 呼ばれる）はその子コンポーネントを viewChild で参照し、isDirty() を読んで離脱時の確認ダイアログに使う。
  * 末尾に法的情報（プライバシーポリシー・利用規約・免責事項、pages/legal）への導線を持つ。
- * 表示言語（テーマの直下）も即時保存対象。updateLanguage() は I18nService.setLang() で即時反映しつつ
- * settings signal を更新して persist() する（updateTheme() と同じ即時保存パターン）。
+ * バージョン情報の直下にGitHubリポジトリへの外部リンクを表示する（githubUrl）。
  */
-import { ChangeDetectionStrategy, Component, computed, inject, signal } from '@angular/core';
-import { FormsModule } from '@angular/forms';
+import { ChangeDetectionStrategy, Component, inject, signal, viewChild } from '@angular/core';
 import { RouterLink } from '@angular/router';
 import { AppSettings, SettingsStoreService } from '@core/settings/settings-store.service';
-import { normalizeApiKey } from '@core/settings/api-key.util';
-import { AuthService } from '@core/firebase/auth.service';
-import { GEMINI_MODELS } from '@core/gemini/gemini-models.constants';
 import { I18nService } from '@core/i18n/i18n.service';
-import { APP_VERSION, RELEASE_DATE } from '../../../version';
+import { ApiKeyPanel } from './api-key-panel/api-key-panel';
+import { ModelPriorityPanel } from './model-priority-panel/model-priority-panel';
+import { ReleaseNotesPanel } from './release-notes-panel/release-notes-panel';
+import { AccountPanel } from './account-panel/account-panel';
 
 @Component({
   selector: 'app-settings',
-  imports: [FormsModule, RouterLink],
+  imports: [RouterLink, ApiKeyPanel, ModelPriorityPanel, ReleaseNotesPanel, AccountPanel],
   templateUrl: './settings.html',
   styleUrl: './settings.scss',
   changeDetection: ChangeDetectionStrategy.OnPush,
 })
 export class Settings {
   private settingsStore = inject(SettingsStoreService);
-  private auth = inject(AuthService);
   protected i18n = inject(I18nService);
 
-  // ── アカウント（Google SSO） ──────────────────────────────────────
-  readonly user = this.auth.user;
-  // 非許可ユーザーのログイン拒否メッセージ（ホワイトリスト制。auth.service.ts が設定）
-  readonly loginError = this.auth.loginError;
-  authBusy = signal(false);
+  // ── GitHubリポジトリ導線 ───────────────────────────────────────
+  readonly githubUrl = 'https://github.com/rmatsuo-jp/eibun-lab';
 
-  async login() {
-    this.authBusy.set(true);
-    try {
-      await this.auth.login();
-    } catch (err) {
-      console.error('[Settings] ログインに失敗:', err);
-    } finally {
-      this.authBusy.set(false);
-    }
-  }
-
-  async logout() {
-    this.authBusy.set(true);
-    try {
-      await this.auth.logout();
-    } finally {
-      this.authBusy.set(false);
-    }
-  }
-
-  // ── バージョン情報（version.ts はビルド時に自動生成） ──
-  readonly version = APP_VERSION;
-  readonly releaseDate = RELEASE_DATE;
-
-  readonly models = GEMINI_MODELS;
+  // ── 未保存の API キー変更を検知するため、api-key-panel を参照する ──
+  private apiKeyPanel = viewChild.required(ApiKeyPanel);
 
   // ── 状態管理（signal） ────────────────────────────────────────────
-  // settings は常に「保存済みの真値」。編集中の API キーは apiKeyDraft 側にだけ入る。
-  settings = signal<AppSettings>(this.initSettings());
-  apiKeyDraft = signal(this.settings().apiKey);
-  saved = signal(false);
-  showKey = signal(false);
-
-  // ── 未保存変更の検知（API キーのみが対象。テーマ・モデル順は即時保存されるため常に保存済み） ──
-  isDirty = computed(() => this.apiKeyDraft() !== this.settings().apiKey);
-
-  // ── モデル優先順位のドラッグ&ドロップ並び替え ────────────────────
-  private dragIndex = signal<number | null>(null);
-
-  private initSettings(): AppSettings {
-    const saved = this.settingsStore.getSettings();
-    const validIds = this.models.map((m) => m.value);
-    // 保存済み優先順位から未知のモデルIDを除外し、models にあって欠落しているIDを末尾に補完する。
-    const known = saved.modelPriority.filter((id) => validIds.includes(id));
-    const missing = validIds.filter((id) => !known.includes(id));
-    saved.modelPriority = [...known, ...missing];
-    return saved;
-  }
-
-  modelLabel(modelId: string): string {
-    return this.models.find((m) => m.value === modelId)?.label ?? modelId;
-  }
-
-  onDragStart(index: number) {
-    this.dragIndex.set(index);
-  }
-
-  onDragOver(event: DragEvent) {
-    event.preventDefault();
-  }
-
-  onDrop(index: number) {
-    const from = this.dragIndex();
-    this.dragIndex.set(null);
-    if (from === null || from === index) return;
-    this.settings.update((s) => {
-      const modelPriority = [...s.modelPriority];
-      const [moved] = modelPriority.splice(from, 1);
-      modelPriority.splice(index, 0, moved);
-      return { ...s, modelPriority };
-    });
-    this.persist();
-  }
+  settings = signal<AppSettings>(this.settingsStore.getSettings());
 
   // ── テーマ（即時保存。DOM への反映と永続化を同時に行う） ──────────
+  // api-key-panel / model-priority-panel が独立して保存を行うため、保存直前に
+  // ストアから最新値を読み直してから theme のみを上書きする（他パネルの変更を巻き戻さないため）。
   updateTheme(theme: AppSettings['theme']) {
     document.documentElement.dataset['theme'] = theme;
-    this.settings.update((s) => ({ ...s, theme }));
-    this.persist();
+    this.persist({ ...this.settingsStore.getSettings(), theme });
   }
 
   // ── 表示言語（即時保存。I18nService への反映と永続化を同時に行う） ──
   updateLanguage(language: AppSettings['language']) {
     this.i18n.setLang(language);
-    this.settings.update((s) => ({ ...s, language }));
-    this.persist();
+    this.persist({ ...this.settingsStore.getSettings(), language });
   }
 
-  // ── API キー（草稿のみ更新。保存は saveApiKey() でのみ行う） ───────
-  updateApiKey(value: string) {
-    // APIキーは貼り付け時に前後の空白・改行・引用符が混入しやすい。そのまま送信すると
-    // Gemini 側で原因の分かりにくい 400 になるため、入力の時点で無害化しておく。
-    this.apiKeyDraft.set(normalizeApiKey(value));
-  }
-
-  saveApiKey() {
-    this.settings.update((s) => ({ ...s, apiKey: this.apiKeyDraft() }));
-    this.persist();
-    this.saved.set(true);
-    setTimeout(() => this.saved.set(false), 2000);
-  }
-
-  // settings() は保存済みの真値のみを持つため、テーマ・モデル順の即時保存で
-  // 未確定の apiKeyDraft が漏れて永続化されることはない。
-  private persist() {
-    this.settingsStore.saveSettings(this.settings());
+  private persist(next: AppSettings) {
+    this.settings.set(next);
+    this.settingsStore.saveSettings(next);
   }
 
   // ── 他ページへの遷移時に未保存の API キーを警告（settings.guard.ts から呼ばれる） ──
   canDeactivate(): boolean {
-    if (!this.isDirty()) return true;
+    if (!this.apiKeyPanel().isDirty()) return true;
     return window.confirm(this.i18n.t('settings.confirmLeave'));
   }
 }

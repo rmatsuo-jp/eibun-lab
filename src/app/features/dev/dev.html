@@ -20,7 +20,7 @@
       <div class="log-entry">
         <button class="log-header" type="button" (click)="toggleExpand(entry.id)">
           <span class="log-time">{{ entry.timestamp | date: 'MM/dd HH:mm:ss' }}</span>
-          <span class="log-model">{{ entry.model }}</span>
+          <app-badge>{{ entry.model }}</app-badge>
           <span class="log-preview">{{ entry.userText.slice(0, 40) }}</span>
           <span class="log-caret">{{ expandedId() === entry.id ? '▲' : '▼' }}</span>
         </button>

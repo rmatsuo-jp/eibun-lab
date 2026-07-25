@@ -6,13 +6,13 @@
 
   a {
     padding: 0.4rem 0.8rem;
-    border-radius: 6px;
+    border-radius: 0.5rem;
     text-decoration: none;
-    color: var(--text-secondary, inherit);
-    background: var(--surface, transparent);
+    color: var(--color-text-muted);
+    background: var(--color-surface);
 
     &.active {
-      color: var(--accent, inherit);
+      color: var(--color-primary);
       font-weight: bold;
     }
   }

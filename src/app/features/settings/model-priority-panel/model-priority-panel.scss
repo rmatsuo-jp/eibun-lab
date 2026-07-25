@@ -1,0 +1,73 @@
+.form-group {
+  margin-bottom: 1.5rem;
+}
+
+.label {
+  display: block;
+  font-size: 0.875rem;
+  font-weight: 600;
+  color: var(--color-text);
+  margin-bottom: 0.375rem;
+}
+
+.hint {
+  font-size: 0.8125rem;
+  color: var(--color-text-muted);
+  margin: 0 0 0.5rem;
+}
+
+// ── モデル優先順位（ドラッグ&ドロップ並び替えリスト） ──────────────
+.model-priority-list {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 0.5rem;
+}
+
+.model-priority-item {
+  display: flex;
+  align-items: center;
+  gap: 0.75rem;
+  padding: 0.625rem 0.875rem;
+  border: 2px solid var(--color-border);
+  border-radius: 0.75rem;
+  background: var(--color-surface);
+  cursor: grab;
+  transition: border-color 0.2s;
+
+  &:active {
+    cursor: grabbing;
+  }
+
+  &:hover {
+    border-color: var(--color-primary);
+  }
+}
+
+.priority-rank {
+  flex-shrink: 0;
+  width: 1.5rem;
+  height: 1.5rem;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  border-radius: 50%;
+  background: var(--color-primary-light);
+  color: var(--color-primary);
+  font-size: 0.75rem;
+  font-weight: 700;
+}
+
+.priority-label {
+  flex: 1;
+  font-size: 0.9375rem;
+  color: var(--color-text);
+}
+
+.drag-handle {
+  flex-shrink: 0;
+  color: var(--color-text-muted);
+  font-size: 1rem;
+}

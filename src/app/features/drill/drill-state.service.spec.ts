@@ -22,6 +22,15 @@ function makeSession(partial: Partial<CorrectionSession>): CorrectionSession {
 class FakeDrillProgressSync {
   private drill = new Map<string, DrillProgress>();
   private levelUp = new Map<string, Record<string, LevelUpItemProgress>>();
+  private perfectCounts = new Map<string, number>();
+
+  getPerfectCount(sessionKey: string) {
+    return this.perfectCounts.get(sessionKey) ?? 0;
+  }
+
+  incrementPerfectCount(sessionKey: string) {
+    this.perfectCounts.set(sessionKey, (this.perfectCounts.get(sessionKey) ?? 0) + 1);
+  }
 
   getDrillProgress(key: string) {
     return this.drill.get(key);
@@ -35,6 +44,7 @@ class FakeDrillProgressSync {
     const prev = this.drill.get(key);
     this.drill.set(key, {
       correctStreak: correct ? (prev?.correctStreak ?? 0) + 1 : 0,
+      everCorrect: (prev?.everCorrect ?? false) || correct,
       lastAttemptAt: new Date().toISOString(),
     });
   }
@@ -113,7 +123,7 @@ describe('DrillState', () => {
       expect(masteredWeight).toBeLessThan(freshWeight);
     });
 
-    it('progressForClozeSessionは習熟済み数/全体数を返す', () => {
+    it('progressForClozeSessionは達成数/全体数を返す（1回でも正解していれば達成）', () => {
       const session = makeSession({
         id: 's1',
         reviewItems: [
@@ -127,8 +137,24 @@ describe('DrillState', () => {
       const key = normalizeDrillKey(
         `${session.reviewItems![0].sentence}${session.reviewItems![0].answer}`,
       );
-      fakeSync.masterKey(key);
+      fakeSync.recordDrillResult(key, true); // 1回だけ正解
       expect(state.progressForClozeSession(session)).toEqual({ done: 1, total: 2 });
+    });
+
+    it('progressForClozeSessionの達成は不正解が続いても取り消されない', () => {
+      const session = makeSession({
+        id: 's1',
+        reviewItems: [
+          { sentence: 'a ___ b', answer: 'fox', hint: 'h', translation: 't', choices: ['fox'] },
+        ],
+      });
+      const { state, fakeSync } = setup([session]);
+      const key = normalizeDrillKey(
+        `${session.reviewItems![0].sentence}${session.reviewItems![0].answer}`,
+      );
+      fakeSync.recordDrillResult(key, true);
+      fakeSync.recordDrillResult(key, false);
+      expect(state.progressForClozeSession(session)).toEqual({ done: 1, total: 1 });
     });
   });
 
@@ -250,6 +276,85 @@ describe('DrillState', () => {
         maskLevel: item.maxLevel,
         completed: true,
       });
+      expect(state.perfectCountForSession(session)).toBe(1);
+    });
+
+    it('既に習熟済みの日程を再訪して間違えずに解き直すと、パーフェクト達成数がさらに加算される', () => {
+      const session = makeSession({
+        id: 's1',
+        levelUpItems: [
+          { original: 'o', leveledUp: 'short text', keyPhrases: ['short'], translation: 't' },
+        ],
+      });
+      const { state } = setup([session]);
+
+      // 1回目の訪問: 満点で完了
+      state.selectLevelUpDate(session);
+      state.selectLevelUpSentence(0);
+      let item = state.levelUpQuiz()[0];
+      state.maskLevel.set(item.maxLevel);
+      state.userAnswer.set(item.leveledUp);
+      state.checkTyping();
+      expect(state.perfectCountForSession(session)).toBe(1);
+
+      // 2回目の訪問: 既に習熟済みの文を再度正解し直しても加算される
+      state.selectLevelUpDate(session);
+      state.selectLevelUpSentence(0);
+      item = state.levelUpQuiz()[0];
+      state.maskLevel.set(item.maxLevel);
+      state.userAnswer.set(item.leveledUp);
+      state.checkTyping();
+      expect(state.perfectCountForSession(session)).toBe(2);
+    });
+
+    it('同じ訪問内で完了済みの文に何度正解してもパーフェクト達成数は1回しか加算されない', () => {
+      const session = makeSession({
+        id: 's1',
+        levelUpItems: [
+          { original: 'o', leveledUp: 'short text', keyPhrases: ['short'], translation: 't' },
+        ],
+      });
+      const { state } = setup([session]);
+
+      state.selectLevelUpDate(session);
+      state.selectLevelUpSentence(0);
+      const item = state.levelUpQuiz()[0];
+      state.maskLevel.set(item.maxLevel);
+      state.userAnswer.set(item.leveledUp);
+      state.checkTyping();
+      expect(state.perfectCountForSession(session)).toBe(1);
+
+      // 同じ訪問中にもう一度同じ文へ正解し直す
+      state.selectLevelUpSentence(0);
+      state.maskLevel.set(item.maxLevel);
+      state.userAnswer.set(item.leveledUp);
+      state.checkTyping();
+      expect(state.perfectCountForSession(session)).toBe(1);
+    });
+
+    it('訪問中に一度でも不正解があると、その訪問ではパーフェクト達成数が加算されない', () => {
+      const session = makeSession({
+        id: 's1',
+        levelUpItems: [
+          { original: 'o', leveledUp: 'short text', keyPhrases: ['short'], translation: 't' },
+        ],
+      });
+      const { state } = setup([session]);
+
+      state.selectLevelUpDate(session);
+      state.selectLevelUpSentence(0);
+      const item = state.levelUpQuiz()[0];
+      state.maskLevel.set(item.maxLevel);
+      state.userAnswer.set('completely wrong answer');
+      state.checkTyping();
+
+      state.retry();
+      state.maskLevel.set(item.maxLevel);
+      state.userAnswer.set(item.leveledUp);
+      state.checkTyping();
+
+      expect(state.currentCorrect()).toBe(true);
+      expect(state.perfectCountForSession(session)).toBe(0);
     });
   });
 });

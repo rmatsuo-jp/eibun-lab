@@ -5,10 +5,12 @@
  */
 import { ChangeDetectionStrategy, Component, inject } from '@angular/core';
 import { I18nService } from '@core/i18n/i18n.service';
+import { Badge } from '@shared/ui/badge/badge';
 import { MistakesState } from './mistakes-state.service';
 
 @Component({
   selector: 'app-mistakes',
+  imports: [Badge],
   templateUrl: './mistakes.html',
   styleUrl: './mistakes.scss',
   changeDetection: ChangeDetectionStrategy.OnPush,

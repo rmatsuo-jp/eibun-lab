@@ -17,12 +17,15 @@ import {
 import { DatePipe } from '@angular/common';
 import { FormsModule } from '@angular/forms';
 import { I18nService } from '@core/i18n/i18n.service';
+import { Badge } from '@shared/ui/badge/badge';
+import { Card } from '@shared/ui/card/card';
+import { Icon } from '@shared/ui/icon/icon';
 import { DrillState } from './drill-state.service';
 import { SentenceList } from './sentence-list/sentence-list';
 
 @Component({
   selector: 'app-drill',
-  imports: [FormsModule, DatePipe, SentenceList],
+  imports: [FormsModule, DatePipe, SentenceList, Badge, Card, Icon],
   templateUrl: './drill.html',
   styleUrl: './drill.scss',
   changeDetection: ChangeDetectionStrategy.OnPush,

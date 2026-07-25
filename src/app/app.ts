@@ -1,6 +1,9 @@
 /**
  * @file ルートコンポーネント。起動時に theme/language・同意モーダルを初期化し、添削通知や同期エラーの
  * グローバルバナー表示、ボトムナビ実高さの --bottom-nav-height への反映を担う。
+ * 同意モーダルの表示が不要（または同意完了後）になったタイミングで、リリースノート
+ * （「新機能」モーダル）の要否を ReleaseNotesService に問い合わせて表示する
+ * （同意モーダルとの同時表示を避けるため、常に同意モーダルを優先する）。
  */
 import {
   ChangeDetectionStrategy,
@@ -22,6 +25,8 @@ import { Lang } from '@core/i18n/lang.model';
 import { PracticeState } from '@features/practice/practice-state.service';
 import { FirestoreSyncService } from '@core/sessions/firestore-sync.service';
 import { DrillProgressSyncService } from '@features/drill/drill-progress-sync.service';
+import { ReleaseNotesService, ReleaseNoteEntry } from '@core/release-notes/release-notes.service';
+import { APP_VERSION } from '../version';
 
 @Component({
   selector: 'app-root',
@@ -38,6 +43,7 @@ export class App {
   protected i18n = inject(I18nService);
   private firestoreSync = inject(FirestoreSyncService);
   private drillProgressSync = inject(DrillProgressSyncService);
+  private releaseNotes = inject(ReleaseNotesService);
 
   // ── クラウド同期失敗の通知（練習の添削通知が無い時だけ表示） ─────────
   // 閉じるボタンで syncErrorDismissed を立てるが、次回同期が成功して syncError が null に戻ると
@@ -63,10 +69,17 @@ export class App {
   // ── 同意モーダルの表示可否（初回起動時、または同意文言が改訂された場合に表示） ──
   protected showConsent = signal(this.settingsStore.needsConsent());
 
+  // ── 新機能モーダルに表示する未読リリースノート（無ければ空配列＝非表示） ──
+  protected whatsNewEntries = signal<ReleaseNoteEntry[]>([]);
+
   constructor() {
     const settings = this.settingsStore.getSettings();
     document.documentElement.dataset['theme'] = settings.theme;
     this.i18n.setLang(settings.language);
+
+    // 同意モーダルが不要なら即座にチェックする。必要な場合は acceptConsent() 完了後にチェックする
+    // （同意モーダルとの同時表示を避けるため）。
+    if (!this.showConsent()) this.checkWhatsNew();
 
     afterNextRender(() => this.observeBottomNavHeight());
 
@@ -126,6 +139,19 @@ export class App {
   acceptConsent() {
     this.settingsStore.acceptConsent();
     this.showConsent.set(false);
+    this.checkWhatsNew();
+  }
+
+  // ── 未読のリリースノートがあれば新機能モーダル用にセットする ──────────
+  private async checkWhatsNew() {
+    const entries = await this.releaseNotes.getUnseenNotes(APP_VERSION);
+    if (entries.length) this.whatsNewEntries.set(entries);
+  }
+
+  // ── 新機能モーダルを閉じ、現在のバージョンを既読として記録する ──────────
+  dismissWhatsNew() {
+    this.releaseNotes.markSeen(APP_VERSION);
+    this.whatsNewEntries.set([]);
   }
 
   // ── バナータップ: 添削タブへ遷移して通知を閉じる ───────────────

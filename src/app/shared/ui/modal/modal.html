@@ -1,0 +1,5 @@
+<div class="modal-overlay" (click)="onOverlayClick()">
+  <div class="modal-content" tabindex="-1" (click)="$event.stopPropagation()">
+    <ng-content></ng-content>
+  </div>
+</div>

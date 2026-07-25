@@ -1,0 +1,33 @@
+<!-- @file アカウントパネル（Google ログインでデータを複数端末で共有）。 -->
+<div class="form-group">
+  <label class="label">{{ i18n.t('settings.account') }}</label>
+  <p class="hint">{{ i18n.t('settings.accountHint') }}</p>
+  @if (user(); as u) {
+    <div class="account-card">
+      @if (u.photoURL) {
+        <img class="account-avatar" [src]="u.photoURL" alt="" referrerpolicy="no-referrer" />
+      }
+      <div class="account-info">
+        <strong>{{ u.displayName || i18n.t('settings.loggedIn') }}</strong>
+        <span class="account-email">{{ u.email }}</span>
+      </div>
+      <button class="btn-secondary" (click)="logout()" [disabled]="authBusy()" type="button">
+        {{ i18n.t('settings.logout') }}
+      </button>
+    </div>
+  } @else {
+    <button class="btn-primary" (click)="login()" [disabled]="authBusy()" type="button">
+      @if (authBusy()) {
+        {{ i18n.t('settings.processing') }}
+      } @else {
+        {{ i18n.t('settings.login') }}
+      }
+    </button>
+    <!-- クラウド同期はホワイトリスト制であることの常時表示注記 -->
+    <p class="auth-note">{{ i18n.t('settings.authNote') }}</p>
+  }
+  <!-- 非許可ユーザーがログインを試みたときの拒否メッセージ -->
+  @if (loginError(); as msg) {
+    <p class="auth-error">{{ msg }}</p>
+  }
+</div>

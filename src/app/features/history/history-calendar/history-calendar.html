@@ -1,10 +1,18 @@
 <!-- @file 月表示カレンダーグリッド＋日付フィルタバナー。history.html から切り出したセッションカレンダー UI。 -->
 <div class="calendar-nav">
-  <button class="toolbar-btn" (click)="prevMonth()" [attr.aria-label]="i18n.t('history.prevMonth')">
+  <button
+    class="calendar-nav-btn"
+    (click)="prevMonth()"
+    [attr.aria-label]="i18n.t('history.prevMonth')"
+  >
     ‹
   </button>
   <span class="calendar-month-label">{{ calendarMonthLabel() }}</span>
-  <button class="toolbar-btn" (click)="nextMonth()" [attr.aria-label]="i18n.t('history.nextMonth')">
+  <button
+    class="calendar-nav-btn"
+    (click)="nextMonth()"
+    [attr.aria-label]="i18n.t('history.nextMonth')"
+  >
     ›
   </button>
 </div>
