@@ -12,7 +12,7 @@ import {
   output,
   signal,
 } from '@angular/core';
-import { toDayKey } from '@shared/utils/date.util';
+import { FULL_DATE_OPTIONS, formatLocaleDate, toDayKey } from '@shared/utils/date.util';
 import { CorrectionSession, WritingEvaluation } from '@core/models/session.model';
 import { I18nService } from '@core/i18n/i18n.service';
 
@@ -95,10 +95,7 @@ export class HistoryCalendar {
   );
 
   calendarMonthLabel = computed(() =>
-    this.calendarMonth().toLocaleDateString(this.i18n.lang() === 'en' ? 'en-US' : 'ja-JP', {
-      year: 'numeric',
-      month: 'long',
-    }),
+    formatLocaleDate(this.calendarMonth(), this.i18n.lang(), { year: 'numeric', month: 'long' }),
   );
 
   prevMonth() {
@@ -123,11 +120,6 @@ export class HistoryCalendar {
   }
 
   formatDayKey(dayKey: string): string {
-    return new Date(dayKey).toLocaleDateString(this.i18n.lang() === 'en' ? 'en-US' : 'ja-JP', {
-      year: 'numeric',
-      month: 'long',
-      day: 'numeric',
-      weekday: 'short',
-    });
+    return formatLocaleDate(dayKey, this.i18n.lang(), FULL_DATE_OPTIONS);
   }
 }

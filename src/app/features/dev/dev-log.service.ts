@@ -6,6 +6,7 @@
  */
 import { Injectable, signal } from '@angular/core';
 import { GeminiLogRecord, GeminiLogger } from '@core/logging/gemini-log.token';
+import { readJson, writeJson } from '@shared/utils/local-storage.util';
 
 export interface DevLogEntry extends GeminiLogRecord {
   id: string;
@@ -17,20 +18,10 @@ const MAX_ENTRIES = 20;
 
 @Injectable({ providedIn: 'root' })
 export class DevLogService implements GeminiLogger {
-  logs = signal<DevLogEntry[]>(this.loadFromStorage());
-
-  private loadFromStorage(): DevLogEntry[] {
-    const raw = localStorage.getItem(LOGS_KEY);
-    if (!raw) return [];
-    try {
-      return JSON.parse(raw) as DevLogEntry[];
-    } catch {
-      return [];
-    }
-  }
+  logs = signal<DevLogEntry[]>(readJson<DevLogEntry[]>(LOGS_KEY, []));
 
   private persist(logs: DevLogEntry[]): void {
-    localStorage.setItem(LOGS_KEY, JSON.stringify(logs));
+    writeJson(LOGS_KEY, logs);
     this.logs.set(logs);
   }
 

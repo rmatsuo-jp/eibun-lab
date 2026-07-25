@@ -9,6 +9,7 @@ import { ChangeDetectionStrategy, Component, ElementRef, ViewChild, inject } fro
 import { FormsModule } from '@angular/forms';
 import { NgTemplateOutlet } from '@angular/common';
 import { formatTimestampForFilename } from '@shared/utils/date.util';
+import { downloadJson, readTextFile } from '@shared/utils/file-transfer.util';
 import { I18nService } from '@core/i18n/i18n.service';
 import { Badge } from '@shared/ui/badge/badge';
 import { HistoryCalendar } from './history-calendar/history-calendar';
@@ -40,11 +41,8 @@ export class History {
   }
 
   onFileSelected(event: Event) {
-    const file = (event.target as HTMLInputElement).files?.[0];
-    if (!file) return;
-    const reader = new FileReader();
-    reader.onload = () => {
-      const result = this.state.importFromJson(reader.result as string);
+    readTextFile(event, (text) => {
+      const result = this.state.importFromJson(text);
       if (!result.ok) {
         alert(
           this.i18n.t(
@@ -52,17 +50,10 @@ export class History {
           ),
         );
       }
-      (event.target as HTMLInputElement).value = '';
-    };
-    reader.readAsText(file);
+    });
   }
 
   exportJson() {
-    const blob = new Blob([this.state.exportJson()], { type: 'application/json' });
-    const a = document.createElement('a');
-    a.href = URL.createObjectURL(blob);
-    a.download = `history_${formatTimestampForFilename()}.json`;
-    a.click();
-    URL.revokeObjectURL(a.href);
+    downloadJson(`history_${formatTimestampForFilename()}.json`, this.state.exportJson());
   }
 }
