@@ -71,6 +71,8 @@ src/
     │   │   └── quiz.util.ts         # 出題整形・正誤判定（drill/practiceの待機中クイズが共用）
     │   ├── stats/
     │   │   └── session-stats.util.ts # セッション配列からの統計・集計計算（純粋関数）
+    │   ├── drill/
+    │   │   └── drill-progress.service.ts # 習熟度・レベルアップ進捗（LocalStorage。drillとmistakesが共用）
     │   ├── achievements/             # 実績（ゲーミフィケーション）
     │   │   ├── achievement-definitions/   # featureId（correction/cloze/levelup）別に分割した実績定義
     │   │   │   └── index.ts               # 各ファイルの配列を結合してACHIEVEMENTSをexport
@@ -92,6 +94,9 @@ src/
     │   └── logging/
     │       └── gemini-log.token.ts  # GEMINI_LOGGER トークン
     ├── shared/
+    │   ├── ui/                      # ドメイン非依存の共通UIコンポーネント
+    │   │   ├── badge / card / icon / modal / progress-bar / spinner
+    │   │   └── collapsible/         # 見出しクリックで格納/展開するセクション（開閉状態は親が保持）
     │   └── utils/                   # ドメイン非依存の汎用ユーティリティ
     │       ├── markdown.util.ts     # Markdown → 安全なHTML変換
     │       ├── clipboard.util.ts    # クリップボードコピー
@@ -105,7 +110,6 @@ src/
         │   ├── drill-state.service.ts        # オーケストレーター（モード選択・共通UI状態・採点・実績連携）
         │   ├── drill-cloze-state.ts           # 穴埋めクイズモード専用のデータ・ロジック
         │   ├── drill-levelup-state.ts         # 穴あきタイピングモード専用のデータ・ロジック
-        │   ├── drill-progress.service.ts     # 習熟度・レベルアップ進捗（LocalStorage）
         │   ├── drill-progress-sync.service.ts # ドリル進捗のクラウド同期
         │   └── sentence-list/                # レベルアップの文一覧選択サブコンポーネント
         ├── history/                 # 過去セッション一覧・カレンダー・検索・インポート/エクスポート

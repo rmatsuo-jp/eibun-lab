@@ -1,6 +1,6 @@
 import { signal } from '@angular/core';
 import { TestBed } from '@angular/core/testing';
-import { MistakesState } from './mistakes-state.service';
+import { MISTAKE_SECTIONS, MistakesState } from './mistakes-state.service';
 import { SessionRepositoryService } from '@core/sessions/session-repository.service';
 import { CorrectionSession, WritingEvaluation } from '@core/models/session.model';
 
@@ -162,5 +162,94 @@ describe('MistakesState', () => {
       state.toggleHighlight('総合');
       expect(state.highlightedSeries()).toBeNull();
     });
+  });
+});
+
+// ── 追加セクション（改善/悪化トレンド・未克服ミス・再発ミス・AI診断）の computed ──
+describe('MistakesState: ミス傾向の追加セクション', () => {
+  const mistake = (original: string) => ({
+    category: '文法',
+    original,
+    corrected: 'fixed',
+    explanation: '',
+  });
+
+  it('aiInsights は直近3件のうち診断テキストを持つセッションだけを返す', () => {
+    const state = setup([
+      makeSession({ id: '1', grammarTendency: '冠詞の脱落が多い' }),
+      makeSession({ id: '2' }), // 診断テキスト無しは除外
+      makeSession({ id: '3', studyPlan: '毎日3文書く' }),
+      makeSession({ id: '4', cefrRationale: '4件目は直近3件の範囲外' }),
+    ]);
+    expect(state.aiInsights().map((i) => i.grammarTendency ?? i.studyPlan)).toEqual([
+      '冠詞の脱落が多い',
+      '毎日3文書く',
+    ]);
+  });
+
+  it('recurring は別々の日に再登場したミスだけを返す', () => {
+    const state = setup([
+      makeSession({ id: '1', date: '2026-01-10T00:00:00.000Z', mistakes: [mistake('a apple')] }),
+      makeSession({ id: '2', date: '2026-02-10T00:00:00.000Z', mistakes: [mistake('a apple')] }),
+      makeSession({ id: '3', date: '2026-02-11T00:00:00.000Z', mistakes: [mistake('go to home')] }),
+    ]);
+    expect(state.recurring().map((m) => m.original)).toEqual(['a apple']);
+    expect(state.recurring()[0].dayCount).toBe(2);
+  });
+
+  it('unmastered は進捗が無いミスを未着手として返す', () => {
+    const state = setup([makeSession({ id: '1', mistakes: [mistake('a apple')] })]);
+    expect(state.unmastered().map((m) => m.state)).toEqual(['untouched']);
+  });
+
+  it('categoryTrends は比較対象が無ければ空（セクションごと非表示）', () => {
+    const state = setup([makeSession({ id: '1', mistakes: [mistake('a apple')] })]);
+    expect(state.categoryTrends()).toEqual([]);
+  });
+
+  it('densityChart は評価が2件未満なら null', () => {
+    const state = setup([makeSession({ id: '1', evaluation: makeEvaluation({}) })]);
+    expect(state.densityChart()).toBeNull();
+  });
+});
+
+describe('MistakesState: セクションの開閉状態', () => {
+  beforeEach(() => localStorage.clear());
+
+  it('行動優先の上位2セクション（未克服ミス・再発ミス）だけが既定で展開されている', () => {
+    const state = setup([]);
+    expect(state.isOpen('unmastered')).toBe(true);
+    expect(state.isOpen('recurring')).toBe(true);
+    for (const id of MISTAKE_SECTIONS.filter((s) => s !== 'unmastered' && s !== 'recurring')) {
+      expect(state.isOpen(id)).toBe(false);
+    }
+  });
+
+  it('toggleSection ですべてのセクションを開閉できる', () => {
+    const state = setup([]);
+    for (const id of MISTAKE_SECTIONS) {
+      const before = state.isOpen(id);
+      state.toggleSection(id);
+      expect(state.isOpen(id)).toBe(!before);
+    }
+  });
+
+  it('開閉状態は localStorage に保存され、次のインスタンスで復元される', () => {
+    const state = setup([]);
+    state.toggleSection('unmastered'); // true → false
+    state.toggleSection('category'); // false → true
+
+    TestBed.resetTestingModule();
+    const restored = setup([]);
+    expect(restored.isOpen('unmastered')).toBe(false);
+    expect(restored.isOpen('category')).toBe(true);
+    expect(restored.isOpen('recurring')).toBe(true); // 触っていないものは既定値のまま
+  });
+
+  it('保存値が壊れていても既定値にフォールバックする', () => {
+    localStorage.setItem('eibun-lab-mistakes-sections', '{"unmastered":"yes","unknown":true}');
+    const state = setup([]);
+    expect(state.isOpen('unmastered')).toBe(true); // boolean でない値は無視して既定値
+    expect(state.isOpen('category')).toBe(false);
   });
 });

@@ -12,28 +12,89 @@
  * グラフ系列名・カテゴリ表示・ミス説明は i18n.lang() に追随する（core/i18n の翻訳・localized-session.util 参照）。
  * カテゴリ別集計（stats）は session-stats.util 側で正規化済みの日本語カテゴリ文字列のまま集計し、
  * 表示直前にだけ localizedNormalizedCategory() で翻訳する（集計キーを表示文字列にすると言語切替でグラフが割れるため）。
+ * さらに「上達しているか／次に何をすべきか」に答えるためのデータを組み立てる:
+ * unmastered（ドリル習熟度と突合した未克服ミス、goToDrill でドリルへ遷移）・recurring（全期間の再発ミス）・
+ * aiInsights（保存済みだが未表示だった grammarTendency / studyPlan / cefrRationale を直近数件分集約）・
+ * categoryTrends（カテゴリ別のミス密度の期間比較）＋ densityChart（errorDensity 推移のスパークライン）。
+ * 学習統計ダッシュボード以外の8セクション（MISTAKE_SECTIONS）は <app-collapsible> で格納/展開でき、
+ * その開閉状態は openSections（既定は DEFAULT_OPEN、localStorage に永続化）で一元管理する。
  */
 import { Injectable, computed, inject, signal } from '@angular/core';
+import { Router } from '@angular/router';
 import { SessionRepositoryService } from '@core/sessions/session-repository.service';
+import { DRILL_MASTERY_STREAK, DrillProgressService } from '@core/drill/drill-progress.service';
+import { BadgeVariant } from '@shared/ui/badge/badge';
 import {
+  CategoryTrend,
+  MasteryState,
   cefrToNumber,
+  getCategoryTrends,
+  getErrorDensityHistory,
   getEvaluationHistory,
   getFrequentMistakes,
   getMistakeStats,
+  getRecurringMistakes,
   getStudyStats,
+  getUnmasteredMistakes,
 } from '@core/stats/session-stats.util';
 import { Mistake, WritingEvaluation } from '@core/models/session.model';
 import { I18nService } from '@core/i18n/i18n.service';
 import {
   localizedCategory,
   localizedExplanation,
+  localizedField,
   localizedNormalizedCategory,
 } from '@core/i18n/localized-session.util';
+import { readJson, writeJson } from '@shared/utils/local-storage.util';
 
 // 推移グラフの寸法（SVG viewBox）。スコア・CEFR 両グラフで共用する。
 const CHART = { w: 300, h: 150, padL: 22, padR: 8, padT: 12, padB: 26 };
 // 系列が同値で重なる際に縦方向へずらす量（px）。系列間の見分けやすさのための微小オフセット。
 const JITTER_PX = 1.6;
+
+// ミス密度スパークラインの寸法（推移グラフより低い帯）。x座標は xFor() を共用する。
+const DENSITY_CHART_H = 60;
+const DENSITY_PAD_Y = 8;
+// AI診断（文法の癖・学習プラン・CEFR根拠）をまとめて表示する直近セッション件数。
+const AI_INSIGHT_LIMIT = 3;
+
+// ── 折りたたみセクション（学習統計ダッシュボード以外の8つ。定義順＝表示順） ──
+export const MISTAKE_SECTIONS = [
+  'unmastered',
+  'recurring',
+  'ai',
+  'trend',
+  'score',
+  'cefr',
+  'frequent',
+  'category',
+] as const;
+export type MistakeSectionId = (typeof MISTAKE_SECTIONS)[number];
+
+const SECTION_STATE_KEY = 'eibun-lab-mistakes-sections';
+// 既定の開閉状態。行動優先の並び順で上位2つ（未克服ミス・再発ミス）だけ展開し、
+// 上から順に読めば「今日やるべきこと」がすぐ目に入るようにする。
+const DEFAULT_OPEN: Record<MistakeSectionId, boolean> = {
+  unmastered: true,
+  recurring: true,
+  ai: false,
+  trend: false,
+  score: false,
+  cefr: false,
+  frequent: false,
+  category: false,
+};
+
+// 保存値を既定値にマージして読み込む。未知のキー・欠落キー・boolean 以外の値が
+// 混ざっていても（旧バージョンの保存値・手動編集）既定値へフォールバックする。
+function loadOpenSections(): Record<MistakeSectionId, boolean> {
+  const saved = readJson<Partial<Record<MistakeSectionId, unknown>>>(SECTION_STATE_KEY, {});
+  const result = { ...DEFAULT_OPEN };
+  for (const id of MISTAKE_SECTIONS) {
+    if (typeof saved[id] === 'boolean') result[id] = saved[id];
+  }
+  return result;
+}
 
 interface ChartSeries {
   name: string;
@@ -42,10 +103,21 @@ interface ChartSeries {
   dots: { x: number; y: number }[];
 }
 
+// AI が返した自然文フィールドを表示言語で解決した1セッション分の診断。
+// 3項目すべてが欠落しているセッションは aiInsights から除外する。
+export interface AiInsight {
+  date: string;
+  grammarTendency?: string;
+  studyPlan?: string;
+  cefrRationale?: string;
+}
+
 @Injectable({ providedIn: 'root' })
 export class MistakesState {
   private repository = inject(SessionRepositoryService);
   private i18n = inject(I18nService);
+  private drillProgress = inject(DrillProgressService);
+  private router = inject(Router);
 
   categoryLabel(categoryJa: string): string {
     return localizedNormalizedCategory(categoryJa, this.i18n);
@@ -199,6 +271,115 @@ export class MistakesState {
         anchor: i === 0 ? 'start' : i === n - 1 ? 'end' : 'middle',
       };
     });
+  });
+
+  // ── 折りたたみセクションの開閉状態（学習統計ダッシュボード以外の8セクション） ──
+  // 開閉のたびに localStorage へ保存し、次回訪問時も同じ状態で開くようにする。
+  private openSections = signal<Record<MistakeSectionId, boolean>>(loadOpenSections());
+
+  isOpen(id: MistakeSectionId): boolean {
+    return this.openSections()[id];
+  }
+
+  toggleSection(id: MistakeSectionId): void {
+    this.openSections.update((current) => {
+      const updated = { ...current, [id]: !current[id] };
+      writeJson(SECTION_STATE_KEY, updated);
+      return updated;
+    });
+  }
+
+  // ── 1. カテゴリ別 改善/悪化トレンド（比較対象が無ければ空配列＝セクションごと非表示） ──
+  categoryTrends = computed(() => getCategoryTrends(this.repository.sessions()));
+
+  // トレンドの方向を示す記号。色分けは mistakes.scss 側で direction をクラス名にして行う。
+  trendArrow(direction: 'improved' | 'worsened' | 'flat'): string {
+    return direction === 'improved' ? '↓' : direction === 'worsened' ? '↑' : '→';
+  }
+
+  trendLabel(direction: CategoryTrend['direction']): string {
+    const keys = {
+      improved: 'mistakes.improved',
+      worsened: 'mistakes.worsened',
+      flat: 'mistakes.flat',
+    } as const;
+    return this.i18n.t(keys[direction]);
+  }
+
+  // 密度は小数1桁で十分（100語あたりのミス数）
+  formatDensity(value: number): string {
+    return value.toFixed(1);
+  }
+
+  // ── ミス密度（errorDensity）推移スパークライン。2点以上のときのみ描画 ──
+  readonly densityChartH = DENSITY_CHART_H;
+  densityHistory = computed(() => getErrorDensityHistory(this.repository.sessions()));
+
+  densityChart = computed<{ line: string; dots: { x: number; y: number }[] } | null>(() => {
+    const history = this.densityHistory();
+    if (history.length < 2) return null;
+    const n = history.length;
+    const values = history.map((h) => h.density);
+    const min = Math.min(...values);
+    const max = Math.max(...values);
+    const span = max - min || 1; // 全点同値でも中央に水平線として描けるようにする
+    const innerH = DENSITY_CHART_H - DENSITY_PAD_Y * 2;
+    const dots = history.map((h, i) => ({
+      x: this.xFor(i, n),
+      y: DENSITY_PAD_Y + (1 - (h.density - min) / span) * innerH,
+    }));
+    return { line: dots.map((d) => `${d.x},${d.y}`).join(' '), dots };
+  });
+
+  // ── 2. 未克服ミス（ドリル習熟度と突合。習熟済みは除外） ──
+  unmastered = computed(() =>
+    getUnmasteredMistakes(
+      this.repository.sessions(),
+      (key) => this.drillProgress.getDrillProgress(key),
+      DRILL_MASTERY_STREAK,
+    ),
+  );
+
+  // 習熟状態のラベルとバッジ色。未克服（挑戦したが正解できていない）だけ error 色で目立たせる。
+  masteryLabel(state: MasteryState): string {
+    const keys = {
+      unmastered: 'mistakes.stateUnmastered',
+      untouched: 'mistakes.stateUntouched',
+      learning: 'mistakes.stateLearning',
+    } as const;
+    return this.i18n.t(keys[state]);
+  }
+
+  masteryVariant(state: MasteryState): BadgeVariant {
+    return state === 'unmastered' ? 'error' : 'warning';
+  }
+
+  goToDrill(): void {
+    void this.router.navigate(['/drill']);
+  }
+
+  // ── 3. 再発ミス（全期間で2日以上に登場したミス） ──
+  recurring = computed(() => getRecurringMistakes(this.repository.sessions()));
+
+  // 表示用の M/D 形式（推移グラフの xAxisLabels と同じ書式）
+  shortDate(iso: string): string {
+    const d = new Date(iso);
+    return `${d.getMonth() + 1}/${d.getDate()}`;
+  }
+
+  // ── 4. AI診断の集約（保存済みだが従来このタブでは未表示だった自然文フィールド） ──
+  aiInsights = computed<AiInsight[]>(() => {
+    const lang = this.i18n.lang();
+    return this.repository
+      .sessions()
+      .slice(0, AI_INSIGHT_LIMIT)
+      .map((s) => ({
+        date: s.date,
+        grammarTendency: localizedField(s.grammarTendency, s.grammarTendencyEn, lang),
+        studyPlan: localizedField(s.studyPlan, s.studyPlanEn, lang),
+        cefrRationale: localizedField(s.cefrRationale, s.cefrRationaleEn, lang),
+      }))
+      .filter((i) => i.grammarTendency || i.studyPlan || i.cefrRationale);
   });
 
   barWidth(count: number): string {
