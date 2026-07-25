@@ -1,6 +1,7 @@
 /**
  * @file ドリルの習熟度（頻出ミス・復習カードの正解ストリーク）と、穴あきタイピングの
- * マスク段階進捗のローカル永続化を担うサービス。Drill 機能専用のストア（features/drill 内に同居）。
+ * マスク段階進捗のローカル永続化を担うサービス。core に置くのは features/drill 以外に
+ * features/mistakes（未克服ミスの判定）からも参照するため（features 間 import は禁止のため core へ集約）。
  * 各問題の正誤履歴は drillProgress signal（DRILL_PROGRESS_KEY）で正解ストリーク（出題重み用）・
  * everCorrect（1回でも正解したかの永続フラグ、達成バッジ用）・correctCount/attemptCount
  * （同じ問題の累積正答数／挑戦回数、穴埋めクイズの答え合わせ後の表示用）として永続化する。

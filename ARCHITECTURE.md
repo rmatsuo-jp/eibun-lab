@@ -18,7 +18,7 @@ features/ ──▶ core/ ──▶ shared/
 graph TD
     subgraph Features["features/（遅延ロード。1フォルダ = 1拡張機能）"]
         Practice["practice\n英文入力・添削\n(+ practice-state.service\n+ bulk-import.util\n+ waiting-quiz)"]
-        Drill["drill\n弱点克服ドリル\n(+ drill-state.service（オーケストレーター）\n+ drill-cloze-state / drill-levelup-state\n+ drill-progress.service\n+ drill-progress-sync.service\n+ sentence-list)"]
+        Drill["drill\n弱点克服ドリル\n(+ drill-state.service（オーケストレーター）\n+ drill-cloze-state / drill-levelup-state\n+ drill-progress-sync.service\n+ sentence-list)"]
         History["history\n履歴・検索・入出力\n(+ history-calendar)"]
         Mistakes["mistakes\n統計ダッシュボード\n(+ mistakes-state.service)"]
         Achievements["achievements\n実績（バッジ・達成条件）\n表示"]
@@ -33,6 +33,7 @@ graph TD
         Gemini["gemini\nGeminiService\n+ prompt/parse/evaluation\n/stream-progress util"]
         Quiz["quiz\nquiz.util（出題ロジック純粋関数。\ndrill と practice の待機中クイズが共用）"]
         Stats["stats\nsession-stats.util（純粋関数）"]
+        DrillCore["drill\nDrillProgressService\n（習熟度・レベルアップ進捗。\ndrill と mistakes が共用）"]
         AchievementsCore["achievements\nGamificationStatsService\n+ achievement-engine.util\n+ achievement-definitions/（featureId別に分割）\n+ gamification-feature-id"]
         ReleaseNotes["release-notes\nReleaseNotesService\n（CHANGELOG.mdを取得・解析）"]
         I18n["i18n\nI18nService（lang signal）\n+ translations\n+ localized-session.util\n+ prose-fields.util"]
@@ -55,9 +56,9 @@ graph TD
 | feature      | 使用する core                                                                                                                                                                               |
 | ------------ | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
 | practice     | GeminiService / SessionRepositoryService / SettingsStoreService（+ feature 内 PracticeState）                                                                                               |
-| drill        | SessionRepositoryService / stats / I18nService / GamificationSyncService（+ feature 内 DrillState / DrillClozeState / DrillLevelUpState / DrillProgressService / DrillProgressSyncService） |
+| drill        | SessionRepositoryService / stats / DrillProgressService / I18nService / GamificationSyncService（+ feature 内 DrillState / DrillClozeState / DrillLevelUpState / DrillProgressSyncService） |
 | history      | SessionRepositoryService / I18nService（+ feature 内 HistoryState / HistoryCalendar）                                                                                                       |
-| mistakes     | SessionRepositoryService / stats / I18nService（+ feature 内 MistakesState）                                                                                                                |
+| mistakes     | SessionRepositoryService / stats / DrillProgressService / I18nService（+ feature 内 MistakesState）                                                                                                                |
 | achievements | GamificationStatsService / achievement-definitions / I18nService                                                                                                                            |
 | settings     | SettingsStoreService / AuthService / ReleaseNotesService / gemini-models.constants                                                                                                          |
 | dev          | SessionRepositoryService / SettingsStoreService / prompt.util（+ feature 内 DevLogService）                                                                                                 |
@@ -112,7 +113,7 @@ graph TD
     Sync <--> Firestore
 ```
 
-設定（`SettingsStoreService`）とドリル進捗（`DrillProgressService`、features/drill 内）は
+設定（`SettingsStoreService`）とドリル進捗（`DrillProgressService`、core/drill 内）は
 それぞれ独立に LocalStorage を読み書きし、リポジトリを経由しない。
 
 ---
@@ -233,7 +234,7 @@ sequenceDiagram
 データ・純粋ロジック）を inject して委譲する。この3分割により、各モードのロジックはお互いを
 読まずに独立して編集できる。出題元データは core の `SessionRepositoryService.sessions` を
 `session-stats.util`（core/stats）と `quiz.util`（core/quiz）の純粋関数で集計・整形し、習熟度は
-feature内の `DrillProgressService` が管理する。`drill.ts` 自体は `DrillState` を inject するだけの
+core の `DrillProgressService` が管理する。`drill.ts` 自体は `DrillState` を inject するだけの
 薄いコンポーネントで、フォーカス制御など DOM 操作のみを行う。出題画面は `sentence-list`
 （レベルアップの文一覧選択）などのサブコンポーネントに分割されている。
 

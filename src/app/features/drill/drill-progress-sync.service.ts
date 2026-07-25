@@ -16,7 +16,7 @@ import { doc, getDoc, setDoc } from 'firebase/firestore';
 import { DrillProgress, LevelUpItemProgress } from '@core/models/session.model';
 import { AuthService } from '@core/firebase/auth.service';
 import { firestore } from '@core/firebase/firebase.init';
-import { DrillProgressService } from './drill-progress.service';
+import { DrillProgressService } from '@core/drill/drill-progress.service';
 
 interface DrillProgressDoc {
   drillProgress?: Record<string, DrillProgress>;

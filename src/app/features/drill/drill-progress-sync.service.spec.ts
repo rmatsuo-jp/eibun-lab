@@ -2,7 +2,7 @@ import { vi } from 'vitest';
 import { signal } from '@angular/core';
 import { TestBed } from '@angular/core/testing';
 import { DrillProgressSyncService } from './drill-progress-sync.service';
-import { DrillProgressService } from './drill-progress.service';
+import { DrillProgressService } from '@core/drill/drill-progress.service';
 import { AuthService } from '@core/firebase/auth.service';
 
 const { getDocMock, setDocMock } = vi.hoisted(() => ({

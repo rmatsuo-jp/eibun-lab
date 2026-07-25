@@ -3,7 +3,7 @@ import { TestBed } from '@angular/core/testing';
 import { DrillState } from './drill-state.service';
 import { SessionRepositoryService } from '@core/sessions/session-repository.service';
 import { DrillProgressSyncService } from './drill-progress-sync.service';
-import { DRILL_MASTERY_STREAK } from './drill-progress.service';
+import { DRILL_MASTERY_STREAK } from '@core/drill/drill-progress.service';
 import { CorrectionSession, DrillProgress, LevelUpItemProgress } from '@core/models/session.model';
 import { normalizeDrillKey } from '@core/stats/session-stats.util';
 
