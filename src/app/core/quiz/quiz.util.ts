@@ -3,6 +3,8 @@
  * 重み付きシャッフル・回答文字列の正規化・マスク順生成・マスク対象計算に加え、
  * Quiz/LevelUpQuiz への正規化ビルダーと不正解分類（classifyMistake）も提供し、
  * 呼び出し側（features/drill のドリル、features/practice の添削待機中クイズ）はこれを呼ぶだけにする。
+ * buildClozeQuiz はソースデータ（choices[0]が常に正解）の順序をそのまま露出しないよう、
+ * choices/choiceExplanations を同じ順列でシャッフルしてから返す。
  * 2つの feature が共用するため core に置く（feature 間 import を避けるため）。DIなしで単体テスト可能。
  * hint/badge/translation は表示言語（lang）に応じて英語版（explanationEn等）へ切り替える。
  * DI を持ち込まないよう、core/i18n の翻訳データ（プレーンオブジェクト）を直接参照する
@@ -91,13 +93,35 @@ export function maskedIndices(
   return new Set(hideOrder.slice(0, hiddenCount));
 }
 
+// choices（先頭が常に正解）と choiceExplanations を同じ順列でシャッフルし、対応関係を保ったまま出題順をランダム化する。
+function shuffleChoices(
+  choices: string[] | undefined,
+  choiceExplanations: string[] | undefined,
+): { choices: string[] | undefined; choiceExplanations: string[] | undefined } {
+  if (!choices) return { choices, choiceExplanations };
+  const order = choices.map((_, i) => i);
+  for (let i = order.length - 1; i > 0; i--) {
+    const j = Math.floor(Math.random() * (i + 1));
+    [order[i], order[j]] = [order[j], order[i]];
+  }
+  return {
+    choices: order.map((i) => choices[i]),
+    choiceExplanations: choiceExplanations && order.map((i) => choiceExplanations[i]),
+  };
+}
+
 // 復習カード1件 → Quiz へ正規化。weight は呼び出し側で習熟度を反映して計算済みの値を渡す。
+// r.choices は先頭（[0]）が常に正解のため、choices/choiceExplanations を同じ順列でシャッフルしてから出題する。
 export function buildClozeQuiz(
   r: ReviewItem,
   key: string,
   weight: number,
   lang: Lang = 'ja',
 ): Quiz {
+  const shuffled = shuffleChoices(
+    r.choices,
+    lang === 'en' && r.choiceExplanationsEn ? r.choiceExplanationsEn : r.choiceExplanations,
+  );
   return {
     key,
     prompt: r.sentence,
@@ -106,9 +130,8 @@ export function buildClozeQuiz(
     badge: TRANSLATIONS[lang]['quiz.cloze.badge'],
     weight,
     translation: lang === 'en' && r.translationEn ? r.translationEn : r.translation,
-    choices: r.choices,
-    choiceExplanations:
-      lang === 'en' && r.choiceExplanationsEn ? r.choiceExplanationsEn : r.choiceExplanations,
+    choices: shuffled.choices,
+    choiceExplanations: shuffled.choiceExplanations,
   };
 }
 
