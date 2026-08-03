@@ -3,5 +3,8 @@
  */
 // ── 文単位の改行挿入 ──────────────────────────────
 export function insertSentenceBreaks(text: string): string {
-  return text.trim().split(/(?<=[.!?])\s+(?=[A-Z"'])/).join('\n\n');
+  return text
+    .trim()
+    .split(/(?<=[.!?])\s+(?=[A-Z"'])/)
+    .join('\n\n');
 }

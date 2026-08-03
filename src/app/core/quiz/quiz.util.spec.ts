@@ -51,7 +51,12 @@ describe('buildClozeQuiz', () => {
         hint: '現在形',
         translation: '私は学校へ行く',
         choices: ['go', 'went', 'gone', 'going'],
-        choiceExplanations: ['正解:現在形', '過去形なので誤り', '過去分詞なので誤り', '進行形なので誤り'],
+        choiceExplanations: [
+          '正解:現在形',
+          '過去形なので誤り',
+          '過去分詞なので誤り',
+          '進行形なので誤り',
+        ],
       },
       'key2',
       1,
