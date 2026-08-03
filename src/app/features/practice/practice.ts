@@ -15,6 +15,8 @@
  * 添削結果には使用Geminiモデル（modelLabel()で人間可読ラベルに変換、historyタブと同じi18nキー・見た目）も表示する。
  * テーマ提案カードは日付選択の右側に表示専用（practice-themes.data.ts の静的候補）。入力欄は
  * 自分で書いた英文専用のため、カードはクリックしても挿入されない（クリック不可の表示のみ）。
+ * 添削後の英文（correctedText）は Gemini から1段落のプレーンテキストで返るため、
+ * correctedTextHtml() で insertSentenceBreaks() を通してから toHtml() と同じ変換を行い、文単位で改行表示する。
  */
 import { ChangeDetectionStrategy, Component, ElementRef, ViewChild, inject } from '@angular/core';
 import { FormsModule } from '@angular/forms';
@@ -22,6 +24,7 @@ import { RouterLink } from '@angular/router';
 import { SettingsStoreService } from '@core/settings/settings-store.service';
 import { DomSanitizer, SafeHtml } from '@angular/platform-browser';
 import { renderSafeMarkdown } from '@shared/utils/markdown.util';
+import { insertSentenceBreaks } from '@shared/utils/text-format.util';
 import { Badge } from '@shared/ui/badge/badge';
 import { Spinner } from '@shared/ui/spinner/spinner';
 import { parseBulkImportJson } from './bulk-import.util';
@@ -67,6 +70,11 @@ export class Practice {
   toHtml(markdown: string): SafeHtml {
     // marked → DOMPurify でサニタイズした HTML のみ信頼済みとして渡す。
     return this.sanitizer.bypassSecurityTrustHtml(renderSafeMarkdown(markdown));
+  }
+
+  // 添削後の英文は1段落のプレーンテキストで返るため、文単位で改行してから toHtml と同じ変換を行う。
+  correctedTextHtml(text: string): SafeHtml {
+    return this.toHtml(insertSentenceBreaks(text));
   }
 
   // ── 添削解説・ミス説明・カテゴリの表示言語切替（英語版が無ければ日本語にフォールバック） ──

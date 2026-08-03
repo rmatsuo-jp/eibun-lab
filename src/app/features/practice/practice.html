@@ -174,7 +174,7 @@
 
       @if (state.result()!.correctedText; as correctedText) {
         <h2 class="section-title">{{ i18n.t('practice.correctedText') }}</h2>
-        <div class="result-box markdown-body" [innerHTML]="toHtml(correctedText)"></div>
+        <div class="result-box markdown-body" [innerHTML]="correctedTextHtml(correctedText)"></div>
       }
 
       @if (state.result()!.levelUpText; as levelUpText) {

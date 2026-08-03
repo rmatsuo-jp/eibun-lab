@@ -22,7 +22,54 @@ describe('buildClozeQuiz', () => {
     expect(quiz.prompt).toBe('I ___ to school.');
     expect(quiz.answer).toBe('go');
     expect(quiz.badge).toBe('穴埋め');
-    expect(quiz.choices).toEqual(['go', 'went', 'gone', 'going']);
+    expect(quiz.choices).toEqual(expect.arrayContaining(['go', 'went', 'gone', 'going']));
+    expect(quiz.choices).toHaveLength(4);
+  });
+
+  it('choicesをシャッフルしても常に先頭が正解になるとは限らない', () => {
+    const results = Array.from({ length: 50 }, () =>
+      buildClozeQuiz(
+        {
+          sentence: 'I ___ to school.',
+          answer: 'go',
+          hint: '現在形',
+          translation: '私は学校へ行く',
+          choices: ['go', 'went', 'gone', 'going'],
+        },
+        'key2',
+        1,
+      ),
+    );
+    expect(results.some((q) => q.choices?.[0] !== 'go')).toBe(true);
+  });
+
+  it('choicesとchoiceExplanationsは同じ順列でシャッフルされ対応関係を保つ', () => {
+    const quiz = buildClozeQuiz(
+      {
+        sentence: 'I ___ to school.',
+        answer: 'go',
+        hint: '現在形',
+        translation: '私は学校へ行く',
+        choices: ['go', 'went', 'gone', 'going'],
+        choiceExplanations: [
+          '正解:現在形',
+          '過去形なので誤り',
+          '過去分詞なので誤り',
+          '進行形なので誤り',
+        ],
+      },
+      'key2',
+      1,
+    );
+    const explanationByChoice: Record<string, string> = {
+      go: '正解:現在形',
+      went: '過去形なので誤り',
+      gone: '過去分詞なので誤り',
+      going: '進行形なので誤り',
+    };
+    quiz.choices?.forEach((c, i) => {
+      expect(quiz.choiceExplanations?.[i]).toBe(explanationByChoice[c]);
+    });
   });
 });
 
