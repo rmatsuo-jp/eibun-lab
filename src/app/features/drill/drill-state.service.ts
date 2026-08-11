@@ -61,6 +61,16 @@
  * core/achievements/achievement-engine.util.ts の evaluateNewlyUnlocked() で新規解除を判定し、
  * newlyUnlocked signal に積んで drill.html のトースト表示に渡す。トーストは画面下部に固定表示し、
  * 4秒後に自動で消える（手動で消す場合は dismissNewlyUnlocked()）。
+ * 連続正解のライブ表示: sessionCorrectStreak を correctStreak/streakTier として公開し、出題中の
+ * 進捗行に「連続正解 n」を表示する（2問目から。段階は 3/5/10/20）。この値の更新は grade()/
+ * checkTyping() の側で行う（recordAnswerForGamification は sampleMode でガードされて呼ばれないため、
+ * そこで更新するとサンプル問題中だけ表示が動かなくなる）。表示のみで永続化はしない。
+ * リセットは start() に加えて selectClozeDate()/selectLevelUpDate()（日程を変えたら仕切り直し）。
+ * お祝い演出: 文の習熟（checkTyping の justMastered 分岐）と穴埋めクイズのパーフェクト完了時に
+ * celebrationOpen を立て、drill.html が shared/ui/celebration（モーダル＋紙吹雪）を表示する。
+ * celebrationKind で文言を出し分ける。パーフェクトのお祝いはサンプル問題でも出す（統計は付かない）。
+ * 同時に解除された実績はトーストではなくお祝いの中にまとめて出し、二重表示を避ける
+ * （dismissCelebration がトースト側も消す）。画面遷移では必ず閉じる。
  * パーフェクト達成数（perfectCountForSession/perfectCountForClozeSession）: 「クリア済み」バッジとは別に、
  * 満点（全問正解）で完了するたびに加算する累積カウンタを DrillProgressService.incrementPerfectCount で
  * 記録し、日付選択画面に表示する（クリア後も繰り返し練習する動機付け）。cloze は next() が最終問題を
@@ -80,6 +90,16 @@ import { evaluateNewlyUnlocked } from '@core/achievements/achievement-engine.uti
 import { AchievementToast, achievementTitleKey } from '@core/achievements/achievement-toast';
 import { GamificationSyncService } from '@core/achievements/gamification-sync.service';
 import { FEATURE_ID_CLOZE, FEATURE_ID_LEVELUP } from '@core/achievements/gamification-feature-id';
+import {
+  XP_MASTERED,
+  XP_MISSION,
+  XP_PERFECT_SESSION,
+  labLevelFromXp,
+  levelProgress,
+  xpForAnswer,
+} from '@core/achievements/xp.util';
+import { DailyMissionMetric, findMission } from '@core/achievements/daily-mission';
+import { toDayKey } from '@shared/utils/date.util';
 import {
   buildLevelUpQuiz,
   classifyMistake,
@@ -104,14 +124,64 @@ export class DrillState {
   private clozeState = inject(DrillClozeState);
   private levelUpState = inject(DrillLevelUpState);
 
-  // 1プレイ内の連続正解数（自己ベスト判定用）。start() でリセットする。
+  // デイリーミッション（perfectSessions）用の重複排除。累積統計側の completedSessionKeys は
+  // 「これまでに一度でも完了したか」を見るため、全日程クリア済みのユーザーでは
+  // recordSessionComplete が常に false を返し、perfect-1 が永久に達成できなくなる。
+  // ミッションはその日ごとの達成なので、当日ぶんの「モード:日程」だけをメモリ上で重複排除する
+  // （永続形状は変えない。アプリ再起動でリセットされるが、稼ぐには日程を丸ごと解き直す必要がある）。
+  private missionPerfectKeys = new Set<string>();
+  private missionPerfectDay = '';
+
+  // 1プレイ内の連続正解数（自己ベスト判定用 ＋ 出題中のライブ表示用）。
+  // start() と日付選択（selectClozeDate/selectLevelUpDate）でリセットする。
+  // 更新は grade()/checkTyping() の側で行う（recordAnswerForGamification は sampleMode で
+  // 呼ばれないため、そこに置くとサンプル問題中だけ連続正解が動かなくなる）。
   private sessionCorrectStreak = signal(0);
+  // 出題中に「連続正解 n」を表示するための公開値。永続化はしないためサンプル問題中も動く。
+  readonly correctStreak = this.sessionCorrectStreak.asReadonly();
+  // 連続正解の段階（表示の強調度）。drill.html が .combo--<tier> のクラス名に使う。
+  readonly streakTier = computed<'' | 'hot' | 'fire' | 'blaze' | 'nova'>(() => {
+    const n = this.sessionCorrectStreak();
+    if (n >= 20) return 'nova';
+    if (n >= 10) return 'blaze';
+    if (n >= 5) return 'fire';
+    if (n >= 3) return 'hot';
+    return '';
+  });
   // 直近の採点/セッション完了で新規解除された実績ID一覧。UI（drill.html）のトースト表示に使う。
   // 積み上げと自動消滅（4秒）は AchievementToast が持つ（practice と共通の挙動）。
   private toast = new AchievementToast();
   newlyUnlocked = this.toast.items;
   // 結果サマリー表示用の累積統計（drill.html が現在の連続記録・継続日数を表示するのに使う）。
   gamificationStats = this.gamification.stats;
+
+  // ── ラボレベル（累積経験値ベース） ───────────────────────────────
+  // モード選択画面のレベルバー表示用。level（現在のラボレベル）と
+  // inLevel/needed（そのレベル内の進捗）を返す。
+  labLevel = computed(() => levelProgress(this.gamification.stats().totalXp ?? 0));
+  // 直近の経験値付与でラボレベルが上がった際の新レベル。お祝い表示に使い、閉じたら null に戻す。
+  leveledUpTo = signal<number | null>(null);
+
+  // ── デイリーミッション ───────────────────────────────────────
+  // モード選択画面に出す当日ぶんのミッション一覧（定義＋現在値＋達成済みフラグ）。
+  // 日付境界の判定は GamificationStatsService.dailyMissions 側が読み出しのたびに行う。
+  dailyMissions = computed(() => {
+    const state = this.gamification.dailyMissions();
+    return state.missionIds.flatMap((id) => {
+      const def = findMission(id);
+      if (!def) return [];
+      const current = state.progress[id] ?? 0;
+      return [
+        {
+          id,
+          titleKey: def.titleKey,
+          target: def.target,
+          current: Math.min(current, def.target),
+          completed: state.completed[id] === true,
+        },
+      ];
+    });
+  });
 
   // ── 出題元（モードごとの件数をスタート画面で表示） ───────────────
   // データ本体（対象セッション一覧・達成度）は DrillClozeState/DrillLevelUpState が保持する。
@@ -164,6 +234,14 @@ export class DrillState {
   // 進捗永続化を行わない（実データを汚さないため）。
   sampleMode = signal(false);
 
+  // お祝いモーダル（shared/ui/celebration）を表示中かどうか。
+  // 文の習熟（checkTyping の justMastered 分岐）と、穴埋めクイズをパーフェクトで終えた瞬間に開く。
+  // 表示専用の一時状態のため永続化しない。画面遷移（retry/restart/backToSentenceList/
+  // backToDateSelect）では必ず閉じる。
+  celebrationOpen = signal(false);
+  // お祝いの種類。テンプレートが表示する文言（習熟／パーフェクト）を切り替えるのに使う。
+  celebrationKind = signal<'mastered' | 'perfect' | 'labLevel'>('mastered');
+
   current = computed(() => this.quiz()[this.index()] ?? null);
   currentLevelUp = computed(() => this.levelUpQuiz()[this.index()] ?? null);
   total = computed(() =>
@@ -207,6 +285,8 @@ export class DrillState {
     this.currentSessionId.set(null);
     this.clozeDateChosen.set(false);
     this.sessionCorrectStreak.set(0);
+    this.celebrationOpen.set(false);
+    this.leveledUpTo.set(null);
     this.dismissNewlyUnlocked();
 
     // 新規ユーザー（セッション0件）は日付選択をスキップし、静的サンプル問題を直接出題する。
@@ -243,6 +323,7 @@ export class DrillState {
     this.choiceMode.set(true);
     this.hintShown.set(false);
     this.clozeDateChosen.set(true);
+    this.sessionCorrectStreak.set(0);
   }
 
   // 選択中セッションの進捗サマリー（達成数/全体数）。穴埋めクイズの日付選択画面のバッジ表示に使う。
@@ -263,6 +344,8 @@ export class DrillState {
     this.levelUpQuiz.set([]);
     this.clozeDateChosen.set(false);
     this.currentSessionId.set(null);
+    this.celebrationOpen.set(false);
+    this.leveledUpTo.set(null);
   }
 
   // ── 日付選択: 選んだセッションの levelUpItems を Gemini が返した元の順番のまま並べ、文一覧選択画面へ進む ─
@@ -276,6 +359,7 @@ export class DrillState {
 
     this.levelUpDateChosen.set(true);
     this.levelUpSentenceChosen.set(false);
+    this.sessionCorrectStreak.set(0);
   }
 
   // ── 文選択: 文一覧から選ばれた1文の出題画面へ進む。保存済み進捗があれば maskLevel を復元する ─
@@ -297,6 +381,8 @@ export class DrillState {
   // 文一覧選択画面に戻る（levelUpQuiz・currentSessionId は保持したまま）
   backToSentenceList() {
     this.levelUpSentenceChosen.set(false);
+    this.celebrationOpen.set(false);
+    this.leveledUpTo.set(null);
   }
 
   // 選択中セッションの進捗サマリー（完了数/全体数）。日付選択画面のバッジ表示に使う。
@@ -340,6 +426,7 @@ export class DrillState {
     this.currentCorrect.set(correct);
     if (correct) this.score.update((s) => s + 1);
     this.revealed.set(true);
+    this.sessionCorrectStreak.update((n) => (correct ? n + 1 : 0));
     if (!this.sampleMode()) {
       this.drillProgress.recordDrillResult(cur.key, correct);
       this.recordAnswerForGamification(correct);
@@ -348,16 +435,63 @@ export class DrillState {
 
   // 採点結果を統計に反映し、新規解除された実績があれば newlyUnlocked に積む。
   // サンプルモード中は呼ばない（sampleMode() のガードは呼び出し元で行う）。
+  // sessionCorrectStreak の更新は呼び出し元（grade/checkTyping）が済ませている前提
+  // （ライブ表示はサンプル問題中も動かす必要があり、このメソッドはその場合呼ばれないため）。
   private recordAnswerForGamification(correct: boolean): void {
-    this.sessionCorrectStreak.update((n) => (correct ? n + 1 : 0));
     this.gamification.recordAnswer(this.mode(), correct, this.sessionCorrectStreak());
+    this.awardXp(xpForAnswer(correct, this.sessionCorrectStreak()));
+    this.recordMission('answers', 1);
+    if (correct) this.recordMission('correctAnswers', 1);
+    this.recordMission('bestStreak', this.sessionCorrectStreak());
     this.evaluateAchievements();
   }
 
   // セッション（1回の出題セット/日程）完了を統計に反映し、新規解除された実績があれば積む。
+  // 累積統計の重複排除（recordSessionComplete の completedSessionKeys）とミッションの重複排除は
+  // 別基準にする。累積側は「初回のみ」だが、ミッションは当日ぶんの達成なので
+  // missionPerfectKeys（当日・モード・日程単位）で判定する。
   private recordSessionCompleteForGamification(sessionKey: string, perfect: boolean): void {
     this.gamification.recordSessionComplete(this.mode(), sessionKey, perfect);
+    if (perfect && this.markMissionPerfect(sessionKey)) this.recordMission('perfectSessions', 1);
     this.evaluateAchievements();
+  }
+
+  // 当日ぶんのパーフェクト完了として未計上なら登録して true を返す（計上済みなら false）。
+  private markMissionPerfect(sessionKey: string): boolean {
+    const today = toDayKey(new Date().toISOString());
+    if (today !== this.missionPerfectDay) {
+      this.missionPerfectDay = today;
+      this.missionPerfectKeys.clear();
+    }
+    const key = `${this.mode()}:${sessionKey}`;
+    if (this.missionPerfectKeys.has(key)) return false;
+    this.missionPerfectKeys.add(key);
+    return true;
+  }
+
+  // 経験値を加算し、ラボレベルが上がったら leveledUpTo に新レベルを立てる（お祝い表示用）。
+  // サンプル出題中は呼ばない（統計を汚さないため。ガードは呼び出し元で行う）。
+  // ラボレベルが上がった場合、まだお祝いが出ていなければラボレベル用のお祝いを開く。
+  // 習熟・パーフェクトと同時に上がった場合は、それらが後から celebrationKind を上書きし、
+  // ラボレベルは leveledUpTo として同じお祝いの中に追記表示される（お祝いは常に1つだけ）。
+  private awardXp(amount: number): void {
+    const before = labLevelFromXp(this.gamification.stats().totalXp ?? 0);
+    this.gamification.addXp(amount);
+    const after = labLevelFromXp(this.gamification.stats().totalXp ?? 0);
+    if (after <= before) return;
+    this.leveledUpTo.set(after);
+    if (!this.celebrationOpen()) {
+      this.celebrationKind.set('labLevel');
+      this.celebrationOpen.set(true);
+    }
+  }
+
+  // デイリーミッションの指標を加算し、達成したぶんの経験値を付与する。
+  // 経験値付与を awardXp 経由にすることで、ミッション達成でラボレベルが上がった場合も
+  // お祝いに載る。サンプル出題中は呼ばない（ガードは呼び出し元）。
+  private recordMission(metric: DailyMissionMetric, amount: number): void {
+    const completed = this.gamification.recordMissionMetric(metric, amount);
+    if (completed.length > 0) this.awardXp(XP_MISSION * completed.length);
   }
 
   private evaluateAchievements(): void {
@@ -375,6 +509,14 @@ export class DrillState {
   // 実績解除トーストを閉じる（自動消滅タイマーも解除する）。
   dismissNewlyUnlocked(): void {
     this.toast.dismiss();
+  }
+
+  // お祝いモーダルを閉じる。お祝いの中に実績名をまとめて出しているため、
+  // トースト側も同時に消して二重表示にならないようにする。
+  dismissCelebration(): void {
+    this.celebrationOpen.set(false);
+    this.leveledUpTo.set(null);
+    this.dismissNewlyUnlocked();
   }
 
   // 実績IDから i18n タイトルキーを組み立てる（実装は core/achievements/achievement-toast）。
@@ -396,6 +538,7 @@ export class DrillState {
 
     const sessionId = this.currentSessionId();
 
+    this.sessionCorrectStreak.update((n) => (correct ? n + 1 : 0));
     if (!this.sampleMode()) this.recordAnswerForGamification(correct);
 
     if (correct) {
@@ -403,6 +546,8 @@ export class DrillState {
       const level = this.maskLevel();
       if (level >= cur.maxLevel) {
         this.justMastered.set(true);
+        this.celebrationKind.set('mastered');
+        this.celebrationOpen.set(true);
         // masteredCount（結果表示の自己ベスト）は既に習熟済みの文の再正解では加算しないが、
         // セッション完了判定（checkLevelUpSessionComplete）は再挑戦のたびに必ず行う。
         // パーフェクト達成数はそちら側で「訪問」単位に重複防止するため、ここではガードしない。
@@ -410,7 +555,15 @@ export class DrillState {
           ? (this.drillProgress.getLevelUpProgress(sessionId)[cur.key]?.completed ?? false)
           : false;
         if (sessionId) this.drillProgress.setLevelUpItemProgress(sessionId, cur.key, level, true);
-        if (!alreadyMastered) this.masteredCount.update((c) => c + 1);
+        if (!alreadyMastered) {
+          this.masteredCount.update((c) => c + 1);
+          // 習熟の経験値・ミッション加算は初めて習熟したときだけ。
+          // 既習の文を打ち直すだけでミッションを稼げないよう alreadyMastered でガードする。
+          if (!this.sampleMode()) {
+            this.awardXp(XP_MASTERED);
+            this.recordMission('mastered', 1);
+          }
+        }
         if (sessionId && !this.sampleMode()) this.checkLevelUpSessionComplete(sessionId);
       } else {
         this.justMastered.set(false);
@@ -469,6 +622,8 @@ export class DrillState {
     this.mistakeKind.set(null);
     this.hintShown.set(false);
     this.justMastered.set(false);
+    this.celebrationOpen.set(false);
+    this.leveledUpTo.set(null);
   }
 
   // cloze 専用: 次の問題（配列の次要素）に進む。
@@ -476,10 +631,18 @@ export class DrillState {
     const nextIndex = this.index() + 1;
     if (nextIndex >= this.total()) {
       this.finished.set(true);
+      const perfect = this.total() > 0 && this.score() === this.total();
       if (!this.sampleMode() && this.currentSessionId()) {
-        const perfect = this.score() === this.total();
         this.recordSessionCompleteForGamification(`cloze-${this.currentSessionId()}`, perfect);
-        if (perfect) this.drillProgress.incrementPerfectCount(`cloze-${this.currentSessionId()}`);
+        if (perfect) {
+          this.drillProgress.incrementPerfectCount(`cloze-${this.currentSessionId()}`);
+          this.awardXp(XP_PERFECT_SESSION);
+        }
+      }
+      // パーフェクトのお祝いはサンプル問題でも出す（統計は付かないが達成感は返す）。
+      if (perfect) {
+        this.celebrationKind.set('perfect');
+        this.celebrationOpen.set(true);
       }
       return;
     }
@@ -506,5 +669,7 @@ export class DrillState {
     this.clozeDateChosen.set(false);
     this.hintShown.set(false);
     this.sampleMode.set(false);
+    this.celebrationOpen.set(false);
+    this.leveledUpTo.set(null);
   }
 }

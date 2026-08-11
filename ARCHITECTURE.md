@@ -305,76 +305,18 @@ flowchart TD
 
 ## 6. LocalStorage / Firestore データ構造
 
-```mermaid
-erDiagram
-    APP_SETTINGS {
-        string apiKey
-        string_array modelPriority "フォールバック順のモデル名配列"
-        string theme
-        string consentAcceptedAt "任意。初回同意日時"
-    }
+LocalStorage・Firestore に保存される全データ構造（各型のフィールド定義・LocalStorageキー一覧・
+Firestoreのコレクション構成とセキュリティルール・同期マージ規則）の正典は
+[docs/data-design.md](docs/data-design.md) を参照（型定義そのものの正典は
+[session.model.ts](src/app/core/models/session.model.ts)）。
 
-    CORRECTION_SESSION {
-        string id "一意ID（日付非依存）"
-        string date "ISO 8601（選択日付）"
-        string original "ユーザー入力英文"
-        string corrected "添削解説（タグ除去済み）"
-        string correctedText "任意。添削後の全文"
-        string levelUpText "任意。レベルアップ後の全文"
-        boolean deleted "任意。論理削除フラグ（tombstone）"
-    }
-
-    MISTAKE {
-        string category "文法/語彙/スペリング/コロケーション/語法/構文/語順"
-        string original "元の誤った表現"
-        string corrected "正しい表現"
-        string explanation "日本語解説"
-    }
-
-    WRITING_EVALUATION {
-        number grammarScore "0〜10（0.5刻み）"
-        number vocabularyScore
-        number contentScore
-        number overallScore "システム側で算出"
-        number errorDensity "100語あたりのエラー数"
-        string grammarCefr "A1〜C2"
-        string vocabularyCefr
-        string contentCefr
-        string overallCefr
-    }
-
-    REVIEW_ITEM {
-        string sentence "___で空所を作った英文"
-        string answer
-        string hint
-        string translation
-        string_array choices "4択（正解含む）"
-    }
-
-    LEVEL_UP_ITEM {
-        string original
-        string leveledUp "CEFR一段階上の書き直し"
-        string_array keyPhrases
-        string translation
-    }
-
-    CORRECTION_SESSION ||--o{ MISTAKE : "mistakes[]"
-    CORRECTION_SESSION |o--o| WRITING_EVALUATION : "evaluation?（任意）"
-    CORRECTION_SESSION |o--o{ REVIEW_ITEM : "reviewItems?（任意）"
-    CORRECTION_SESSION |o--o{ LEVEL_UP_ITEM : "levelUpItems?（任意）"
-```
-
-Firestore側は `apps/eibun_lab/users/{uid}/sessions/{sessionId}` のパスに `CorrectionSession` を
-そのまま保存する（任意フィールドが `undefined` の場合はFirestoreの制約によりフィールドごと除外）。
-除外対象の一覧（`firestore-sync.service.ts` の `OPTIONAL_FIELDS_MAP`）は `CorrectionSession` から
-型レベルで導出した `Record<OptionalKeys<CorrectionSession>, true>` で定義しており、
-`CorrectionSession` に optional フィールドを追加/削除してこちらの更新を忘れるとコンパイルエラーになる
-（型による機械的な同期保証。CLAUDE.md 参照）。
-
-そのほか LocalStorage には、ドリル進捗（`DrillProgressService`）・実績/ゲーミフィケーション統計
-（`GamificationStatsService`、キー `eibun-lab-gamification-stats`）・既読リリースノート
-（`ReleaseNotesService`、キー `release_notes_seen`）・Gemini 送受信ログ
-（`DevLogService`、開発ビルドのみ）が独立キーで保存される。
+要点のみ再掲すると、Firestore側は `apps/eibun_lab/users/{uid}/sessions/{sessionId}` のパスに
+`CorrectionSession` をそのまま保存し、任意フィールドが `undefined` の場合はFirestoreの制約により
+フィールドごと除外する。除外対象の一覧（`firestore-sync.service.ts` の `OPTIONAL_FIELDS_MAP`）は
+`CorrectionSession` から型レベルで導出した `Record<OptionalKeys<CorrectionSession>, true>` で定義しており、
+optional フィールドを追加/削除してこちらの更新を忘れるとコンパイルエラーになる
+（型による機械的な同期保証。CLAUDE.md 参照）。セッション以外にも、ドリル進捗・実績統計・
+既読リリースノート・Gemini送受信ログ（開発ビルドのみ）が独立キーで LocalStorage に保存される。
 
 ---
 

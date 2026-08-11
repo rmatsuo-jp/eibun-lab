@@ -121,6 +121,9 @@
           <span class="checkbox-icon">{{ state.isSelected(session.id) ? '☑' : '☐' }}</span>
         }
         <span class="session-date">{{ state.formatDate(session.date) }}</span>
+        @if (state.sameDayLabel(session); as ordinal) {
+          <span class="session-ordinal">{{ ordinal }}</span>
+        }
         @if (session.evaluation; as ev) {
           <app-badge>{{ ev.overallScore }}</app-badge>
           <span class="score-cefr">{{ ev.overallCefr }}</span>

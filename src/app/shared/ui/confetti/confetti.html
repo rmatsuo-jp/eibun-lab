@@ -1,0 +1,13 @@
+<!-- @file 紙吹雪の紙片を並べるだけのテンプレート。装飾専用のため aria-hidden で支援技術からは隠す。 -->
+<div class="confetti" aria-hidden="true">
+  @for (p of visiblePieces; track $index) {
+    <i
+      class="confetti-piece"
+      [style.--x.%]="p.x"
+      [style.--delay.s]="p.delay"
+      [style.--duration.s]="p.duration"
+      [style.--hue]="p.hue"
+      [style.--spin.deg]="p.spin"
+    ></i>
+  }
+</div>

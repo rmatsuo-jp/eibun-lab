@@ -78,6 +78,24 @@
   font-weight: 700;
 }
 
+// ── ラボレベル（モード選択画面の先頭） ──────────────────────────
+.lab-level {
+  margin-bottom: 1rem;
+}
+
+.lab-level-header {
+  display: flex;
+  align-items: baseline;
+  justify-content: space-between;
+  gap: 0.75rem;
+  margin-bottom: 0.375rem;
+}
+
+.lab-level-xp {
+  font-size: 0.75rem;
+  color: var(--color-text-muted);
+}
+
 .empty-note {
   font-size: 0.8125rem;
   color: var(--color-text-muted);
@@ -199,16 +217,71 @@
   margin: 0.5rem 0;
 }
 
+// パーフェクト時だけスコアを success 色にし、下に目印の行を添える
+// （お祝いモーダルを閉じた後も結果サマリー上に達成が残るようにするため）。
+.result-score-perfect {
+  color: var(--color-success);
+}
+
+.result-perfect {
+  font-weight: 800;
+  color: var(--color-success);
+  margin-bottom: 0.5rem;
+}
+
 .result-message {
   color: var(--color-text-muted);
 }
 
 // 笏笏 蜃ｺ鬘御ｸｭ 笏笏笏笏笏笏笏笏笏笏笏笏笏笏笏笏笏笏笏笏笏笏笏笏笏笏笏笏笏笏笏笏笏笏笏笏笏笏笏笏笏笏笏笏笏笏笏笏笏笏笏笏笏笏笏笏
+// 出題中の進捗行。「n / 全体数」と連続正解の表示を左右に並べる。
+// 下余白は従来 .progress が持っていた 0.75rem をこの行に移し、.progress 自身は 0 にする。
+.progress-row {
+  display: flex;
+  align-items: baseline;
+  justify-content: space-between;
+  gap: 0.75rem;
+  margin-bottom: 0.75rem;
+}
+
 .progress {
   font-size: 0.875rem;
   font-weight: 600;
   color: var(--color-text-muted);
-  margin-bottom: 0.75rem;
+}
+
+// ── 連続正解のライブ表示 ──────────────────────────────
+// 2問連続正解から出現し、3/5/10/20 で色と字の大きさを段階的に強める（.combo--hot/fire/blaze/nova）。
+// 数字が変わるたびに combo-pop でひと跳ねさせる（連続正解が伸びた手応えを出すため）。
+// アニメーションの抑制は src/styles.scss のグローバルな prefers-reduced-motion 指定に任せる。
+.combo {
+  font-weight: 800;
+  white-space: nowrap;
+  font-size: var(--combo-size, 0.8125rem);
+  color: var(--combo-color, var(--color-text-muted));
+  animation: combo-pop 0.28s ease-out;
+
+  &.combo--hot {
+    --combo-color: var(--color-primary);
+  }
+  &.combo--fire {
+    --combo-color: var(--color-success);
+    --combo-size: 0.9375rem;
+  }
+  &.combo--blaze {
+    --combo-color: var(--color-warning);
+    --combo-size: 1.0625rem;
+  }
+  &.combo--nova {
+    --combo-color: var(--color-error);
+    --combo-size: 1.1875rem;
+  }
+}
+
+@keyframes combo-pop {
+  45% {
+    transform: scale(1.25);
+  }
 }
 
 // 笏笏 遨ｴ縺ゅ″繧ｿ繧､繝斐Φ繧ｰ縺ｮ繝槭せ繧ｯ谿ｵ髫手｡ｨ遉ｺ 笏笏笏笏笏笏笏笏笏笏笏笏笏笏笏笏笏笏笏笏笏笏
@@ -316,9 +389,22 @@ textarea.answer-input {
 
   &.correct {
     color: var(--color-success);
+    // 正解の瞬間だけ軽く跳ねさせる（不正解側は動かさず、静かに受け止められるようにする）。
+    animation: answer-pop 0.32s ease-out;
   }
   &.wrong {
     color: var(--color-error);
+  }
+}
+
+@keyframes answer-pop {
+  0% {
+    transform: scale(0.9);
+    opacity: 0;
+  }
+  60% {
+    transform: scale(1.06);
+    opacity: 1;
   }
 }
 

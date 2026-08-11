@@ -283,6 +283,22 @@ body {
   border-radius: 4px;
 }
 
+// ── アニメーションの抑制（全ページ共通） ─────────────────────────
+// OSの「視差効果を減らす／アニメーションを減らす」設定を尊重する。ここ1箇所で全ページの
+// アニメーション・トランジションを無効化するため、個々のコンポーネント側での対応は不要
+// （ゲーミフィケーションの演出＝連続正解のポップ・紙吹雪・お祝いも自動的にこの指定に従う）。
+// 完全に0にするとアニメーション完了イベントに依存する処理が発火しなくなるため、極小値にする。
+@media (prefers-reduced-motion: reduce) {
+  *,
+  *::before,
+  *::after {
+    animation-duration: 0.01ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0.01ms !important;
+    scroll-behavior: auto !important;
+  }
+}
+
 // ── 強調ボタン（次に押すボタン）＝Enterで進められることを明示 ─────
 // ドリル系（drill / waiting-quiz）共通。主操作（答え合わせ・次へ・結果を見る）用。
 // 行内で常に1つ、右端に置く。

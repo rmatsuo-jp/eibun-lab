@@ -1,18 +1,34 @@
 # 英文ラボ（Eibun-Lab）
 
-Gemini AI を使った英語添削 PWA アプリです。Angular で構築されており、英文を入力すると AI が文法・語彙・表現のミスを指摘・修正します。機能の詳細は [docs/overview.md](docs/overview.md) を参照してください。
+Gemini AI を使った英語添削 PWA アプリです。Angular で構築されており、英文を入力すると AI が文法・語彙・表現のミスを指摘・修正します。
+
+Gemini による添削・定量評価・レベルアップ提案・穴埋めクイズ生成を核に、練習（英文添削）・ドリル（反復練習）・
+履歴（一覧管理）・ミス傾向（統計）・実績（バッジ・達成条件）・設定の6画面で構成されます。Google アカウントでログインすると
+添削履歴が Cloud Firestore 経由で端末間に同期され、PWA としてのオフラインキャッシュ・ホーム画面追加にも対応します。
+各画面の操作方法は [docs/manual.md](docs/manual.md)、内部構造は [ARCHITECTURE.md](ARCHITECTURE.md) を参照してください。
 
 ## 技術スタック
 
-Angular 22（Standalone, PWA）+ Google Gemini API + LocalStorage/Firestore 同期。
-詳細な技術スタック一覧は [docs/overview.md](docs/overview.md) を参照してください。
+| 分類                  | 技術                                                     |
+| --------------------- | -------------------------------------------------------- |
+| フレームワーク        | Angular 22（Standalone コンポーネント、NgModule 不使用） |
+| 言語                  | TypeScript（strict モード）                              |
+| スタイル              | SCSS（コンポーネントスコープ）                           |
+| AI                    | Google Generative AI SDK (`@google/generative-ai`)       |
+| 認証・クラウド同期    | Firebase Authentication（Google SSO）+ Cloud Firestore   |
+| Markdown レンダリング | marked v18                                               |
+| 永続化                | ブラウザ LocalStorage（ログイン時は Firestore とも同期） |
+| PWA                   | @angular/service-worker + ngsw-config.json               |
+| テスト                | Vitest                                                   |
 
 ## セットアップ
 
 ### 必要なもの
 
-- Node.js
+- Node.js 24.x（CI と同じバージョン）／npm 11.x（`packageManager` フィールドで指定、Node 24 に同梱）
 - Gemini API キー（[Google AI Studio](https://aistudio.google.com/) で取得）
+
+Node.js のバージョン管理には [nvm](https://github.com/nvm-sh/nvm) や [Volta](https://volta.sh/) の利用を推奨します。
 
 ### インストール
 
@@ -38,7 +54,7 @@ npm start
 添削プロンプトは `core/gemini/prompt.util.ts` で一元管理されており、ユーザーが編集することはできません
 （設定ページの「プロンプトプレビュー」で実際に送信される内容を確認できます）。
 
-詳細なセットアップ手順（Node.js バージョン、テスト・lintの実行方法など）は [docs/setup.md](docs/setup.md) を参照してください。
+API キーの取得・登録の詳細な操作は [docs/manual.md](docs/manual.md) を参照してください。
 
 ## ビルド
 
@@ -88,6 +104,12 @@ src/app/
 ├── shared/       # 共通UIコンポーネント・ユーティリティ
 └── features/     # practice / history / mistakes / drill / achievements / settings / legal / dev
 ```
+
+## よくあるつまずきポイント
+
+- **`npm install` でエンジンエラーが出る**: Node.js のバージョンが 24 系になっているか `node -v` で確認してください。
+- **添削してもエラーが返る**: 設定ページに Gemini API キーが正しく登録されているか確認してください（キーはサーバーに送信されず、ブラウザの LocalStorage にのみ保存されます）。
+- **コミット時の運用**: バージョン番号は semantic-release が自動採番するため、`package.json` の `version` は手動編集しないでください（詳細は [CLAUDE.md](CLAUDE.md) の「バージョン運用」を参照）。
 
 ## ドキュメント
 

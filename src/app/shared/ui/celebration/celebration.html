@@ -1,0 +1,26 @@
+<!-- @file お祝いモーダルのテンプレート。紙吹雪をモーダルの外側に置き、
+     オーバーレイの上に降らせる（.confetti は position:fixed かつ pointer-events:none）。 -->
+<app-confetti></app-confetti>
+<app-modal (closed)="closed.emit()">
+  <div class="celebration">
+    <p class="celebration-title">{{ title() }}</p>
+
+    @if (message()) {
+      <p class="celebration-message">{{ message() }}</p>
+    }
+
+    @if (xpText()) {
+      <p class="celebration-xp">{{ xpText() }}</p>
+    }
+
+    @if (achievements().length > 0) {
+      <ul class="celebration-achievements">
+        @for (name of achievements(); track name) {
+          <li>{{ name }}</li>
+        }
+      </ul>
+    }
+
+    <button class="btn-primary" (click)="closed.emit()">{{ closeLabel() }}</button>
+  </div>
+</app-modal>

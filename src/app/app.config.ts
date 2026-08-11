@@ -14,7 +14,7 @@ import { provideHttpClient } from '@angular/common/http';
 
 import { routes } from './app.routes';
 import { provideServiceWorker, SwUpdate } from '@angular/service-worker';
-import { environment } from '../environments/environment';
+import { environment } from '../environments/environment.dev';
 import { GEMINI_LOGGER } from '@core/logging/gemini-log.token';
 import { SettingsStoreService } from '@core/settings/settings-store.service';
 import { DevLogService } from '@features/dev/dev-log.service';

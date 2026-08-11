@@ -1,4 +1,22 @@
 // ── 実績一覧ページ ─────────────────────────────────────────────
+// ── ラボレベル（ページ先頭） ────────────────────────────────────
+.lab-level {
+  margin-bottom: 1rem;
+}
+
+.lab-level-header {
+  display: flex;
+  align-items: baseline;
+  justify-content: space-between;
+  gap: 0.75rem;
+  margin-bottom: 0.375rem;
+}
+
+.lab-level-xp {
+  font-size: 0.75rem;
+  color: var(--color-text-muted);
+}
+
 .achievements-summary {
   color: var(--color-text-muted);
 }

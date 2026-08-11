@@ -158,6 +158,21 @@
   border-radius: var(--radius-pill);
 }
 
+// 同日に複数セッションがある日だけ、セル右上に件数を重ねる（評価バッジは隠さない）。
+.cell-count {
+  position: absolute;
+  top: 0.1rem;
+  right: 0.15rem;
+  font-size: 0.55rem;
+  font-weight: 700;
+  line-height: 1;
+  color: var(--color-text-muted);
+}
+
+.calendar-cell.selected .cell-count {
+  color: var(--color-on-primary);
+}
+
 .calendar-cell.selected {
   .cell-score {
     color: var(--color-on-primary);

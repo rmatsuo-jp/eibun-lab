@@ -3,6 +3,7 @@
  * SessionRepositoryService への参照はこのサービス内に閉じ、history.ts はテンプレートとの橋渡し・
  * DOM操作（ファイル選択トリガー、confirm/alertダイアログ、Blobダウンロード）のみに専念する
  * （drill/mistakesの{feature}-state.serviceと同じ設計）。
+ * 同日に複数の添削がある場合の「N回目」ラベルもここで算出する（sameDayLabel）。
  * HTMLキャッシュは言語＋項目ごとに保持し、言語切替時に別セッション・別項目の内容が誤って再利用されないようにする。
  */
 import { Injectable, computed, inject, signal } from '@angular/core';
@@ -61,6 +62,32 @@ export class HistoryState {
       return this.sortOrder() === 'asc' ? diff : -diff;
     });
   });
+
+  // ── 同日内の順序（N回目） ────────────────────────────────────────
+  // 序数はフィルタ前の全セッションを母集団に算出する（検索・日付フィルタで欠けた分だけ
+  // 序数がずれるのを防ぐため）。同日内で date 昇順の1始まり序数と、その日の総件数を id 引きする。
+  private sameDayOrder = computed<Map<string, { index: number; total: number }>>(() => {
+    const byDay = new Map<string, CorrectionSession[]>();
+    for (const s of this.sessions()) {
+      const key = toDayKey(s.date);
+      const list = byDay.get(key);
+      if (list) list.push(s);
+      else byDay.set(key, [s]);
+    }
+    const map = new Map<string, { index: number; total: number }>();
+    for (const list of byDay.values()) {
+      const sorted = [...list].sort((a, b) => a.date.localeCompare(b.date));
+      sorted.forEach((s, i) => map.set(s.id, { index: i + 1, total: sorted.length }));
+    }
+    return map;
+  });
+
+  // 同日に複数の添削がある場合のみ「N回目」ラベルを返す（1件だけの日は null）。
+  sameDayLabel(session: CorrectionSession): string | null {
+    const order = this.sameDayOrder().get(session.id);
+    if (!order || order.total < 2) return null;
+    return this.i18n.t('history.sessionOrdinal', { n: order.index });
+  }
 
   // セッションID＋表示言語単位でキャッシュし、[innerHTML] へ毎回同じ参照を返す。
   // 参照が変わるとテンプレート再評価のたびに innerHTML が再設定され、

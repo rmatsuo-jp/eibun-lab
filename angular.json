@@ -48,7 +48,7 @@
               "baseHref": "/eibun-lab/",
               "fileReplacements": [
                 {
-                  "replace": "src/environments/environment.ts",
+                  "replace": "src/environments/environment.dev.ts",
                   "with": "src/environments/environment.prod.ts"
                 }
               ],
@@ -60,7 +60,7 @@
                 },
                 {
                   "type": "anyComponentStyle",
-                  "maximumWarning": "6kB",
+                  "maximumWarning": "7kB",
                   "maximumError": "8kB"
                 }
               ],

@@ -7,10 +7,13 @@
  * 穴あきタイピング（levelup）の出題中は #answerInput へ自動フォーカスし、
  * マウス操作なしで「入力→Enter→次へ→入力」と続けられるようにしている。
  * また #answerInput（お手本と桁を揃えるため textarea）の高さを入力内容に応じて自動調整する。
+ * お祝いモーダル（shared/ui/celebration）へ渡す文言は、shared層が core/i18n に依存できないため
+ * celebrationTitle/celebrationMessage/celebrationAchievements として本コンポーネントで翻訳して渡す。
  */
 import {
   ChangeDetectionStrategy,
   Component,
+  computed,
   effect,
   ElementRef,
   inject,
@@ -22,12 +25,25 @@ import { I18nService } from '@core/i18n/i18n.service';
 import { Badge } from '@shared/ui/badge/badge';
 import { Card } from '@shared/ui/card/card';
 import { Icon } from '@shared/ui/icon/icon';
+import { Celebration } from '@shared/ui/celebration/celebration';
+import { ProgressBar } from '@shared/ui/progress-bar/progress-bar';
 import { DrillState } from './drill-state.service';
 import { SentenceList } from './sentence-list/sentence-list';
+import { DailyMissions } from './daily-missions/daily-missions';
 
 @Component({
   selector: 'app-drill',
-  imports: [FormsModule, DatePipe, SentenceList, Badge, Card, Icon],
+  imports: [
+    FormsModule,
+    DatePipe,
+    SentenceList,
+    DailyMissions,
+    Badge,
+    Card,
+    Icon,
+    Celebration,
+    ProgressBar,
+  ],
   templateUrl: './drill.html',
   styleUrl: './drill.scss',
   changeDetection: ChangeDetectionStrategy.OnPush,
@@ -35,6 +51,47 @@ import { SentenceList } from './sentence-list/sentence-list';
 export class Drill {
   protected state = inject(DrillState);
   protected i18n = inject(I18nService);
+
+  // ── お祝いモーダルへ渡す表示文字列 ──────────────────────────────
+  // shared/ui/celebration は core/i18n に依存できない（依存方向 features → core → shared）ため、
+  // 翻訳済みの文字列をこの層で組み立てて入力として渡す。
+  protected celebrationTitle = computed(() => {
+    const kind = this.state.celebrationKind();
+    if (kind === 'labLevel') {
+      return this.i18n.t('drill.celebrate.labLevelTitle', {
+        level: this.state.leveledUpTo() ?? this.state.labLevel().level,
+      });
+    }
+    return this.i18n.t(
+      kind === 'perfect' ? 'drill.celebrate.perfectTitle' : 'drill.celebrate.masteredTitle',
+    );
+  });
+
+  protected celebrationMessage = computed(() => {
+    const kind = this.state.celebrationKind();
+    if (kind === 'labLevel') return this.i18n.t('drill.celebrate.labLevelMessage');
+    return this.i18n.t(
+      kind === 'perfect' ? 'drill.celebrate.perfectMessage' : 'drill.celebrate.masteredMessage',
+    );
+  });
+
+  // お祝いの中に並べる達成の内訳。同時解除された実績に加え、習熟・パーフェクトのお祝いと
+  // 同時にラボレベルが上がった場合はその1行も足す（お祝いは常に1つに集約する）。
+  protected celebrationAchievements = computed(() => {
+    const lines = this.state
+      .newlyUnlocked()
+      .map((id) => this.i18n.t(this.state.achievementTitleKey(id)));
+    const level = this.state.leveledUpTo();
+    if (level !== null && this.state.celebrationKind() !== 'labLevel') {
+      lines.push(this.i18n.t('drill.celebrate.labLevelLine', { level }));
+    }
+    return lines;
+  });
+
+  // 穴埋めクイズの結果サマリーがパーフェクトかどうか（お祝いを閉じた後も残る目印の出し分けに使う）。
+  protected isPerfectResult = computed(
+    () => this.state.total() > 0 && this.state.score() === this.state.total(),
+  );
 
   // 答え合わせ後に表示される「次へ」ボタン（levelup/mistakes・cloze どちらか一方のみ描画される）。
   // revealed() が true になった直後に自動フォーカスし、Enterキーだけで次の問題へ進めるようにする。
