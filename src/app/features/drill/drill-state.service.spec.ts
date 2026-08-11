@@ -1,11 +1,15 @@
+import { vi } from 'vitest';
 import { signal } from '@angular/core';
 import { TestBed } from '@angular/core/testing';
+import { GamificationStatsService } from '@core/achievements/gamification-stats.service';
+import { DAILY_MISSION_COUNT } from '@core/achievements/daily-mission';
 import { DrillState } from './drill-state.service';
 import { SessionRepositoryService } from '@core/sessions/session-repository.service';
 import { DrillProgressSyncService } from '@core/drill/drill-progress-sync.service';
 import { DRILL_MASTERY_STREAK } from '@core/drill/drill-progress.service';
 import { CorrectionSession, DrillProgress, LevelUpItemProgress } from '@core/models/session.model';
 import { normalizeDrillKey } from '@core/stats/session-stats.util';
+import { XP_CORRECT, XP_MASTERED, levelProgress } from '@core/achievements/xp.util';
 
 function makeSession(partial: Partial<CorrectionSession>): CorrectionSession {
   return {
@@ -78,6 +82,10 @@ function setup(sessions: CorrectionSession[]) {
 }
 
 describe('DrillState', () => {
+  // GamificationStatsService は providedIn:'root' で LocalStorage から復元されるため、
+  // クリアしないと completedSessionKeys 等がテスト間で持ち越され、テスト順に依存してしまう。
+  beforeEach(() => localStorage.clear());
+
   describe('新規ユーザー（セッション0件）', () => {
     it('isNewUserがtrueになり、start()でsampleModeがtrueになりサンプル問題が出題される', () => {
       const { state } = setup([]);
@@ -220,6 +228,355 @@ describe('DrillState', () => {
 
       state.next();
       expect(state.finished()).toBe(true);
+    });
+  });
+
+  describe('連続正解のライブ表示', () => {
+    // 2問とも同じ答えにして、シャッフル順に関係なく「正解し続ける」操作ができるようにする。
+    function twoQuestionSession() {
+      return makeSession({
+        id: 's1',
+        reviewItems: [
+          { sentence: 'a ___ b', answer: 'fox', hint: 'h', translation: 't', choices: ['fox'] },
+          { sentence: 'c ___ d', answer: 'fox', hint: 'h', translation: 't', choices: ['fox'] },
+        ],
+      });
+    }
+
+    it('正解のたびに増え、不正解で0に戻る', () => {
+      const session = twoQuestionSession();
+      const { state } = setup([session]);
+      state.start('cloze');
+      state.selectClozeDate(session);
+      expect(state.correctStreak()).toBe(0);
+
+      state.choose('fox');
+      expect(state.correctStreak()).toBe(1);
+
+      state.next();
+      state.choose('fox');
+      expect(state.correctStreak()).toBe(2);
+
+      state.next();
+      state.selectClozeDate(session);
+      state.choose('wrong');
+      expect(state.correctStreak()).toBe(0);
+    });
+
+    it('日付を選び直すとリセットされる', () => {
+      const session = twoQuestionSession();
+      const { state } = setup([session]);
+      state.start('cloze');
+      state.selectClozeDate(session);
+      state.choose('fox');
+      expect(state.correctStreak()).toBe(1);
+
+      state.selectClozeDate(session);
+      expect(state.correctStreak()).toBe(0);
+    });
+
+    it('サンプル問題（sampleMode）でも連続正解が動く', () => {
+      const { state } = setup([]);
+      state.start('cloze');
+      expect(state.sampleMode()).toBe(true);
+
+      state.choose(state.current()!.answer);
+      expect(state.correctStreak()).toBe(1);
+    });
+
+    it('streakTierは3/5/10/20で段階が上がる', () => {
+      const session = twoQuestionSession();
+      const { state } = setup([session]);
+      state.start('cloze');
+      state.selectClozeDate(session);
+
+      const tierAt = (n: number) => {
+        state.selectClozeDate(session);
+        for (let i = 0; i < n; i++) {
+          state.retry();
+          state.choose('fox');
+        }
+        return state.streakTier();
+      };
+
+      expect(tierAt(2)).toBe('');
+      expect(tierAt(3)).toBe('hot');
+      expect(tierAt(5)).toBe('fire');
+      expect(tierAt(10)).toBe('blaze');
+      expect(tierAt(20)).toBe('nova');
+    });
+  });
+
+  describe('お祝い（celebrationOpen）', () => {
+    it('穴埋めクイズを全問正解で終えるとパーフェクトのお祝いが開く', () => {
+      const session = makeSession({
+        id: 's1',
+        reviewItems: [
+          { sentence: 'a ___ b', answer: 'fox', hint: 'h', translation: 't', choices: ['fox'] },
+        ],
+      });
+      const { state } = setup([session]);
+      state.start('cloze');
+      state.selectClozeDate(session);
+      state.choose('fox');
+      state.next();
+
+      expect(state.finished()).toBe(true);
+      expect(state.celebrationOpen()).toBe(true);
+      expect(state.celebrationKind()).toBe('perfect');
+    });
+
+    it('取りこぼしがあるとお祝いは開かない', () => {
+      const session = makeSession({
+        id: 's1',
+        reviewItems: [
+          {
+            sentence: 'a ___ b',
+            answer: 'fox',
+            hint: 'h',
+            translation: 't',
+            choices: ['fox', 'dog'],
+          },
+        ],
+      });
+      const { state } = setup([session]);
+      state.start('cloze');
+      state.selectClozeDate(session);
+      state.choose('dog');
+      state.next();
+
+      expect(state.finished()).toBe(true);
+      expect(state.celebrationOpen()).toBe(false);
+    });
+
+    it('文を習熟するとお祝いが開き、retry()で閉じる', () => {
+      const session = makeSession({
+        id: 's1',
+        levelUpItems: [
+          { original: 'o', leveledUp: 'short text', keyPhrases: ['short'], translation: 't' },
+        ],
+      });
+      const { state } = setup([session]);
+      state.selectLevelUpDate(session);
+      state.selectLevelUpSentence(0);
+
+      const item = state.levelUpQuiz()[0];
+      state.maskLevel.set(item.maxLevel);
+      state.userAnswer.set(item.leveledUp);
+      state.checkTyping();
+
+      expect(state.celebrationOpen()).toBe(true);
+      expect(state.celebrationKind()).toBe('mastered');
+
+      state.retry();
+      expect(state.celebrationOpen()).toBe(false);
+    });
+
+    it('dismissCelebration()はお祝いと実績トーストの両方を閉じる', () => {
+      const { state } = setup([]);
+      state.celebrationOpen.set(true);
+
+      state.dismissCelebration();
+      expect(state.celebrationOpen()).toBe(false);
+      expect(state.newlyUnlocked()).toEqual([]);
+    });
+  });
+
+  describe('経験値・ラボレベル', () => {
+    it('正解すると経験値が増える', () => {
+      const session = makeSession({
+        id: 's1',
+        reviewItems: [
+          { sentence: 'a ___ b', answer: 'fox', hint: 'h', translation: 't', choices: ['fox'] },
+        ],
+      });
+      const { state } = setup([session]);
+      state.start('cloze');
+      state.selectClozeDate(session);
+
+      const before = state.gamificationStats().totalXp ?? 0;
+      state.choose('fox');
+      expect((state.gamificationStats().totalXp ?? 0) - before).toBe(XP_CORRECT);
+    });
+
+    it('サンプル問題では経験値が入らない', () => {
+      const { state } = setup([]);
+      state.start('cloze');
+      expect(state.sampleMode()).toBe(true);
+
+      const before = state.gamificationStats().totalXp ?? 0;
+      state.choose(state.current()!.answer);
+      expect(state.gamificationStats().totalXp ?? 0).toBe(before);
+    });
+
+    it('文を初めて習熟したときだけ習熟の経験値が入る', () => {
+      const session = makeSession({
+        id: 's1',
+        levelUpItems: [
+          { original: 'o', leveledUp: 'short text', keyPhrases: ['short'], translation: 't' },
+        ],
+      });
+      const { state } = setup([session]);
+
+      const masterOnce = () => {
+        state.selectLevelUpDate(session);
+        state.selectLevelUpSentence(0);
+        const item = state.levelUpQuiz()[0];
+        state.maskLevel.set(item.maxLevel);
+        state.userAnswer.set(item.leveledUp);
+        state.checkTyping();
+      };
+
+      const before = state.gamificationStats().totalXp ?? 0;
+      masterOnce();
+      const afterFirst = state.gamificationStats().totalXp ?? 0;
+      // 解答ぶん + 習熟ぶん
+      expect(afterFirst - before).toBe(XP_CORRECT + XP_MASTERED);
+
+      masterOnce();
+      const afterSecond = state.gamificationStats().totalXp ?? 0;
+      // 2回目は解答ぶんのみ（習熟の経験値は再取得できない）
+      expect(afterSecond - afterFirst).toBe(XP_CORRECT);
+    });
+
+    it('labLevelは累積経験値からレベルとレベル内進捗を返す', () => {
+      const { state } = setup([]);
+      expect(state.labLevel()).toEqual(levelProgress(state.gamificationStats().totalXp ?? 0));
+    });
+  });
+
+  describe('デイリーミッション', () => {
+    // 対象ミッションが当日ぶんに選ばれているとは限らないため、進捗の有無ではなく
+    // GamificationStatsService への加算呼び出し回数で検証する。
+    function spyMissionMetric() {
+      const stats = TestBed.inject(GamificationStatsService);
+      return vi.spyOn(stats, 'recordMissionMetric');
+    }
+
+    it('1問の解答につき answers / bestStreak は1回ずつ、正解時のみ correctAnswers も1回加算される', () => {
+      const session = makeSession({
+        id: 's1',
+        reviewItems: [
+          {
+            sentence: 'a ___ b',
+            answer: 'fox',
+            hint: 'h',
+            translation: 't',
+            choices: ['fox', 'dog'],
+          },
+        ],
+      });
+      const { state } = setup([session]);
+      state.start('cloze');
+      state.selectClozeDate(session);
+      const spy = spyMissionMetric();
+
+      state.choose('fox');
+
+      const metrics = spy.mock.calls.map((c) => c[0]);
+      expect(metrics.filter((m) => m === 'answers').length).toBe(1);
+      expect(metrics.filter((m) => m === 'correctAnswers').length).toBe(1);
+      expect(metrics.filter((m) => m === 'bestStreak').length).toBe(1);
+    });
+
+    it('不正解では correctAnswers が加算されない', () => {
+      const session = makeSession({
+        id: 's1',
+        reviewItems: [
+          {
+            sentence: 'a ___ b',
+            answer: 'fox',
+            hint: 'h',
+            translation: 't',
+            choices: ['fox', 'dog'],
+          },
+        ],
+      });
+      const { state } = setup([session]);
+      state.start('cloze');
+      state.selectClozeDate(session);
+      const spy = spyMissionMetric();
+
+      state.choose('dog');
+
+      const metrics = spy.mock.calls.map((c) => c[0]);
+      expect(metrics).toContain('answers');
+      expect(metrics).not.toContain('correctAnswers');
+    });
+
+    it('同じ文を再び習熟しても mastered は二重計上されない', () => {
+      const session = makeSession({
+        id: 's1',
+        levelUpItems: [
+          { original: 'o', leveledUp: 'short text', keyPhrases: ['short'], translation: 't' },
+        ],
+      });
+      const { state } = setup([session]);
+
+      const masterOnce = () => {
+        state.selectLevelUpDate(session);
+        state.selectLevelUpSentence(0);
+        const item = state.levelUpQuiz()[0];
+        state.maskLevel.set(item.maxLevel);
+        state.userAnswer.set(item.leveledUp);
+        state.checkTyping();
+      };
+
+      const spy = spyMissionMetric();
+      masterOnce();
+      expect(spy.mock.calls.filter((c) => c[0] === 'mastered').length).toBe(1);
+
+      masterOnce();
+      // 2回目の習熟では加算されない（初回のまま）
+      expect(spy.mock.calls.filter((c) => c[0] === 'mastered').length).toBe(1);
+    });
+
+    it('既に完了済みの日程を再訪してパーフェクトにしても perfectSessions は加算されない', () => {
+      const session = makeSession({
+        id: 's1',
+        levelUpItems: [
+          { original: 'o', leveledUp: 'short text', keyPhrases: ['short'], translation: 't' },
+        ],
+      });
+      const { state } = setup([session]);
+
+      const masterOnce = () => {
+        state.selectLevelUpDate(session);
+        state.selectLevelUpSentence(0);
+        const item = state.levelUpQuiz()[0];
+        state.maskLevel.set(item.maxLevel);
+        state.userAnswer.set(item.leveledUp);
+        state.checkTyping();
+      };
+
+      const spy = spyMissionMetric();
+      masterOnce();
+      expect(spy.mock.calls.filter((c) => c[0] === 'perfectSessions').length).toBe(1);
+
+      masterOnce();
+      expect(spy.mock.calls.filter((c) => c[0] === 'perfectSessions').length).toBe(1);
+    });
+
+    it('サンプル問題ではミッションが加算されない', () => {
+      const { state } = setup([]);
+      state.start('cloze');
+      expect(state.sampleMode()).toBe(true);
+      const spy = spyMissionMetric();
+
+      state.choose(state.current()!.answer);
+      expect(spy).not.toHaveBeenCalled();
+    });
+
+    it('dailyMissionsは当日ぶんの一覧を進捗つきで返す', () => {
+      const { state } = setup([]);
+      const missions = state.dailyMissions();
+      expect(missions.length).toBe(DAILY_MISSION_COUNT);
+      for (const m of missions) {
+        // 現在値は常に0以上、しきい値以下に丸められている（バーがはみ出さないため）
+        expect(m.current).toBeGreaterThanOrEqual(0);
+        expect(m.current).toBeLessThanOrEqual(m.target);
+        expect(m.titleKey).toBe(`drill.missions.${m.id}`);
+      }
     });
   });
 

@@ -14,9 +14,17 @@
      maxLevel の比較だと1段階早く習熟済み扱いになってしまうため、専用signalで判定する）。
      日付・文ごとの進捗はセッションID単位で保存され、日付選択・文一覧の各画面で完了状況の確認・途中再開ができる。
      全文言は i18n.t()（core/i18n/I18nService）経由で表示する。
+     文の習熟時・穴埋めクイズのパーフェクト時は shared/ui/celebration（モーダル＋紙吹雪）で祝う
+     （state.celebrationOpen()／文言は drill.ts の celebrationTitle 等が翻訳済みで渡す）。
+     お祝い表示中は実績トーストを出さず、解除した実績名はお祝いの中にまとめて表示する。
      実績解除時は画面下部固定のトーストを表示し（state.newlyUnlocked()。4秒で自動的に消える）、
      結果サマリー（clozeのみ）には
-     現在の連続正解自己ベスト・継続日数（state.gamificationStats()）を表示する。 -->
+     現在の連続正解自己ベスト・継続日数（state.gamificationStats()）を表示する。
+     出題中の進捗行（.progress-row）は「n / 全体数」に加え、2問目以降の連続正解を
+     「連続正解 n」として表示する（state.correctStreak()。強調度は state.streakTier() を
+     .combo--<tier> のクラス名に載せて SCSS 側で段階表現する）。
+     モード選択画面の先頭にはラボレベル（state.labLevel()。累積経験値ベース）のバーと、
+     今日のデイリーミッション（app-daily-missions／state.dailyMissions()）を置く。 -->
 <div class="page">
   <h1 class="page-title">
     {{
@@ -26,7 +34,18 @@
     }}
   </h1>
 
-  @if (state.newlyUnlocked().length > 0) {
+  @if (state.celebrationOpen()) {
+    <!-- ── お祝い（習熟／パーフェクト）。同時解除された実績はトーストではなくこの中に出す ── -->
+    <app-celebration
+      [title]="celebrationTitle()"
+      [message]="celebrationMessage()"
+      [achievements]="celebrationAchievements()"
+      [closeLabel]="i18n.t('drill.celebrate.close')"
+      (closed)="state.dismissCelebration()"
+    ></app-celebration>
+  }
+
+  @if (state.newlyUnlocked().length > 0 && !state.celebrationOpen()) {
     <!-- ── 実績解除トースト（ドリル画面内のみ表示。SCSS で画面下部に固定配置する） ── -->
     <div class="achievement-toast">
       <strong>{{ i18n.t('achievements.toast.heading') }}</strong>
@@ -42,6 +61,30 @@
   }
 
   @if (!state.started()) {
+    <!-- ── ラボレベル（累積経験値。モード選択画面の先頭に置く） ── -->
+    <div class="lab-level">
+      <div class="lab-level-header">
+        <strong>{{ i18n.t('drill.labLevel', { level: state.labLevel().level }) }}</strong>
+        <span class="lab-level-xp">
+          {{
+            i18n.t('drill.labLevelProgress', {
+              current: state.labLevel().inLevel,
+              needed: state.labLevel().needed,
+            })
+          }}
+        </span>
+      </div>
+      <app-progress-bar
+        [value]="state.labLevel().inLevel"
+        [max]="state.labLevel().needed"
+        size="sm"
+        tone="primary"
+      ></app-progress-bar>
+    </div>
+
+    <!-- ── 今日のデイリーミッション ── -->
+    <app-daily-missions [missions]="state.dailyMissions()"></app-daily-missions>
+
     <!-- ── モード選択（スタート画面） ── -->
     <div class="intro">
       <button
@@ -203,9 +246,13 @@
           }}
         </p>
       } @else {
-        <p class="result-score">
+        <p class="result-score" [class.result-score-perfect]="isPerfectResult()">
           {{ i18n.t('drill.resultScore', { score: state.score(), total: state.total() }) }}
         </p>
+        @if (isPerfectResult()) {
+          <!-- お祝いモーダルを閉じた後も結果サマリーに残る、パーフェクトの目印 -->
+          <p class="result-perfect">{{ i18n.t('drill.celebrate.perfectTitle') }}</p>
+        }
       }
       <p class="result-message">{{ i18n.t('drill.resultMessage') }}</p>
       <p class="result-stats">
@@ -236,7 +283,14 @@
         {{ i18n.t('drill.backToDateSelect') }}
       </button>
     </div>
-    <div class="progress">{{ state.index() + 1 }} / {{ state.total() }}</div>
+    <div class="progress-row">
+      <div class="progress">{{ state.index() + 1 }} / {{ state.total() }}</div>
+      @if (state.correctStreak() >= 2) {
+        <span class="combo" [class]="'combo--' + state.streakTier()" aria-live="polite">
+          {{ i18n.t('drill.streakLive', { count: state.correctStreak() }) }}
+        </span>
+      }
+    </div>
 
     @if (state.currentLevelUp(); as item) {
       <app-card class="quiz-card">
@@ -334,7 +388,14 @@
         {{ i18n.t('drill.backToDateSelect') }}
       </button>
     </div>
-    <div class="progress">{{ state.index() + 1 }} / {{ state.total() }}</div>
+    <div class="progress-row">
+      <div class="progress">{{ state.index() + 1 }} / {{ state.total() }}</div>
+      @if (state.correctStreak() >= 2) {
+        <span class="combo" [class]="'combo--' + state.streakTier()" aria-live="polite">
+          {{ i18n.t('drill.streakLive', { count: state.correctStreak() }) }}
+        </span>
+      }
+    </div>
 
     @if (state.current(); as q) {
       <app-card class="quiz-card">

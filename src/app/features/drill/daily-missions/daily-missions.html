@@ -1,0 +1,32 @@
+<!-- @file 今日のデイリーミッション一覧。1件ごとに達成条件・進捗バー・現在値を並べ、
+     達成済みはチェックアイコンと「達成」ラベルに切り替える。 -->
+@if (missions().length > 0) {
+  <section class="missions">
+    <h2 class="missions-heading">{{ i18n.t('drill.missions.heading') }}</h2>
+    <ul class="mission-list">
+      @for (m of missions(); track m.id) {
+        <li class="mission" [class.mission-done]="m.completed">
+          <div class="mission-row">
+            <span class="mission-title">{{ i18n.t(titleKey(m.titleKey)) }}</span>
+            @if (m.completed) {
+              <span class="mission-status">
+                <app-icon name="correct"></app-icon>
+                {{ i18n.t('drill.missions.done') }}
+              </span>
+            } @else {
+              <span class="mission-status">
+                {{ i18n.t('drill.missions.progress', { current: m.current, target: m.target }) }}
+              </span>
+            }
+          </div>
+          <app-progress-bar
+            size="sm"
+            [tone]="m.completed ? 'success' : 'primary'"
+            [value]="m.current"
+            [max]="m.target"
+          ></app-progress-bar>
+        </li>
+      }
+    </ul>
+  </section>
+}

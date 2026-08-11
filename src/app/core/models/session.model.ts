@@ -2,7 +2,9 @@
  * @file アプリ全体で使うドメイン型定義。Mistake（1件のミス情報）・WritingEvaluation（定量評価＝スコア＋CEFR）・
  * ReviewItem（穴埋めクイズカード）・LevelUpItem（レベルアップ例文タイピング用、1文単位）・
  * DrillProgress（ドリルの習熟度）・GamificationStats/FeatureGamificationStats（添削・穴埋めクイズ・
- * 穴あきタイピングの対象機能別累積統計・実績解除状況）・LevelUpItemProgress（穴あきタイピングのマスク段階進捗）と
+ * 穴あきタイピングの対象機能別累積統計・実績解除状況・累積経験値）・
+ * DailyMissionState（当日ぶんのデイリーミッションと進捗）・
+ * LevelUpItemProgress（穴あきタイピングのマスク段階進捗）と
  * CorrectionSession（1回の添削セッション。corrected=添削解説プローズ、correctedText=添削後の全文、
  * levelUpText=レベルアップ後の全文、model=添削に使用したGeminiモデルID）を定義する。
  * 日本語の説明系フィールド（Mistake.explanation, ReviewItem.hint/translation, LevelUpItem.translation,
@@ -101,9 +103,29 @@ export interface FeatureGamificationStats {
 // 既存データの遡及集計は行わず、本機能リリース以降のプレイ・添削から集計を開始する方針
 // （docs/todo.md 参照）。CorrectionSession とは独立のモデルのため
 // firestore-sync.service.ts の OPTIONAL_FIELDS_MAP 対応は不要（core/achievements/ 側で同期する）。
+// totalXp は対象機能をまたいだ単一の累積経験値（ラボレベルの算出元。core/achievements/xp.util.ts）。
+// 機能別ではなくトップレベルに置くことで FeatureGamificationStats とそのマージ処理を変更せずに済む。
+// optional なのは旧データ（このフィールドが無い LocalStorage/Firestore ドキュメント）をそのまま
+// 有効として扱うため（isValidStats は features しか見ないのでマイグレーション不要）。
 export interface GamificationStats {
   features: Record<string, FeatureGamificationStats>; // featureIdごとの累積統計（例: 'correction'/'cloze'/'levelup'）
   unlockedAchievements: Record<string, string>; // achievementId → 解除日時(ISO)
+  totalXp?: number; // 累積経験値（ラボレベルの算出元）
+  dailyMissions?: DailyMissionState; // 当日ぶんのデイリーミッションと進捗
+}
+
+// ── DailyMissionState: その日のデイリーミッション（3件）と進捗 ─────
+// dayKey（@shared/utils/date.util.ts の toDayKey()）が変わったら丸ごと作り直す。
+// 前日ぶんの進捗は保持しない（日をまたいだ持ち越しをさせないため）。
+// missionIds は dayKey を種に決定論的に選ぶ（core/achievements/daily-mission.ts の pickMissionsFor）
+// ため、リロードしても端末をまたいでも必ず同じ3件になる。この性質が Firestore マージの前提になる。
+// completed は達成済みフラグで、ミッション達成の経験値を二重に付与しないためにも使う。
+// totalXp と同じく GamificationStats 上は optional（旧データにこのフィールドは存在しない）。
+export interface DailyMissionState {
+  dayKey: string; // 'YYYY-MM-DD'
+  missionIds: string[]; // その日の3件（DAILY_MISSIONS の id）
+  progress: Record<string, number>; // missionId → 現在値
+  completed: Record<string, true>; // missionId → 達成済み
 }
 
 // ── LevelUpItemProgress: 穴あきタイピング1文分の進捗 ─────

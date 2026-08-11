@@ -5,13 +5,15 @@
  * 「制覇」（cloze-mastery/levelup-mastery）はドリル機能側のデータ（features/drill専有）がないと
  * 達成度を算出できないため、未解除時は進捗（現在値/しきい値）を表示せずロック表示のみ行う
  * （achievement.model.ts 参照）。
- * ページ上部には全体の解除進捗（解除済み/全体数）をバーで表示する。
+ * ページ上部にはラボレベル（累積経験値。core/achievements/xp.util.ts）と
+ * 全体の解除進捗（解除済み/全体数）をバーで表示する。
  */
 import { ChangeDetectionStrategy, Component, computed, inject } from '@angular/core';
 import { DatePipe } from '@angular/common';
 import { ACHIEVEMENTS } from '@core/achievements/achievement-definitions';
 import { AchievementGroup } from '@core/achievements/achievement.model';
 import { GamificationSyncService } from '@core/achievements/gamification-sync.service';
+import { levelProgress } from '@core/achievements/xp.util';
 import { I18nService } from '@core/i18n/i18n.service';
 import { TranslationKey } from '@core/i18n/translations';
 import { ProgressBar } from '@shared/ui/progress-bar/progress-bar';
@@ -77,6 +79,9 @@ export class Achievements {
   protected unlockedCount = computed(
     () => Object.keys(this.gamification.stats().unlockedAchievements).length,
   );
+
+  // ラボレベル（累積経験値ベース）。ドリルトップと同じ内容をこのページ上部にも出す。
+  protected labLevel = computed(() => levelProgress(this.gamification.stats().totalXp ?? 0));
 
   protected totalCount = ACHIEVEMENTS.length;
 }

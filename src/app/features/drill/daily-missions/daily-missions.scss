@@ -1,0 +1,46 @@
+.missions {
+  margin-bottom: 1.25rem;
+}
+
+.missions-heading {
+  font-size: 0.9375rem;
+  font-weight: 700;
+  margin-bottom: 0.5rem;
+}
+
+.mission-list {
+  list-style: none;
+  display: flex;
+  flex-direction: column;
+  gap: 0.625rem;
+}
+
+.mission-row {
+  display: flex;
+  align-items: baseline;
+  justify-content: space-between;
+  gap: 0.75rem;
+  margin-bottom: 0.25rem;
+}
+
+.mission-title {
+  font-size: 0.875rem;
+}
+
+.mission-status {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.25rem;
+  font-size: 0.75rem;
+  font-weight: 700;
+  color: var(--color-text-muted);
+  white-space: nowrap;
+}
+
+// 達成済みは条件文と達成ラベルを success 色にして、一覧の中で完了が一目で分かるようにする。
+.mission-done {
+  .mission-title,
+  .mission-status {
+    color: var(--color-success);
+  }
+}

@@ -5,7 +5,16 @@
  * GamificationStatsService の signal を直接は書き換えず、allStats() / persist() 経由で読み書きする。
  * カウンタ系フィールドはマージ時に大きい方を採用し、unlockedAchievements/completedSessionKeys は
  * キー和集合でマージする（一度解除された実績・完了済みセッションは失われない）。
- * lastActiveDate は新しい方を採用する。マージロジックは GamificationStats.features のキー（featureId）の
+ * lastActiveDate は新しい方を採用する。
+ * totalXp（累積経験値）も大きい方を採用する。2端末が同時にオフラインで稼いだ分は合算されず
+ * 最大値になるが、合算方式は採れない（pushStats() が書き込みのたびに発火し、書き込み単位の
+ * 冪等キーを持たないため、同じドキュメントの再同期で二重計上してしまう）。
+ * 最大値方式は冪等で、このファイル内の他のカウンタ全てと一貫し、損失も小さい方の端末の
+ * オフライン獲得分に限定される。
+ * dailyMissions（当日ぶんのデイリーミッション進捗）だけは最大値方式を採れない。dayKey が
+ * 異なる場合は新しい日付の方を丸ごと採用し（前日ぶんの進捗を今日へ持ち越さないため）、
+ * 同一日付の場合のみミッション別に大きい方を採り、達成済みはキー和集合でマージする
+ * （mergeDailyMissions 参照）。マージロジックは GamificationStats.features のキー（featureId）の
  * 和集合に対して共通の mergeFeatureStats() を使い回す（featureId別に分岐しない汎用実装）。
  * 同期エラー signal・ログイン監視・push の成否ハンドリングは CloudSyncBase（core/sync）から継承する。
  * setDoc 直前は必ず stripUndefinedDeep()（core/sync/strip-undefined.util）を通し、lastActiveDate 等
@@ -13,11 +22,16 @@
  */
 import { Injectable, inject } from '@angular/core';
 import { getDoc, setDoc } from 'firebase/firestore';
-import { FeatureGamificationStats, GamificationStats } from '@core/models/session.model';
+import {
+  DailyMissionState,
+  FeatureGamificationStats,
+  GamificationStats,
+} from '@core/models/session.model';
 import { userDoc } from '@core/firebase/firestore-paths';
 import { CloudSyncBase } from '@core/sync/cloud-sync.base';
 import { stripUndefinedDeep } from '@core/sync/strip-undefined.util';
 import { AchievementId } from './achievement.model';
+import { DailyMissionMetric, pickMissionsFor } from './daily-mission';
 import { GamificationStatsService, isValidStats } from './gamification-stats.service';
 
 // 同期失敗時にユーザーへ見せるメッセージ（ローカル保存は成功している旨を必ず添える）。
@@ -43,6 +57,8 @@ export class GamificationSyncService extends CloudSyncBase {
   private store = inject(GamificationStatsService);
 
   readonly stats = this.store.stats;
+  // 当日ぶんのデイリーミッション状態（日付境界の判定は store 側が読み出しのたびに行う）。
+  readonly dailyMissions = this.store.dailyMissions;
 
   constructor() {
     super('GamificationSyncService', SYNC_ERROR_MESSAGE);
@@ -60,8 +76,22 @@ export class GamificationSyncService extends CloudSyncBase {
     this.pushStats();
   }
 
-  recordSessionComplete(featureId: string, sessionKey: string, perfect: boolean): void {
-    this.store.recordSessionComplete(featureId, sessionKey, perfect);
+  // 実際に計上されたかを呼び出し元へ伝える（重複完了なら false。デイリーミッションの
+  // パーフェクト系をこの戻り値でガードする）。
+  recordSessionComplete(featureId: string, sessionKey: string, perfect: boolean): boolean {
+    const counted = this.store.recordSessionComplete(featureId, sessionKey, perfect);
+    this.pushStats();
+    return counted;
+  }
+
+  recordMissionMetric(metric: DailyMissionMetric, amount: number): string[] {
+    const newlyCompleted = this.store.recordMissionMetric(metric, amount);
+    this.pushStats();
+    return newlyCompleted;
+  }
+
+  addXp(amount: number): void {
+    this.store.addXp(amount);
     this.pushStats();
   }
 
@@ -107,6 +137,8 @@ export class GamificationSyncService extends CloudSyncBase {
     const merged: GamificationStats = {
       features,
       unlockedAchievements: { ...cloud.unlockedAchievements, ...local.unlockedAchievements },
+      totalXp: Math.max(local.totalXp ?? 0, cloud.totalXp ?? 0),
+      dailyMissions: this.mergeDailyMissions(local.dailyMissions, cloud.dailyMissions),
     };
     this.store.persist(merged);
 
@@ -143,6 +175,41 @@ export class GamificationSyncService extends CloudSyncBase {
         cloud.bestInSessionCorrectStreak,
       ),
       completedSessionKeys: { ...local.completedSessionKeys, ...cloud.completedSessionKeys },
+    };
+  }
+
+  // 当日ぶんのデイリーミッション進捗をローカル・クラウド間でマージする。
+  // 他のフィールドと違い、ここだけは Math.max 一辺倒にできない:
+  //  1. 片側にしか無ければそれをそのまま採用する。
+  //  2. dayKey が違う場合は「新しい dayKey の方を丸ごと」採用する（'YYYY-MM-DD' なので辞書順比較で足りる）。
+  //     日をまたいだ進捗の合成は行わない。前日ぶんの進捗を今日のカウンタへ漏らしてはいけないため、
+  //     この分岐で Math.max を使うのは誤りになる。
+  //  3. dayKey が同じ場合は、ミッション別に進捗の大きい方を採り、達成済みはキー和集合でマージする
+  //     （completedSessionKeys と同じ考え方）。missionIds は dayKey から決定論的に決まるため
+  //     両者一致するはずだが、件数が食い違った場合は pickMissionsFor で作り直して防御する。
+  private mergeDailyMissions(
+    local: DailyMissionState | undefined,
+    cloud: DailyMissionState | undefined,
+  ): DailyMissionState | undefined {
+    if (!local) return cloud;
+    if (!cloud) return local;
+    if (local.dayKey !== cloud.dayKey) return local.dayKey > cloud.dayKey ? local : cloud;
+
+    const missionIds =
+      local.missionIds.length === cloud.missionIds.length
+        ? local.missionIds
+        : pickMissionsFor(local.dayKey).map((m) => m.id);
+
+    const progress: Record<string, number> = { ...cloud.progress };
+    for (const [id, value] of Object.entries(local.progress)) {
+      progress[id] = Math.max(value, cloud.progress[id] ?? 0);
+    }
+
+    return {
+      dayKey: local.dayKey,
+      missionIds,
+      progress,
+      completed: { ...local.completed, ...cloud.completed },
     };
   }
 }

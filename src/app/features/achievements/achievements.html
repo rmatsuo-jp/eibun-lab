@@ -1,7 +1,30 @@
 <!-- @file 実績一覧ページ。対象機能（添削・穴埋めクイズ・穴あきタイピング）ごとに3セクションでカードを並べ、
-     解除済みは解除日時、未解除は現在値/しきい値の進捗（制覇はロック表示のみ）を表示する。 -->
+     解除済みは解除日時、未解除は現在値/しきい値の進捗（制覇はロック表示のみ）を表示する。
+     ページ先頭にはラボレベル（累積経験値。labLevel()）のバーを置く。 -->
 <div class="page">
   <h1 class="page-title">{{ i18n.t('achievements.title') }}</h1>
+
+  <!-- ── ラボレベル（累積経験値。ドリルトップと同じ内容） ── -->
+  <div class="lab-level">
+    <div class="lab-level-header">
+      <strong>{{ i18n.t('drill.labLevel', { level: labLevel().level }) }}</strong>
+      <span class="lab-level-xp">
+        {{
+          i18n.t('drill.labLevelProgress', {
+            current: labLevel().inLevel,
+            needed: labLevel().needed,
+          })
+        }}
+      </span>
+    </div>
+    <app-progress-bar
+      [value]="labLevel().inLevel"
+      [max]="labLevel().needed"
+      size="sm"
+      tone="primary"
+    ></app-progress-bar>
+  </div>
+
   <p class="achievements-summary">
     {{ i18n.t('achievements.unlockedCount', { done: unlockedCount(), total: totalCount }) }}
   </p>

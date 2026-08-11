@@ -1,17 +1,25 @@
 /**
- * @file 対象機能別（添削／穴埋めクイズ／穴あきタイピング）の累積統計（GamificationStats）の
- * ローカル永続化を担うサービス。core/drill/drill-progress.service.ts と同じ構造
+ * @file 対象機能別（添削／穴埋めクイズ／穴あきタイピング）の累積統計（GamificationStats）と、
+ * 機能をまたいだ累積経験値（totalXp。ラボレベルの算出元）、および当日ぶんの
+ * デイリーミッション進捗（dailyMissions）のローカル永続化を担うサービス。
+ * デイリーミッションの日付境界は rolledMissions() が読み書きのたびに判定し、
+ * dayKey が変わっていれば pickMissionsFor() で当日ぶんを組み直す（タイマーは持たない）。core/drill/drill-progress.service.ts と同じ構造
  * （signal + readJson/writeJson）で、core層に置くことで features/practice（添削記録）・
  * features/drill（記録・実績判定）・features/achievements（一覧表示）の全てから参照できるようにする
  * （feature間import禁止のため）。
  * クラウド同期は行わない（ローカル専任）。gamification-sync.service.ts が allStats()/persist() 経由で
  * このサービスを読み書きし、Firestore との同期を担う。
  */
-import { Injectable, signal } from '@angular/core';
-import { FeatureGamificationStats, GamificationStats } from '@core/models/session.model';
+import { Injectable, computed, signal } from '@angular/core';
+import {
+  DailyMissionState,
+  FeatureGamificationStats,
+  GamificationStats,
+} from '@core/models/session.model';
 import { readJson, writeJson } from '@shared/utils/local-storage.util';
 import { toDayKey } from '@shared/utils/date.util';
 import { AchievementId } from './achievement.model';
+import { DailyMissionMetric, findMission, pickMissionsFor } from './daily-mission';
 import {
   FEATURE_ID_CLOZE,
   FEATURE_ID_CORRECTION,
@@ -44,6 +52,7 @@ function initialStats(): GamificationStats {
       [FEATURE_ID_LEVELUP]: initialFeatureStats(),
     },
     unlockedAchievements: {},
+    totalXp: 0,
   };
 }
 
@@ -77,6 +86,20 @@ function nextDailyStreak(
   return {
     currentDailyStreak,
     longestDailyStreak: Math.max(prev.longestDailyStreak, currentDailyStreak),
+  };
+}
+
+// 保存済みのデイリーミッション状態を「今日ぶん」に整える。
+// dayKey が今日でなければ（未設定・前日ぶちを含む）、今日の3件を決定論的に選び直して進捗を空に戻す。
+// 前日ぶんの進捗は引き継がない（日をまたいだ持ち越しをさせないため）。
+export function rolledMissions(saved: DailyMissionState | undefined): DailyMissionState {
+  const today = toDayKey(new Date().toISOString());
+  if (saved?.dayKey === today) return saved;
+  return {
+    dayKey: today,
+    missionIds: pickMissionsFor(today).map((m) => m.id),
+    progress: {},
+    completed: {},
   };
 }
 
@@ -153,10 +176,12 @@ export class GamificationStatsService {
   }
 
   // ドリルの1セッション（1回の出題セット/日程）完了時に呼ぶ。同じ sessionKey は重複カウントしない。
-  recordSessionComplete(featureId: string, sessionKey: string, perfect: boolean): void {
+  // 実際に計上したかを返す（false = 既に完了済みで無視した）。デイリーミッションのパーフェクト系を
+  // 重複加算させないため、呼び出し側はこの戻り値を見てからミッション指標を加算する。
+  recordSessionComplete(featureId: string, sessionKey: string, perfect: boolean): boolean {
     const prev = this._stats();
     const feature = this.featureStats(prev, featureId);
-    if (feature.completedSessionKeys[sessionKey]) return;
+    if (feature.completedSessionKeys[sessionKey]) return false;
 
     const today = toDayKey(new Date().toISOString());
     const { currentDailyStreak, longestDailyStreak } = nextDailyStreak(feature, today);
@@ -174,6 +199,49 @@ export class GamificationStatsService {
       completedSessionKeys: { ...feature.completedSessionKeys, [sessionKey]: true },
     };
     this.save({ ...prev, features: { ...prev.features, [featureId]: updated } });
+    return true;
+  }
+
+  // 累積経験値を加算する。付与量の決定は core/achievements/xp.util.ts の純関数側の責務で、
+  // ここは保存のみを担う（recordAnswer 等のシグネチャを変えずに済ませるため独立したメソッドにする）。
+  addXp(amount: number): void {
+    if (amount <= 0) return;
+    const prev = this._stats();
+    this.save({ ...prev, totalXp: (prev.totalXp ?? 0) + amount });
+  }
+
+  // ── デイリーミッション ────────────────────────────────────
+  // 当日ぶんのミッション状態。保存済みの dayKey が今日と違えば、その場で新しい3件を組み直す
+  // （タイマーを持たずに日付境界をまたげるよう、読み出しのたびに判定する）。
+  readonly dailyMissions = computed<DailyMissionState>(() =>
+    rolledMissions(this._stats().dailyMissions),
+  );
+
+  // 指標を1件加算し、新たに達成したミッションのidを返す（呼び出し元が経験値付与に使う）。
+  // 'bestStreak' は累積ではなくその日の最大値で判定する。
+  recordMissionMetric(metric: DailyMissionMetric, amount: number): string[] {
+    if (amount <= 0) return [];
+    const prev = this._stats();
+    const state = rolledMissions(prev.dailyMissions);
+
+    const progress = { ...state.progress };
+    const completed = { ...state.completed };
+    const newlyCompleted: string[] = [];
+
+    for (const id of state.missionIds) {
+      const def = findMission(id);
+      if (!def || def.metric !== metric || completed[id]) continue;
+
+      const current = progress[id] ?? 0;
+      progress[id] = metric === 'bestStreak' ? Math.max(current, amount) : current + amount;
+      if (progress[id] >= def.target) {
+        completed[id] = true;
+        newlyCompleted.push(id);
+      }
+    }
+
+    this.save({ ...prev, dailyMissions: { ...state, progress, completed } });
+    return newlyCompleted;
   }
 
   // 新規解除された実績IDを解除済みとして記録する（解除日時はISO文字列で保存）。
