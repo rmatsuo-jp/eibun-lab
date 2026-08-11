@@ -99,6 +99,7 @@ import {
   xpForAnswer,
 } from '@core/achievements/xp.util';
 import { DailyMissionMetric, findMission } from '@core/achievements/daily-mission';
+import { toDayKey } from '@shared/utils/date.util';
 import {
   buildLevelUpQuiz,
   classifyMistake,
@@ -122,6 +123,14 @@ export class DrillState {
   private gamification = inject(GamificationSyncService);
   private clozeState = inject(DrillClozeState);
   private levelUpState = inject(DrillLevelUpState);
+
+  // デイリーミッション（perfectSessions）用の重複排除。累積統計側の completedSessionKeys は
+  // 「これまでに一度でも完了したか」を見るため、全日程クリア済みのユーザーでは
+  // recordSessionComplete が常に false を返し、perfect-1 が永久に達成できなくなる。
+  // ミッションはその日ごとの達成なので、当日ぶんの「モード:日程」だけをメモリ上で重複排除する
+  // （永続形状は変えない。アプリ再起動でリセットされるが、稼ぐには日程を丸ごと解き直す必要がある）。
+  private missionPerfectKeys = new Set<string>();
+  private missionPerfectDay = '';
 
   // 1プレイ内の連続正解数（自己ベスト判定用 ＋ 出題中のライブ表示用）。
   // start() と日付選択（selectClozeDate/selectLevelUpDate）でリセットする。
@@ -438,12 +447,26 @@ export class DrillState {
   }
 
   // セッション（1回の出題セット/日程）完了を統計に反映し、新規解除された実績があれば積む。
-  // recordSessionComplete は completedSessionKeys で重複排除されるため、実際に計上された場合のみ
-  // パーフェクト系のミッションを加算する（同じ日程を再訪するだけで無限に達成できてしまうのを防ぐ）。
+  // 累積統計の重複排除（recordSessionComplete の completedSessionKeys）とミッションの重複排除は
+  // 別基準にする。累積側は「初回のみ」だが、ミッションは当日ぶんの達成なので
+  // missionPerfectKeys（当日・モード・日程単位）で判定する。
   private recordSessionCompleteForGamification(sessionKey: string, perfect: boolean): void {
-    const counted = this.gamification.recordSessionComplete(this.mode(), sessionKey, perfect);
-    if (counted && perfect) this.recordMission('perfectSessions', 1);
+    this.gamification.recordSessionComplete(this.mode(), sessionKey, perfect);
+    if (perfect && this.markMissionPerfect(sessionKey)) this.recordMission('perfectSessions', 1);
     this.evaluateAchievements();
+  }
+
+  // 当日ぶんのパーフェクト完了として未計上なら登録して true を返す（計上済みなら false）。
+  private markMissionPerfect(sessionKey: string): boolean {
+    const today = toDayKey(new Date().toISOString());
+    if (today !== this.missionPerfectDay) {
+      this.missionPerfectDay = today;
+      this.missionPerfectKeys.clear();
+    }
+    const key = `${this.mode()}:${sessionKey}`;
+    if (this.missionPerfectKeys.has(key)) return false;
+    this.missionPerfectKeys.add(key);
+    return true;
   }
 
   // 経験値を加算し、ラボレベルが上がったら leveledUpTo に新レベルを立てる（お祝い表示用）。

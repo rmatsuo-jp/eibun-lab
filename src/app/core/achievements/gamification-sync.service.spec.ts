@@ -191,6 +191,26 @@ describe('GamificationSyncService', () => {
     });
   });
 
+  describe('dailyMissions の日付境界', () => {
+    afterEach(() => vi.useRealTimers());
+
+    it('画面を開いたまま日付をまたいでも、タブ復帰時に当日ぶんへ切り替わる', () => {
+      vi.useFakeTimers();
+      vi.setSystemTime(new Date('2026-08-11T23:50:00'));
+      store.recordMissionMetric('answers', 3);
+      const before = store.dailyMissions();
+      expect(before.dayKey).toBe('2026-08-11');
+      expect(before.progress[before.missionIds[0]] ?? 0).toBeGreaterThanOrEqual(0);
+
+      vi.setSystemTime(new Date('2026-08-12T00:05:00'));
+      document.dispatchEvent(new Event('visibilitychange'));
+
+      const after = store.dailyMissions();
+      expect(after.dayKey).toBe('2026-08-12');
+      expect(after.progress).toEqual({});
+    });
+  });
+
   describe('recordSessionComplete の重複排除', () => {
     it('初回はtrue、同じsessionKeyの2回目はfalseを返す', () => {
       expect(service.recordSessionComplete(FEATURE_ID_CLOZE, 'cloze-s1', true)).toBe(true);

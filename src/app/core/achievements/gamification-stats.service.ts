@@ -3,7 +3,9 @@
  * 機能をまたいだ累積経験値（totalXp。ラボレベルの算出元）、および当日ぶんの
  * デイリーミッション進捗（dailyMissions）のローカル永続化を担うサービス。
  * デイリーミッションの日付境界は rolledMissions() が読み書きのたびに判定し、
- * dayKey が変わっていれば pickMissionsFor() で当日ぶんを組み直す（タイマーは持たない）。core/drill/drill-progress.service.ts と同じ構造
+ * dayKey が変わっていれば pickMissionsFor() で当日ぶんを組み直す（タイマーは持たない。
+ * 表示側は _today signal 経由で、タブ再表示・フォーカス復帰のタイミングで日付を読み直す）。
+ * core/drill/drill-progress.service.ts と同じ構造
  * （signal + readJson/writeJson）で、core層に置くことで features/practice（添削記録）・
  * features/drill（記録・実績判定）・features/achievements（一覧表示）の全てから参照できるようにする
  * （feature間import禁止のため）。
@@ -115,6 +117,27 @@ export class GamificationStatsService {
   private _stats = signal<GamificationStats>(this.loadStats());
   readonly stats = this._stats.asReadonly();
 
+  // dailyMissions（computed）を日付境界で再評価させるための「今日」。_stats が変わらない限り
+  // computed は再計算されないため、日付そのものを依存 signal として持つ必要がある。
+  // タイマーは持たず、タブが再び見えた時／ウィンドウにフォーカスが戻った時にだけ読み直す。
+  private readonly _today = signal(toDayKey(new Date().toISOString()));
+
+  constructor() {
+    if (typeof document !== 'undefined') {
+      document.addEventListener('visibilitychange', () => {
+        if (document.visibilityState === 'visible') this.refreshToday();
+      });
+    }
+    if (typeof window !== 'undefined') {
+      window.addEventListener('focus', () => this.refreshToday());
+    }
+  }
+
+  private refreshToday(): void {
+    const today = toDayKey(new Date().toISOString());
+    if (today !== this._today()) this._today.set(today);
+  }
+
   private loadStats(): GamificationStats {
     const loaded = readJson<unknown>(GAMIFICATION_STATS_KEY, initialStats());
     return isValidStats(loaded) ? loaded : initialStats();
@@ -211,11 +234,13 @@ export class GamificationStatsService {
   }
 
   // ── デイリーミッション ────────────────────────────────────
-  // 当日ぶんのミッション状態。保存済みの dayKey が今日と違えば、その場で新しい3件を組み直す
-  // （タイマーを持たずに日付境界をまたげるよう、読み出しのたびに判定する）。
-  readonly dailyMissions = computed<DailyMissionState>(() =>
-    rolledMissions(this._stats().dailyMissions),
-  );
+  // 当日ぶんのミッション状態。保存済みの dayKey が今日と違えば、その場で新しい3件を組み直す。
+  // _today を依存として読むことで、画面を開いたまま日付をまたいでも（タブ復帰・フォーカス復帰の
+  // タイミングで refreshToday() が走り）表示が当日ぶんへ切り替わる。
+  readonly dailyMissions = computed<DailyMissionState>(() => {
+    this._today();
+    return rolledMissions(this._stats().dailyMissions);
+  });
 
   // 指標を1件加算し、新たに達成したミッションのidを返す（呼び出し元が経験値付与に使う）。
   // 'bestStreak' は累積ではなくその日の最大値で判定する。

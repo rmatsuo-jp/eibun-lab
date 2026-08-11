@@ -531,7 +531,7 @@ describe('DrillState', () => {
       expect(spy.mock.calls.filter((c) => c[0] === 'mastered').length).toBe(1);
     });
 
-    it('既に完了済みの日程を再訪してパーフェクトにしても perfectSessions は加算されない', () => {
+    it('同じ日程を続けてパーフェクトにしても perfectSessions は当日1回しか加算されない', () => {
       const session = makeSession({
         id: 's1',
         levelUpItems: [
@@ -554,6 +554,34 @@ describe('DrillState', () => {
       expect(spy.mock.calls.filter((c) => c[0] === 'perfectSessions').length).toBe(1);
 
       masterOnce();
+      expect(spy.mock.calls.filter((c) => c[0] === 'perfectSessions').length).toBe(1);
+    });
+
+    it('過去に完了済みの日程でも、その日はじめてのパーフェクトなら perfectSessions が加算される', () => {
+      const session = makeSession({
+        id: 's1',
+        levelUpItems: [
+          { original: 'o', leveledUp: 'short text', keyPhrases: ['short'], translation: 't' },
+        ],
+      });
+      const masterOnce = (state: DrillState) => {
+        state.selectLevelUpDate(session);
+        state.selectLevelUpSentence(0);
+        const item = state.levelUpQuiz()[0];
+        state.maskLevel.set(item.maxLevel);
+        state.userAnswer.set(item.leveledUp);
+        state.checkTyping();
+      };
+
+      // 1回目: completedSessionKeys に登録される（LocalStorage に残る）
+      masterOnce(setup([session]).state);
+
+      // アプリ再起動相当（LocalStorage は残したまま DrillState を作り直す）
+      TestBed.resetTestingModule();
+      const { state: restarted } = setup([session]);
+      const spy = spyMissionMetric();
+      masterOnce(restarted);
+
       expect(spy.mock.calls.filter((c) => c[0] === 'perfectSessions').length).toBe(1);
     });
 
