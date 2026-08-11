@@ -111,6 +111,17 @@
   color: var(--color-text);
 }
 
+// 同日に複数添削がある日のみ表示される「N回目」ラベル。
+.session-ordinal {
+  font-size: 0.75rem;
+  background: var(--color-bg);
+  border: 1px solid var(--color-border);
+  color: var(--color-text-muted);
+  padding: 0.15rem 0.5rem;
+  border-radius: 999px;
+  font-weight: 600;
+}
+
 .mistake-count {
   font-size: 0.75rem;
   background: var(--color-error-bg);

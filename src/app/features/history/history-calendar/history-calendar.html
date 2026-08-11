@@ -42,6 +42,9 @@
       } @else if (cell.hasSession) {
         <span class="cell-dot"></span>
       }
+      @if (cell.count > 1) {
+        <span class="cell-count">{{ i18n.t('history.dayCount', { count: cell.count }) }}</span>
+      }
     </button>
   }
 </div>

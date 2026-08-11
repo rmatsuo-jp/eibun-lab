@@ -23,6 +23,8 @@ interface CalendarCell {
   hasSession: boolean;
   isToday: boolean;
   evaluation?: WritingEvaluation;
+  // その日のセッション件数。2件以上のときだけセルに件数インジケータを出す。
+  count: number;
 }
 
 @Component({
@@ -80,8 +82,10 @@ export class HistoryCalendar {
         inMonth: cursor.getMonth() === monthIndex,
         hasSession: byDay.has(dayKey),
         isToday: dayKey === todayKey,
-        // 同日に複数セッションがある場合は末尾（＝最後に保存された）1件の評価をそのままバッジに使う。
+        // 同日に複数セッションがある場合は末尾（＝最後に保存された）1件の評価をバッジに使い、
+        // 複数あることは count による件数インジケータで示す。
         evaluation: daySessions?.at(-1)?.evaluation,
+        count: daySessions?.length ?? 0,
       });
       cursor.setDate(cursor.getDate() + 1);
     }
