@@ -1,3 +1,16 @@
+# [1.4.0](https://github.com/rmatsuo-jp/eibun-lab/compare/v1.3.1...v1.4.0) (2026-08-11)
+
+
+### Bug Fixes
+
+* デイリーミッションの日付切り替わりとperfect-1の達成不能を修正 ([648ec28](https://github.com/rmatsuo-jp/eibun-lab/commit/648ec28c917b12295d99c4c9729e4e153184ded1))
+
+
+### Features
+
+* **history:** 同日複数添削に「N回目」ラベルとカレンダー件数表示を追加 ([7dc98c3](https://github.com/rmatsuo-jp/eibun-lab/commit/7dc98c31d73a845e85065b3e8bdc705abf98bffa))
+* ドリルに連続正解表示・お祝い演出・ラボレベル・デイリーミッションを追加 ([16731cb](https://github.com/rmatsuo-jp/eibun-lab/commit/16731cb8a210054445e95737595d158016f11ac5))
+
 ## [1.3.1](https://github.com/rmatsuo-jp/eibun-lab/compare/v1.3.0...v1.3.1) (2026-08-03)
 
 
