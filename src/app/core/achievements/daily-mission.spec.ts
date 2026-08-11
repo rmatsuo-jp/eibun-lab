@@ -1,9 +1,4 @@
-import {
-  DAILY_MISSIONS,
-  DAILY_MISSION_COUNT,
-  findMission,
-  pickMissionsFor,
-} from './daily-mission';
+import { DAILY_MISSIONS, DAILY_MISSION_COUNT, findMission, pickMissionsFor } from './daily-mission';
 
 describe('daily-mission', () => {
   describe('pickMissionsFor', () => {
