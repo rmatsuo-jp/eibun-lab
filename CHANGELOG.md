@@ -1,3 +1,11 @@
+## [1.3.1](https://github.com/rmatsuo-jp/eibun-lab/compare/v1.3.0...v1.3.1) (2026-08-03)
+
+
+### Bug Fixes
+
+* 添削後の英文を文単位で改行表示する ([8213f73](https://github.com/rmatsuo-jp/eibun-lab/commit/8213f732cda780f6b9b13fa3a5f69bdc1ba4889e))
+* 穴埋めクイズの選択肢をシャッフルして常に先頭が正解になる不具合を修正 ([cc84032](https://github.com/rmatsuo-jp/eibun-lab/commit/cc840325b9db8980539324f2a01cb74887550702))
+
 # [1.3.0](https://github.com/rmatsuo-jp/eibun-lab/compare/v1.2.0...v1.3.0) (2026-07-25)
 
 
