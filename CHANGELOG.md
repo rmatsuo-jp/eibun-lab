@@ -1,3 +1,11 @@
+## [1.4.1](https://github.com/rmatsuo-jp/eibun-lab/compare/v1.4.0...v1.4.1) (2026-08-11)
+
+
+### Bug Fixes
+
+* **deps:** js-yaml を overrides で脆弱性修正版に固定 ([052bf63](https://github.com/rmatsuo-jp/eibun-lab/commit/052bf63f2672aee7652dd1e758cd64875629fb08))
+* **deps:** overrides で修正可能な脆弱性4件を解消 ([49a8c85](https://github.com/rmatsuo-jp/eibun-lab/commit/49a8c857e7a840d8aa804bc2001df7844f9abc18))
+
 # [1.4.0](https://github.com/rmatsuo-jp/eibun-lab/compare/v1.3.1...v1.4.0) (2026-08-11)
 
 
