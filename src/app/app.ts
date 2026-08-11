@@ -18,7 +18,7 @@ import {
   DestroyRef,
 } from '@angular/core';
 import { Router, RouterOutlet, RouterLink, RouterLinkActive } from '@angular/router';
-import { environment } from '../environments/environment';
+import { environment } from '../environments/environment.dev';
 import { SettingsStoreService } from '@core/settings/settings-store.service';
 import { I18nService } from '@core/i18n/i18n.service';
 import { Lang } from '@core/i18n/lang.model';

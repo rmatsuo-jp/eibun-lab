@@ -3,7 +3,7 @@
  * dev ルートは本番ビルドでは登録しない（route table・lazy chunkから除外し出荷されないようにする）。
  */
 import { Routes } from '@angular/router';
-import { environment } from '../environments/environment';
+import { environment } from '../environments/environment.dev';
 import { settingsCanDeactivateGuard } from './features/settings/settings.guard';
 
 export const routes: Routes = [
