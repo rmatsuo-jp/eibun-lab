@@ -363,5 +363,5 @@ computeして渡す値。featureIdをキーにした汎用マップのため、�
 
 - 型定義の正典: [session.model.ts](../src/app/core/models/session.model.ts)
 - アーキテクチャ全体: [ARCHITECTURE.md](../ARCHITECTURE.md)
-- システム概要: [overview.md](overview.md)
+- プロジェクト概要・技術スタック: [README.md](../README.md)
 - 用語の正典: [glossary.md](glossary.md)
