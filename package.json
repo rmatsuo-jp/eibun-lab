@@ -24,7 +24,7 @@
     "@angular/router": "^22.2.1",
     "@angular/service-worker": "^22.1.4",
     "@google/generative-ai": "^0.24.1",
-    "dompurify": "^3.4.16",
+    "dompurify": "^3.4.17",
     "firebase": "^12.18.0",
     "marked": "^18.0.11",
     "rxjs": "~7.8.0",
